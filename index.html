@@ -88,15 +88,52 @@ body {
 /* ── LAYOUT ── */
 #app { position:relative; z-index:1; display:flex; flex-direction:column; min-height:100vh; }
 
-/* ── HEADER ── */
+/* ── TOP BAR (logo + flags + lang) ── */
 header {
   position: sticky; top:0; z-index:200;
-  background: rgba(10,11,14,0.92);
+  background: rgba(10,11,14,0.95);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border);
-  padding: 0 1.5rem;
-  display: flex; align-items:center; gap:1rem;
-  height: 58px;
+  padding: 0 1rem;
+  display: flex; align-items:center; gap:.7rem;
+  height: 52px;
+}
+
+/* ── BOTTOM NAV (mobile) ── */
+#bottom-nav {
+  position: fixed; bottom:0; left:0; right:0; z-index:9999;
+  background: rgba(10,11,14,0.98);
+  border-top: 2px solid rgba(255,94,26,0.3);
+  display: none;
+  backdrop-filter: blur(20px);
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.5);
+}
+.bnb {
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:.5rem .2rem .45rem;
+  background:none; border:none; color:var(--tx3);
+  font-family:'Rajdhani',sans-serif; font-size:.58rem; font-weight:600;
+  letter-spacing:.04em; text-transform:uppercase; cursor:pointer;
+  gap:.18rem; transition:.15s; min-width:0;
+}
+.bnb .icon { font-size:1.15rem; line-height:1; }
+.bnb:hover { color:var(--tx2); }
+.bnb.on { color:var(--fire); }
+.bnb.on .icon { filter: drop-shadow(0 0 6px rgba(255,94,26,.6)); }
+
+/* desktop keeps top nav too */
+@media(min-width:769px) {
+  #bottom-nav { display:none !important; }
+  header { height:58px; padding:0 1.5rem; }
+  nav.desktop-nav { display:flex; gap:.2rem; flex:1; overflow-x:auto; }
+  nav.desktop-nav::-webkit-scrollbar { display:none; }
+  main { padding-bottom:0; }
+}
+@media(max-width:768px) {
+  #bottom-nav { display:flex !important; }
+  nav.desktop-nav { display:none !important; }
+  main { padding-bottom: 70px; }
 }
 
 .logo-wrap { display:flex; align-items:center; gap:.7rem; flex-shrink:0; }
@@ -118,17 +155,15 @@ header {
 }
 .logo-sub { font-family:'JetBrains Mono',monospace; font-size:.52rem; color:var(--tx3); letter-spacing:.1em; line-height:1.2; }
 
-nav { display:flex; gap:.2rem; flex:1; overflow-x:auto; }
-nav::-webkit-scrollbar { display:none; }
-.nb {
+nav.desktop-nav .nb {
   background:none; border:none; color:var(--tx2);
   font-family:'Rajdhani',sans-serif; font-size:.82rem; font-weight:500;
   letter-spacing:.08em; text-transform:uppercase;
   padding:.4rem .8rem; border-radius:6px; cursor:pointer;
   white-space:nowrap; transition:.15s; border-bottom:2px solid transparent;
 }
-.nb:hover { color:var(--tx); background:var(--bg3); }
-.nb.on { color:var(--fire); border-bottom-color:var(--fire); }
+nav.desktop-nav .nb:hover { color:var(--tx); background:var(--bg3); }
+nav.desktop-nav .nb.on { color:var(--fire); border-bottom-color:var(--fire); }
 
 .header-flags { display:flex; gap:.3rem; align-items:center; font-size:1.2rem; flex-shrink:0; }
 .conn-dot { width:7px; height:7px; border-radius:50%; background:#666; flex-shrink:0; transition:.3s; }
@@ -384,14 +419,20 @@ footer {
 
 /* ── RESPONSIVE ── */
 @media(max-width:768px) {
-  .grid2,.grid3,.grid4 { grid-template-columns:1fr; }
+  .grid2,.grid3 { grid-template-columns:1fr; }
+  .grid4 { grid-template-columns:1fr 1fr; }
   .meso-grid { grid-template-columns:1fr 1fr; }
-  .form-grid { grid-template-columns:1fr; }
+  .form-grid { grid-template-columns:1fr 1fr; }
   .page-head { padding:1.2rem 1rem .8rem; }
-  .pad,.grid2,.grid3,.grid4,.meso-grid,.chat-feed,.chat-input-wrap,.photo-feed,.diario-feed { padding-left:1rem; padding-right:1rem; }
-  header { padding:0 1rem; }
+  .pad { padding:1rem; }
+  .grid2,.grid3,.grid4,.meso-grid,.chat-feed,.chat-input-wrap,.photo-feed,.diario-feed { padding-left:1rem; padding-right:1rem; }
+  header { padding:0 .8rem; gap:.4rem; }
   .logo-sub { display:none; }
-  .page-title { font-size:2rem; }
+  .logo-text { font-size:1.3rem; }
+  .page-title { font-size:1.75rem; }
+  .stat-big { font-size:2.2rem; }
+  .lang-row .lbtn { padding:.15rem .4rem; font-size:.58rem; }
+  .header-flags { font-size:.9rem; }
 }
 
 /* ── LOADING ── */
@@ -433,17 +474,17 @@ footer {
     </div>
   </div>
 
-  <nav>
-    <button class="nb on" onclick="go('dash',this)" id="nb-dash">🏠 <span data-i="nav_dash">Dashboard</span></button>
-    <button class="nb" onclick="go('dados',this)" id="nb-dados">📊 <span data-i="nav_data">Dados</span></button>
-    <button class="nb" onclick="go('galeria',this)" id="nb-galeria">📸 <span data-i="nav_gallery">Galeria</span></button>
-    <button class="nb" onclick="go('diario',this)" id="nb-diario">📓 <span data-i="nav_diary">Diário</span></button>
-    <button class="nb" onclick="go('ashzap',this)" id="nb-ashzap">💬 AshZap</button>
-    <button class="nb" onclick="go('analises',this)" id="nb-analises">🔬 <span data-i="nav_analysis">Análises</span></button>
-    <button class="nb" onclick="go('sobre',this)" id="nb-sobre">ℹ️ <span data-i="nav_about">Sobre</span></button>
+  <nav class="desktop-nav">
+    <button class="nb on" onclick="go('dash',this,'nb-dash')" id="nb-dash">🏠 <span data-i="nav_dash">Dashboard</span></button>
+    <button class="nb" onclick="go('dados',this,'nb-dados')" id="nb-dados">📊 <span data-i="nav_data">Dados</span></button>
+    <button class="nb" onclick="go('galeria',this,'nb-galeria')" id="nb-galeria">📸 <span data-i="nav_gallery">Galeria</span></button>
+    <button class="nb" onclick="go('diario',this,'nb-diario')" id="nb-diario">📓 <span data-i="nav_diary">Diário</span></button>
+    <button class="nb" onclick="go('ashzap',this,'nb-ashzap')" id="nb-ashzap">💬 AshZap</button>
+    <button class="nb" onclick="go('analises',this,'nb-analises')" id="nb-analises">🔬 <span data-i="nav_analysis">Análises</span></button>
+    <button class="nb" onclick="go('sobre',this,'nb-sobre')" id="nb-sobre">ℹ️ <span data-i="nav_about">Sobre</span></button>
   </nav>
 
-  <div style="display:flex;align-items:center;gap:.6rem;flex-shrink:0;">
+  <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0;margin-left:auto;">
     <div class="lang-row">
       <button class="lbtn on" onclick="setLang('pt',this)">PT</button>
       <button class="lbtn" onclick="setLang('en',this)">EN</button>
@@ -453,6 +494,9 @@ footer {
     <div class="conn-dot" id="conn-dot" title="Firebase"></div>
   </div>
 </header>
+
+<!-- BOTTOM NAV lives outside #app to avoid flex interference -->
+
 
 <div id="toast"></div>
 
@@ -805,6 +849,17 @@ footer {
 </footer>
 </div><!-- #app -->
 
+<!-- BOTTOM NAV (mobile) — fixed, outside #app -->
+<nav id="bottom-nav">
+  <button class="bnb on" onclick="go('dash',this,'nb-dash')" id="bnb-dash"><span class="icon">🏠</span><span data-i="nav_dash">Home</span></button>
+  <button class="bnb" onclick="go('dados',this,'nb-dados')" id="bnb-dados"><span class="icon">📊</span><span data-i="nav_data">Dados</span></button>
+  <button class="bnb" onclick="go('galeria',this,'nb-galeria')" id="bnb-galeria"><span class="icon">📸</span><span data-i="nav_gallery">Fotos</span></button>
+  <button class="bnb" onclick="go('diario',this,'nb-diario')" id="bnb-diario"><span class="icon">📓</span><span data-i="nav_diary">Diário</span></button>
+  <button class="bnb" onclick="go('ashzap',this,'nb-ashzap')" id="bnb-ashzap"><span class="icon">💬</span>AshZap</button>
+  <button class="bnb" onclick="go('analises',this,'nb-analises')" id="bnb-analises"><span class="icon">🔬</span><span data-i="nav_analysis">Análise</span></button>
+  <button class="bnb" onclick="go('sobre',this,'nb-sobre')" id="bnb-sobre"><span class="icon">ℹ️</span><span data-i="nav_about">Sobre</span></button>
+</nav>
+
 <!-- SheetJS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
@@ -923,12 +978,22 @@ function setLang(l, btn) {
 // ═══════════════════════════════════════
 // NAVIGATION
 // ═══════════════════════════════════════
-function go(id, btn) {
+function go(id, btn, baseId) {
   document.querySelectorAll('.sec').forEach(s => s.classList.remove('on'));
-  document.querySelectorAll('.nb').forEach(b => b.classList.remove('on'));
+  // sync all nav buttons (desktop + mobile) for this section
+  document.querySelectorAll('.nb, .bnb').forEach(b => b.classList.remove('on'));
   document.getElementById(id).classList.add('on');
   if(btn) btn.classList.add('on');
+  // also highlight the sibling nav button
+  if(baseId) {
+    var paired = document.getElementById('b' + baseId) || document.getElementById(baseId.replace('nb-','bnb-'));
+    if(paired) paired.classList.add('on');
+    var desktop = document.getElementById(baseId);
+    if(desktop) desktop.classList.add('on');
+  }
   if(id === 'analises') buildAnalises();
+  // scroll to top
+  window.scrollTo(0,0);
 }
 
 // ═══════════════════════════════════════
