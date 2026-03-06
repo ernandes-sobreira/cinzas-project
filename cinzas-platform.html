@@ -1,0 +1,2148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CINZAS — Pantanal Mesocosm Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" onerror="console.warn('XLSX CDN failed, using CSV fallback')"></script>
+<style>
+:root{
+  --bg:#07080c;--s1:#0d1018;--s2:#121620;--s3:#181d28;
+  --b1:#1d2535;--b2:#253045;
+  --a1:#ff6b35;--a2:#ffa94d;--a3:#4ecdc4;--a4:#45b7d1;
+  --tx:#dde4f0;--mu:#5a6a84;--mu2:#3a4860;
+  --g:#22c55e;--r:#ef4444;--y:#eab308;--p:#a855f7;
+  --water:#1a5f8a;--water2:#2176ae;--ash:#8a8a8a;
+  --sed:#8b5e2a;--plant:#2d6a2f;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{height:100%;font-size:15px;}
+body{height:100%;background:var(--bg);color:var(--tx);font-family:'Space Grotesk',sans-serif;display:flex;flex-direction:column;overflow:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 10% 80%,rgba(255,107,53,.04),transparent 55%),radial-gradient(ellipse 60% 80% at 90% 10%,rgba(78,205,196,.03),transparent 55%);pointer-events:none;}
+
+/* ──────── NAV ──────── */
+nav{display:flex;align-items:center;height:52px;border-bottom:1px solid var(--b1);padding:0 1.5rem;flex-shrink:0;background:rgba(7,8,12,.92);backdrop-filter:blur(12px);z-index:200;position:relative;gap:0;}
+.logo{font-family:'Space Mono',monospace;font-size:1.1rem;font-weight:700;background:linear-gradient(135deg,var(--a1),var(--a2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;padding-right:1.5rem;margin-right:1.5rem;border-right:1px solid var(--b1);white-space:nowrap;flex-shrink:0;}
+.logo sub{font-size:.6rem;letter-spacing:.15em;-webkit-text-fill-color:var(--mu);}
+.navbtn{background:none;border:none;color:var(--mu);font-family:'Space Grotesk',sans-serif;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;padding:0 .85rem;height:52px;cursor:pointer;transition:color .15s;border-bottom:2px solid transparent;white-space:nowrap;font-weight:500;}
+.navbtn:hover{color:var(--tx);}
+.navbtn.on{color:var(--a1);border-bottom-color:var(--a1);}
+.nav-end{margin-left:auto;display:flex;gap:.4rem;align-items:center;}
+.lbtn{background:var(--s2);border:1px solid var(--b1);color:var(--mu);font-family:'Space Mono',monospace;font-size:.68rem;padding:.28rem .65rem;border-radius:4px;cursor:pointer;transition:.15s;}
+.lbtn.on{border-color:var(--a3);color:var(--a3);}
+
+/* ──────── MAIN ──────── */
+main{flex:1;overflow:hidden;position:relative;}
+.sec{display:none;position:absolute;inset:0;overflow-y:auto;padding:1.5rem 2rem;}
+.sec.on{display:block;animation:fi .2s ease;}
+@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px;}
+.stitle{font-size:1.25rem;font-weight:700;letter-spacing:-.02em;margin-bottom:1.25rem;display:flex;align-items:center;gap:.6rem;}
+.stitle span{font-size:.65rem;font-family:'Space Mono',monospace;color:var(--mu);letter-spacing:.12em;text-transform:uppercase;font-weight:400;}
+
+/* ──────── DASHBOARD ──────── */
+#dash{display:none;}
+#dash.on{display:grid;grid-template-columns:1.3fr 1fr;grid-template-rows:auto auto 1fr;gap:1.2rem;padding:1.5rem 2rem;}
+.card{background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:1.25rem;}
+.hero-title{font-size:2.8rem;font-weight:700;letter-spacing:-.05em;line-height:.9;margin-bottom:.35rem;}
+.fire{color:var(--a1);}
+.hero-sub{color:var(--mu);font-family:'Space Mono',monospace;font-size:.7rem;letter-spacing:.07em;margin-bottom:1.2rem;}
+.pbar-row{margin-bottom:.75rem;}
+.pbar-lbl{display:flex;justify-content:space-between;font-size:.68rem;color:var(--mu);margin-bottom:.3rem;font-family:'Space Mono',monospace;}
+.pbar{height:4px;background:var(--b1);border-radius:2px;overflow:hidden;}
+.pfill{height:100%;border-radius:2px;}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.7rem;margin-top:1rem;}
+.sbox{background:var(--s3);border:1px solid var(--b1);border-radius:8px;padding:.75rem;text-align:center;}
+.sn{font-size:1.8rem;font-weight:700;letter-spacing:-.05em;font-family:'Space Mono',monospace;}
+.sl{font-size:.6rem;color:var(--mu);letter-spacing:.1em;text-transform:uppercase;margin-top:.1rem;}
+.today-h{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--a1);margin-bottom:.9rem;font-family:'Space Mono',monospace;}
+.ti{display:flex;align-items:flex-start;gap:.6rem;padding:.45rem 0;border-bottom:1px solid var(--b1);font-size:.8rem;line-height:1.45;}
+.ti:last-child{border-bottom:none;}
+.dot{width:6px;height:6px;border-radius:50%;margin-top:5px;flex-shrink:0;}
+.dot.a{background:var(--a1);box-shadow:0 0 6px var(--a1);}.dot.p{background:var(--b2);}.dot.d{background:var(--g);}
+.badge{font-family:'Space Mono',monospace;font-size:.6rem;color:var(--mu);background:var(--s3);padding:.08rem .4rem;border-radius:12px;margin-left:auto;flex-shrink:0;}
+.treat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.8rem;}
+.tc{background:var(--s3);border:1px solid var(--b1);border-radius:9px;overflow:hidden;}
+.th2{padding:.9rem;}
+.tc.t0 .th2{background:rgba(34,197,94,.08);}.tc.t1 .th2{background:rgba(234,179,8,.08);}.tc.t2 .th2{background:rgba(249,115,22,.08);}.tc.t3 .th2{background:rgba(239,68,68,.08);}
+.tlbl{font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--mu);}
+.tn{font-size:1.3rem;font-weight:700;font-family:'Space Mono',monospace;letter-spacing:-.03em;}
+.td{font-size:.78rem;font-family:'Space Mono',monospace;margin-top:.15rem;}
+.tc.t0 .tn,.tc.t0 .td{color:#22c55e;}.tc.t1 .tn,.tc.t1 .td{color:#eab308;}.tc.t2 .tn,.tc.t2 .td{color:#f97316;}.tc.t3 .tn,.tc.t3 .td{color:#ef4444;}
+.tbody{padding:.8rem;}
+.mbw{display:flex;gap:.25rem;margin-bottom:.6rem;}
+.mb{flex:1;background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:.3rem;text-align:center;font-family:'Space Mono',monospace;font-size:.65rem;font-weight:700;}
+.tsp{font-size:.7rem;color:var(--mu);line-height:1.7;font-style:italic;}
+
+/* ──────── 3D VIEWER ──────── */
+#viewer{display:none;padding:0;}
+#viewer.on{display:grid;grid-template-columns:1fr 290px;position:absolute;inset:0;}
+.v3d-wrap{display:flex;flex-direction:column;overflow:hidden;}
+.v3d-head{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1.2rem;border-bottom:1px solid var(--b1);flex-shrink:0;background:var(--s1);}
+.v3d-head h2{font-size:.85rem;font-weight:700;letter-spacing:-.01em;}
+.vctrl{display:flex;gap:.3rem;flex-wrap:wrap;}
+.vb{background:var(--s2);border:1px solid var(--b1);color:var(--mu);font-family:'Space Mono',monospace;font-size:.65rem;padding:.28rem .7rem;border-radius:5px;cursor:pointer;transition:.15s;}
+.vb:hover,.vb.on{border-color:var(--a3);color:var(--a3);}
+canvas#cv{display:block;width:100%;flex:1;}
+.vpanel{border-left:1px solid var(--b1);overflow-y:auto;background:var(--s1);}
+.vpanel-head{padding:.9rem 1rem .6rem;border-bottom:1px solid var(--b1);font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--a3);font-family:'Space Mono',monospace;}
+.ci{padding:.8rem 1rem;border-bottom:1px solid var(--b1);cursor:pointer;transition:background .15s;}
+.ci:hover,.ci.sel{background:var(--s2);}
+.ci-top{display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem;}
+.ci-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.ci-name{font-size:.78rem;font-weight:600;}
+.ci-desc{font-size:.68rem;color:var(--mu);line-height:1.5;margin-bottom:.5rem;}
+.ci-foot{display:flex;align-items:center;justify-content:space-between;}
+.ci-tag{font-family:'Space Mono',monospace;font-size:.58rem;background:rgba(78,205,196,.1);color:var(--a3);padding:.08rem .4rem;border-radius:12px;}
+.tog{width:28px;height:15px;background:var(--b1);border-radius:7px;position:relative;cursor:pointer;transition:.2s;flex-shrink:0;}
+.tog.on{background:var(--a3);}
+.tog::after{content:'';position:absolute;width:11px;height:11px;background:#fff;border-radius:50%;top:2px;left:2px;transition:.2s;}
+.tog.on::after{left:15px;}
+/* component detail panel */
+.ci-detail{background:var(--s3);border:1px solid var(--b1);margin:.5rem 1rem;border-radius:8px;padding:.8rem;display:none;}
+.ci-detail.open{display:block;}
+.ci-detail h4{font-size:.78rem;color:var(--a3);margin-bottom:.4rem;}
+.ci-detail p{font-size:.7rem;color:var(--mu);line-height:1.55;}
+.ci-edit{display:flex;flex-direction:column;gap:.35rem;margin-top:.5rem;}
+.ci-edit label{font-size:.65rem;color:var(--mu);font-family:'Space Mono',monospace;}
+.ci-edit input,.ci-edit select{background:var(--s2);border:1px solid var(--b2);color:var(--tx);font-size:.72rem;padding:.35rem .5rem;border-radius:5px;width:100%;font-family:'Space Grotesk',sans-serif;}
+.ci-edit input:focus,.ci-edit select:focus{outline:none;border-color:var(--a3);}
+.savebtn{background:var(--a3);color:#000;border:none;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:.72rem;padding:.35rem .8rem;border-radius:5px;cursor:pointer;margin-top:.3rem;align-self:flex-start;}
+/* meso selector */
+.meso-sel{display:flex;gap:.4rem;flex-wrap:wrap;padding:.75rem 1rem;border-bottom:1px solid var(--b1);}
+.msb{background:var(--s2);border:1px solid var(--b1);color:var(--mu);font-family:'Space Mono',monospace;font-size:.65rem;padding:.25rem .55rem;border-radius:5px;cursor:pointer;transition:.15s;}
+.msb:hover,.msb.on{border-color:var(--a2);color:var(--a2);}
+
+/* ──────── SCHEDULE ──────── */
+.tline{position:relative;padding-left:1.8rem;max-width:860px;}
+.tline::before{content:'';position:absolute;left:.38rem;top:0;bottom:0;width:1px;background:var(--b1);}
+.tli{position:relative;margin-bottom:1.2rem;}
+.tldot{position:absolute;left:-1.48rem;top:.38rem;width:8px;height:8px;border-radius:50%;border:2px solid var(--bg);}
+.tldot.done{background:var(--g);}.tldot.now{background:var(--a1);box-shadow:0 0 7px var(--a1);}.tldot.up{background:var(--b2);}
+.tldate{font-family:'Space Mono',monospace;font-size:.68rem;color:var(--a2);margin-bottom:.25rem;}
+.tlcard{background:var(--s2);border:1px solid var(--b1);border-radius:7px;padding:.9rem;}
+.tlcard.hl{border-color:rgba(255,107,53,.35);background:rgba(255,107,53,.05);}
+.tlteam{font-size:.65rem;color:var(--mu);font-family:'Space Mono',monospace;margin-bottom:.55rem;}
+.tltasks{list-style:none;}
+.tltasks li{font-size:.75rem;padding:.2rem 0;color:var(--mu);display:flex;gap:.45rem;line-height:1.45;}
+.tltasks li::before{content:'›';color:var(--a3);flex-shrink:0;font-size:1rem;line-height:1.1;}
+
+/* ──────── PROTOCOLS ──────── */
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.1rem;}
+.pc{background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:1.2rem;}
+.pc h3{font-size:.88rem;font-weight:700;margin-bottom:.15rem;}
+.pc-own{font-size:.65rem;color:var(--a2);font-family:'Space Mono',monospace;margin-bottom:.85rem;}
+.psteps{list-style:none;counter-reset:s;}
+.psteps li{counter-increment:s;display:flex;gap:.55rem;padding:.38rem 0;border-bottom:1px solid var(--b1);font-size:.72rem;color:var(--mu);line-height:1.5;}
+.psteps li:last-child{border-bottom:none;}
+.psteps li::before{content:counter(s);background:var(--s3);border:1px solid var(--b1);border-radius:50%;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-size:.58rem;flex-shrink:0;color:var(--a3);}
+.pnote{background:rgba(78,205,196,.05);border:1px solid rgba(78,205,196,.15);border-radius:5px;padding:.55rem;margin-top:.8rem;font-size:.68rem;color:var(--a3);}
+
+/* ──────── MEDIA ──────── */
+.media-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.7rem;}
+.ftabs{display:flex;gap:.3rem;flex-wrap:wrap;}
+.ftab{background:var(--s2);border:1px solid var(--b1);color:var(--mu);font-family:'Space Mono',monospace;font-size:.65rem;padding:.25rem .75rem;border-radius:16px;cursor:pointer;transition:.15s;}
+.ftab:hover,.ftab.on{border-color:var(--a3);color:var(--a3);}
+.dropzone{border:2px dashed var(--b2);border-radius:10px;padding:1.75rem;text-align:center;cursor:pointer;transition:.25s;margin-bottom:1.2rem;position:relative;}
+.dropzone:hover,.dropzone.drag{border-color:var(--a3);background:rgba(78,205,196,.04);}
+.dropzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.dropzone h3{font-size:.95rem;margin-bottom:.25rem;}
+.dropzone p{font-size:.72rem;color:var(--mu);}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:.9rem;}
+.mc{background:var(--s2);border:1px solid var(--b1);border-radius:9px;overflow:hidden;transition:.15s;}
+.mc:hover{border-color:var(--a2);transform:translateY(-2px);}
+.mthumb{height:108px;display:flex;align-items:center;justify-content:center;background:var(--s3);overflow:hidden;font-size:2.2rem;}
+.mthumb img{width:100%;height:100%;object-fit:cover;}
+.minfo{padding:.65rem;}
+.minfo h4{font-size:.75rem;margin-bottom:.1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.minfo p{font-size:.63rem;color:var(--mu);}
+.mtag{display:inline-block;background:var(--s3);border:1px solid var(--b1);border-radius:12px;font-family:'Space Mono',monospace;font-size:.57rem;padding:.05rem .4rem;margin-top:.25rem;color:var(--mu);}
+.macts{display:flex;gap:.3rem;margin-top:.45rem;}
+.mact{flex:1;background:var(--s3);border:1px solid var(--b1);color:var(--mu);font-family:'Space Mono',monospace;font-size:.6rem;padding:.25rem;border-radius:4px;cursor:pointer;transition:.15s;text-align:center;}
+.mact:hover{border-color:var(--a3);color:var(--a3);}
+.mact.del:hover{border-color:var(--r);color:var(--r);}
+
+/* ──────── DATA ENTRY ──────── */
+#dados.on{display:block;}
+.data-grid{display:grid;grid-template-columns:340px 1fr;gap:1.2rem;height:calc(100vh - 120px);}
+.data-form-wrap{display:flex;flex-direction:column;gap:.8rem;overflow-y:auto;padding-right:.5rem;}
+.dcard{background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:1.1rem;}
+.dcard h3{font-size:.82rem;font-weight:700;margin-bottom:.85rem;color:var(--a3);font-family:'Space Mono',monospace;letter-spacing:.05em;}
+.drow{display:grid;grid-template-columns:1fr 1fr;gap:.55rem;margin-bottom:.55rem;}
+.drow.one{grid-template-columns:1fr;}
+.df{display:flex;flex-direction:column;gap:.22rem;}
+.df label{font-size:.62rem;color:var(--mu);font-family:'Space Mono',monospace;letter-spacing:.05em;}
+.df input,.df select{background:var(--s3);border:1px solid var(--b2);color:var(--tx);font-size:.75rem;padding:.4rem .55rem;border-radius:6px;font-family:'Space Grotesk',sans-serif;transition:.15s;width:100%;}
+.df input:focus,.df select:focus{outline:none;border-color:var(--a3);}
+.save-row{display:flex;gap:.5rem;margin-top:.5rem;}
+.sbtn{flex:1;padding:.55rem;border-radius:7px;border:none;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:.78rem;cursor:pointer;transition:.15s;}
+.sbtn.primary{background:var(--a1);color:#fff;}
+.sbtn.primary:hover{background:#e55a28;}
+.sbtn.sec{background:var(--s3);color:var(--tx);border:1px solid var(--b2);}
+.sbtn.sec:hover{border-color:var(--a3);color:var(--a3);}
+.data-charts{display:flex;flex-direction:column;gap:1rem;overflow-y:auto;}
+.chart-card{background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:1.1rem;}
+.chart-card h3{font-size:.78rem;font-weight:700;margin-bottom:.75rem;color:var(--tx);}
+.chart-wrap{position:relative;height:180px;}
+.data-table-wrap{background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:1.1rem;margin-top:1rem;}
+.data-table-wrap h3{font-size:.78rem;font-weight:700;margin-bottom:.75rem;}
+.dtbl{width:100%;border-collapse:collapse;font-size:.68rem;}
+.dtbl th{text-align:left;padding:.45rem .6rem;border-bottom:1px solid var(--b1);color:var(--mu);font-family:'Space Mono',monospace;font-size:.6rem;letter-spacing:.07em;font-weight:400;}
+.dtbl td{padding:.4rem .6rem;border-bottom:1px solid var(--b1);color:var(--tx);}
+.dtbl tr:last-child td{border-bottom:none;}
+.dtbl tr:hover td{background:var(--s3);}
+.del-row{color:var(--r);cursor:pointer;font-size:.75rem;background:none;border:none;padding:.1rem .3rem;}
+.del-row:hover{opacity:.7;}
+.no-data{text-align:center;padding:2.5rem;color:var(--mu);font-family:'Space Mono',monospace;font-size:.72rem;}
+.meso-tabs{display:flex;gap:.3rem;margin-bottom:.8rem;flex-wrap:wrap;}
+.mstab{background:var(--s3);border:1px solid var(--b1);color:var(--mu);font-family:'Space Mono',monospace;font-size:.65rem;padding:.22rem .55rem;border-radius:4px;cursor:pointer;transition:.15s;}
+.mstab:hover,.mstab.on{border-color:var(--a2);color:var(--a2);}
+
+/* ──────── ABOUT ──────── */
+#about.on{display:block;}
+.agrid{display:grid;grid-template-columns:2fr 1fr;gap:1.2rem;max-width:1100px;}
+.ac{background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:1.3rem;margin-bottom:1.1rem;}
+.ac h2{font-size:1.2rem;font-weight:700;letter-spacing:-.03em;margin-bottom:.8rem;}
+.ac p{font-size:.78rem;color:var(--mu);line-height:1.75;margin-bottom:.8rem;}
+.aslbl{font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--a3);margin-bottom:.65rem;display:block;font-family:'Space Mono',monospace;}
+.qb{background:var(--s3);border:1px solid rgba(255,107,53,.25);border-radius:8px;padding:1rem;margin-bottom:.8rem;}
+.ql{font-size:.58rem;letter-spacing:.14em;color:var(--a1);text-transform:uppercase;margin-bottom:.4rem;font-family:'Space Mono',monospace;}
+.qb p{font-size:.78rem;line-height:1.6;}
+.team-section{margin-bottom:1rem;}
+.tsub{font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--a2);margin-bottom:.5rem;font-family:'Space Mono',monospace;}
+.tm{display:flex;align-items:center;gap:.65rem;padding:.55rem;background:var(--s3);border-radius:7px;margin-bottom:.4rem;}
+.tav{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:700;flex-shrink:0;}
+.tmn{font-size:.78rem;font-weight:600;}
+.tmr{font-size:.65rem;color:var(--mu);}
+
+/* ──────── MESOSCOSM VIEWER ──────── */
+#mesoscosmos.on{display:block;}
+.meso-overview{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem;}
+.mcard2{background:var(--s2);border:1px solid var(--b1);border-radius:10px;overflow:hidden;cursor:pointer;transition:.2s;}
+.mcard2:hover{border-color:var(--a2);transform:translateY(-2px);}
+.mc2-head{padding:1rem;}
+.mc2-head.t0{background:rgba(34,197,94,.08);}.mc2-head.t1{background:rgba(234,179,8,.08);}.mc2-head.t2{background:rgba(249,115,22,.08);}.mc2-head.t3{background:rgba(239,68,68,.08);}
+.mc2-id{font-family:'Space Mono',monospace;font-size:.62rem;color:var(--mu);letter-spacing:.1em;}
+.mc2-treat{font-size:1.2rem;font-weight:700;font-family:'Space Mono',monospace;}
+.mc2-body{padding:.85rem;}
+.mc2-stat{display:flex;justify-content:space-between;font-size:.7rem;padding:.22rem 0;border-bottom:1px solid var(--b1);}
+.mc2-stat:last-child{border-bottom:none;}
+.mc2-stat .val{font-family:'Space Mono',monospace;color:var(--a3);}
+.mc2-btn{width:100%;padding:.5rem;background:var(--s3);border:1px solid var(--b1);color:var(--mu);font-size:.7rem;font-family:'Space Grotesk',sans-serif;cursor:pointer;transition:.15s;font-weight:500;}
+.mc2-btn:hover{border-color:var(--a3);color:var(--a3);}
+
+/* ──────── TOAST ──────── */
+#toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--s2);border:1px solid var(--a3);color:var(--tx);padding:.7rem 1.2rem;border-radius:8px;font-size:.78rem;z-index:999;transform:translateY(80px);transition:transform .3s;pointer-events:none;}
+#toast.show{transform:translateY(0);}
+
+@keyframes pulse-ring{0%{box-shadow:0 0 0 0 rgba(255,107,53,.5);}70%{box-shadow:0 0 0 8px rgba(255,107,53,0);}100%{box-shadow:0 0 0 0 rgba(255,107,53,0);}}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.4;}}
+.pulse-today{animation:pulse-ring 1.8s ease infinite;}
+.blink{animation:blink 1.2s ease infinite;}
+/* utils */
+.flex{display:flex;}.gap{gap:.5rem;}.ac2{align-items:center;}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">CINZAS<sub>CELBE-LIPAN/LEFA · UNEMAT · 2026</sub></div>
+  <button class="navbtn on" onclick="go('dash',this)" id="nb-dash">Dashboard</button>
+  <button class="navbtn" onclick="go('viewer',this)" id="nb-viewer">3D Mesocosmo</button>
+  <button class="navbtn" onclick="go('dados',this)" id="nb-dados">📊 Dados</button>
+  <button class="navbtn" onclick="go('analises',this)" id="nb-analises">🔬 Análises</button>
+  <button class="navbtn" onclick="go('mesoscosmos',this)" id="nb-mesoscosmos">12 Mesocosmos</button>
+  <button class="navbtn" onclick="go('schedule',this)" id="nb-schedule">Cronograma</button>
+  <button class="navbtn" onclick="go('protocols',this)" id="nb-protocols">Protocolos</button>
+  <button class="navbtn" onclick="go('media',this)" id="nb-media">Arquivos</button>
+  <button class="navbtn" onclick="go('about',this)" id="nb-about">Sobre</button>
+  <div class="nav-end">
+    <button class="lbtn on" onclick="setLang('pt',this)">PT</button>
+    <button class="lbtn" onclick="setLang('en',this)">EN</button>
+  </div>
+</nav>
+
+<div id="toast"></div>
+
+<main>
+
+<!-- ══════════════════ DASHBOARD ══════════════════ -->
+<div class="sec" id="dash">
+  <div class="card" style="grid-column:1">
+    <div class="hero-title"><span class="fire" id="t-title1">Cinzas</span> <span id="t-title2">&amp; Decoada</span></div>
+    <div class="hero-sub" id="t-sub">CELBE-LIPAN/LEFA · UNEMAT · Cáceres, MT · Mar–Jun 2026</div>
+
+    <!-- Dynamic progress bar -->
+    <div id="dash-prog-wrap">
+      <div class="pbar-row">
+        <div class="pbar-lbl"><span id="t-prog1">Progresso do experimento</span><span id="dash-pct">0%</span></div>
+        <div class="pbar"><div class="pfill" id="dash-pfill" style="background:linear-gradient(90deg,var(--a1),var(--a2));transition:width .8s ease;"></div></div>
+      </div>
+      <div class="pbar-row">
+        <div class="pbar-lbl" style="justify-content:space-between">
+          <span id="dash-phase" style="color:var(--a2);font-family:Space Mono,monospace;font-size:.65rem;"></span>
+          <span id="dash-days" style="font-family:Space Mono,monospace;font-size:.65rem;color:var(--mu);"></span>
+        </div>
+        <div class="pbar" style="position:relative;height:6px;">
+          <!-- milestone markers -->
+          <div style="position:absolute;left:0%;top:-2px;width:2px;height:10px;background:#22c55e22;"></div>
+          <div style="position:absolute;left:7%;top:-2px;width:2px;height:10px;background:var(--a1);opacity:.5" title="Aclimatação"></div>
+          <div style="position:absolute;left:17%;top:-2px;width:2px;height:10px;background:var(--a2);opacity:.7" title="Cinzas"></div>
+          <div style="position:absolute;left:100%;top:-2px;width:2px;height:10px;background:var(--g);opacity:.5" title="Final"></div>
+          <div class="pfill" id="dash-pfill2" style="background:linear-gradient(90deg,var(--a3),var(--g));transition:width .8s ease;height:6px;"></div>
+        </div>
+      </div>
+      <!-- milestone labels -->
+      <div style="display:flex;justify-content:space-between;font-size:.58rem;color:var(--mu);font-family:Space Mono,monospace;margin-top:.2rem;padding:0 .1rem;">
+        <span>24/02 Instalação</span><span>06/03 Peixes</span><span>13/03 Cinzas</span><span>12/06 Final</span>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="sbox"><div class="sn" style="color:var(--a1)">12</div><div class="sl" id="t-s1">Mesocosmos</div></div>
+      <div class="sbox"><div class="sn" style="color:var(--a3)">4</div><div class="sl" id="t-s2">Tratamentos</div></div>
+      <div class="sbox"><div class="sn" style="color:var(--a2)">120</div><div class="sl" id="t-s3">Camboatás</div></div>
+      <div class="sbox"><div class="sn" id="dash-daysrem" style="color:var(--g)">—</div><div class="sl">Dias restantes</div></div>
+    </div>
+  </div>
+
+  <div class="card" id="today-card" style="border-color:rgba(255,107,53,.3);">
+    <div class="today-h" id="t-today">⚡ Carregando…</div>
+    <div id="today-tasks"></div>
+  </div>
+
+  <div style="grid-column:1/-1">
+    <div class="treat-grid">
+      <div class="tc t0"><div class="th2"><div class="tlbl" id="t-t0l">Controle</div><div class="tn">T0</div><div class="td">0 g L⁻¹</div></div><div class="tbody"><div class="mbw"><div class="mb">CR1</div><div class="mb">CR2</div><div class="mb">CR3</div></div><div class="tsp">10× <em>H. littorale</em><br><span id="t-t0s">0g cinzas · 300L água</span></div></div></div>
+      <div class="tc t1"><div class="th2"><div class="tlbl" id="t-t1l">Baixo</div><div class="tn">T1</div><div class="td">2 g L⁻¹</div></div><div class="tbody"><div class="mbw"><div class="mb">2GR1</div><div class="mb">2GR2</div><div class="mb">2GR3</div></div><div class="tsp">10× <em>H. littorale</em><br><span id="t-t1s">500g cinzas · 300L</span></div></div></div>
+      <div class="tc t2"><div class="th2"><div class="tlbl" id="t-t2l">Médio</div><div class="tn">T2</div><div class="td">5 g L⁻¹</div></div><div class="tbody"><div class="mbw"><div class="mb">5GR1</div><div class="mb">5GR2</div><div class="mb">5GR3</div></div><div class="tsp">10× <em>H. littorale</em><br><span id="t-t2s">1250g cinzas · 300L</span></div></div></div>
+      <div class="tc t3"><div class="th2"><div class="tlbl" id="t-t3l">Alto</div><div class="tn">T3</div><div class="td">10 g L⁻¹</div></div><div class="tbody"><div class="mbw"><div class="mb">10GR1</div><div class="mb">10GR2</div><div class="mb">10GR3</div></div><div class="tsp">10× <em>H. littorale</em><br><span id="t-t3s">2500g cinzas · 300L</span></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ 3D VIEWER ══════════════════ -->
+<div class="sec" id="viewer">
+  <div class="v3d-wrap">
+    <div class="v3d-head">
+      <h2 id="t-3dtitle">🔬 Visualizador 3D Interativo — Mesocosmo 300L</h2>
+      <div class="vctrl">
+        <button class="vb on" onclick="setView('full',this)">Completo</button>
+        <button class="vb" onclick="setView('cut',this)">Corte</button>
+        <button class="vb" onclick="setView('explode',this)">Explodido</button>
+        <select id="treatSel" class="vb" style="background:var(--s2);cursor:pointer;" onchange="updateTreat()">
+          <option value="0">T0 — Controle (0g)</option>
+          <option value="1">T1 — 2 g L⁻¹ (500g)</option>
+          <option value="2">T2 — 5 g L⁻¹ (1250g)</option>
+          <option value="3">T3 — 10 g L⁻¹ (2500g)</option>
+        </select>
+        <button class="vb" onclick="resetV()">↺ Reset</button>
+      </div>
+    </div>
+    <canvas id="cv"></canvas>
+  </div>
+  <div class="vpanel">
+    <div class="vpanel-head" id="t-comphead">COMPONENTES</div>
+    <div id="clist"></div>
+  </div>
+</div>
+
+<!-- ══════════════════ 12 MESOCOSMOS ══════════════════ -->
+<div class="sec" id="mesoscosmos">
+  <div class="stitle">🧪 <span id="t-meso12">12 Mesocosmos — Estado Atual</span></div>
+  <div class="meso-overview" id="meso-overview"></div>
+  <div class="data-table-wrap">
+    <h3 id="t-lastdata">Últimos dados limnológicos inseridos</h3>
+    <table class="dtbl" id="meso-summary-table">
+      <thead><tr><th>Mesocosmo</th><th>Tratamento</th><th>Data</th><th>pH</th><th>OD (mg/L)</th><th>Temp (°C)</th><th>Cond (μS)</th><th>Turb</th></tr></thead>
+      <tbody id="meso-summary-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════════════ DADOS LIMNOLÓGICOS ══════════════════ -->
+<div class="sec" id="dados">
+  <div class="stitle">📊 <span id="t-datatitle">Entrada de Dados &amp; Gráficos em Tempo Real</span>
+    <span id="db-status" style="font-size:.62rem;font-family:Space Mono,monospace;padding:.2rem .6rem;border-radius:12px;background:var(--s3);border:1px solid var(--b1);color:var(--mu);margin-left:.5rem;">⏳ conectando…</span>
+  </div>
+  <div class="data-grid">
+    <div class="data-form-wrap">
+      <div class="dcard">
+        <h3 id="t-formtitle">INSERIR DADOS LIMNOLÓGICOS</h3>
+        <div class="drow">
+          <div class="df"><label id="t-ldate">Data</label><input type="date" id="d-date"></div>
+          <div class="df"><label id="t-ltime">Hora</label><input type="time" id="d-time"></div>
+        </div>
+        <div class="drow">
+          <div class="df"><label id="t-lmeso">Mesocosmo</label>
+            <select id="d-meso">
+              <optgroup label="T0 — Controle"><option>CR1</option><option>CR2</option><option>CR3</option></optgroup>
+              <optgroup label="T1 — 2 g/L"><option>2GR1</option><option>2GR2</option><option>2GR3</option></optgroup>
+              <optgroup label="T2 — 5 g/L"><option>5GR1</option><option>5GR2</option><option>5GR3</option></optgroup>
+              <optgroup label="T3 — 10 g/L"><option>10GR1</option><option>10GR2</option><option>10GR3</option></optgroup>
+            </select>
+          </div>
+          <div class="df"><label id="t-lop">Operador</label>
+            <select id="d-op"></select>
+          </div>
+        </div>
+        <div class="drow">
+          <div class="df"><label>pH</label><input type="number" id="d-ph" step="0.01" placeholder="6.5–9.0"></div>
+          <div class="df"><label>mV (ORP)</label><input type="number" id="d-orp" step="1" placeholder="±mV"></div>
+        </div>
+        <div class="drow">
+          <div class="df"><label>OD (%)</label><input type="number" id="d-odp" step="0.1" placeholder="0–200"></div>
+          <div class="df"><label>OD (mg/L)</label><input type="number" id="d-odm" step="0.01" placeholder="0–20"></div>
+        </div>
+        <div class="drow">
+          <div class="df"><label>Cond (μS/cm)</label><input type="number" id="d-cond" step="0.1"></div>
+          <div class="df"><label>TDS (ppm)</label><input type="number" id="d-tds" step="0.1"></div>
+        </div>
+        <div class="drow">
+          <div class="df"><label>Temp (°C)</label><input type="number" id="d-temp" step="0.1"></div>
+          <div class="df"><label>Turbidez (NTU)</label><input type="number" id="d-turb" step="0.1"></div>
+        </div>
+        <div class="drow">
+          <div class="df"><label>KΩ·cm</label><input type="number" id="d-kohm" step="0.01"></div>
+          <div class="df"><label>Pressão (KPA)</label><input type="number" id="d-kpa" step="0.1"></div>
+        </div>
+        <div class="drow one">
+          <div class="df"><label>Observações</label><input type="text" id="d-obs" placeholder="Notas de campo..."></div>
+        </div>
+        <div class="save-row">
+          <button class="sbtn primary" onclick="saveRecord()" id="t-save">💾 Salvar</button>
+          <button class="sbtn sec" onclick="clearForm()" id="t-clear">Limpar</button>
+          <button class="sbtn sec" onclick="exportExcel()">⬇ Excel</button>
+          <button class="sbtn sec" onclick="exportCSV()" id="t-export">⬇ CSV</button>
+          <button class="sbtn sec" onclick="showDataModal()" title="Copiar dados — alternativa se download não funcionar">📋 Ver dados</button>
+          <label class="sbtn sec" style="cursor:pointer;margin:0" title="Importar CSV de outro dispositivo">⬆ Importar<input type="file" accept=".csv" style="display:none" onchange="importCSV(this)"></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="data-charts">
+      <div style="display:flex;gap:.4rem;margin-bottom:.3rem;flex-wrap:wrap;">
+        <div class="meso-tabs" id="chart-meso-tabs"></div>
+      </div>
+      <div class="chart-card">
+        <h3>OD (mg/L)</h3>
+        <div class="chart-wrap"><canvas id="ch-od"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>OD (%)</h3>
+        <div class="chart-wrap"><canvas id="ch-odp"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>pH</h3>
+        <div class="chart-wrap"><canvas id="ch-ph"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Temperatura (°C)</h3>
+        <div class="chart-wrap"><canvas id="ch-temp"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Condutividade (μS/cm)</h3>
+        <div class="chart-wrap"><canvas id="ch-cond"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>TDS (ppm)</h3>
+        <div class="chart-wrap"><canvas id="ch-tds"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Turbidez (NTU)</h3>
+        <div class="chart-wrap"><canvas id="ch-turb"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>ORP (mV)</h3>
+        <div class="chart-wrap"><canvas id="ch-orp"></canvas></div>
+      </div>
+      <div class="data-table-wrap" style="margin-top:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem;">
+          <h3 id="t-regtitle">Registros</h3>
+          <span style="font-size:.65rem;color:var(--mu);font-family:'Space Mono',monospace;" id="rec-count">0 registros</span>
+        </div>
+        <table class="dtbl">
+          <thead><tr><th>Data/Hora</th><th>Mesocosmo</th><th>pH</th><th>OD</th><th>Temp</th><th>Cond</th><th>Obs</th><th></th></tr></thead>
+          <tbody id="data-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ ANÁLISES COMPARATIVAS ══════════════════ -->
+<div class="sec" id="analises">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;flex-wrap:wrap;gap:.7rem;">
+    <div class="stitle" style="margin-bottom:0">🔬 <span>Análises Comparativas por Tratamento</span></div>
+    <div style="display:flex;gap:.5rem;align-items:center;">
+      <select id="an-var" class="vb" style="background:var(--s2);font-family:Space Mono,monospace;font-size:.68rem;border:1px solid var(--b1);color:var(--tx);padding:.3rem .6rem;border-radius:5px;cursor:pointer;" onchange="buildAnalises()">
+        <option value="odm">OD (mg/L)</option>
+        <option value="odp">OD (%)</option>
+        <option value="ph">pH</option>
+        <option value="temp">Temperatura (°C)</option>
+        <option value="cond">Condutividade (μS/cm)</option>
+        <option value="tds">TDS (ppm)</option>
+        <option value="turb">Turbidez (NTU)</option>
+        <option value="orp">ORP (mV)</option>
+      </select>
+      <span id="an-status" style="font-family:Space Mono,monospace;font-size:.65rem;color:var(--mu);">— registros</span>
+    </div>
+  </div>
+
+  <!-- Alertas de outlier -->
+  <div id="an-alerts" style="margin-bottom:1rem;"></div>
+
+  <!-- Grid de gráficos comparativos -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.2rem;">
+    <div class="chart-card">
+      <h3>Evolução temporal — médias por tratamento</h3>
+      <div class="chart-wrap" style="height:220px"><canvas id="an-ch-trat"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Boxplot por tratamento (todos os registros)</h3>
+      <div class="chart-wrap" style="height:220px"><canvas id="an-ch-box"></canvas></div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1rem;margin-bottom:1.2rem;" id="an-treat-cards"></div>
+
+  <!-- Comparação entre réplicas por tratamento -->
+  <div class="data-table-wrap" style="margin-bottom:1.2rem;">
+    <h3 style="margin-bottom:.8rem;font-size:.82rem;">Comparação entre réplicas — desvio e outliers</h3>
+    <table class="dtbl" id="an-replica-table">
+      <thead><tr><th>Tratamento</th><th>Réplica</th><th>N</th><th>Média</th><th>DP</th><th>Mín</th><th>Máx</th><th>CV%</th><th>Status</th></tr></thead>
+      <tbody id="an-replica-body"></tbody>
+    </table>
+  </div>
+
+  <!-- Gráficos individuais de cada réplica por tratamento -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;" id="an-trat-detail"></div>
+</div>
+
+<!-- ══════════════════ SCHEDULE ══════════════════ -->
+<div class="sec" id="schedule">
+  <div class="stitle" id="t-sched-title">📅 Cronograma de Atividades</div>
+  <div class="tline" id="tline"></div>
+</div>
+
+<!-- ══════════════════ PROTOCOLS ══════════════════ -->
+<div class="sec" id="protocols">
+  <div class="stitle" id="t-prot-title">📋 Protocolos de Coleta</div>
+  <div class="pgrid" id="pgrid"></div>
+</div>
+
+<!-- ══════════════════ MEDIA ══════════════════ -->
+<div class="sec" id="media">
+  <div class="media-bar">
+    <div class="stitle" style="margin-bottom:0" id="t-media-title">📁 Arquivos &amp; Fotos do Projeto</div>
+    <div class="ftabs">
+      <div class="ftab on" onclick="filterM('all',this)">Todos</div>
+      <div class="ftab" onclick="filterM('foto',this)" id="ft-foto">Fotos</div>
+      <div class="ftab" onclick="filterM('relatorio',this)" id="ft-rel">Relatórios</div>
+      <div class="ftab" onclick="filterM('dados',this)" id="ft-dat">Dados</div>
+      <div class="ftab" onclick="filterM('protocolo',this)" id="ft-prot">Protocolos</div>
+    </div>
+  </div>
+  <div class="dropzone" id="dropzone">
+    <input type="file" id="fileInput" multiple accept="*/*" onchange="handleFiles(this.files)">
+    <h3 id="t-dz1">📂 Arraste arquivos ou clique para selecionar</h3>
+    <p id="t-dz2">Fotos JPG/PNG, PDFs, planilhas Excel, documentos Word, vídeos MP4 — qualquer formato</p>
+  </div>
+  <div class="mgrid" id="mgrid"></div>
+</div>
+
+<!-- ══════════════════ ABOUT ══════════════════ -->
+<div class="sec" id="about">
+  <div class="agrid">
+    <div>
+      <div class="ac">
+        <span class="aslbl" id="t-aslbl1">Questão Científica</span>
+        <div class="qb"><div class="ql">PT</div><p>A intensificação da "decoada" (matéria orgânica + cinzas pós-incêndio) reduz o oxigênio dissolvido suficientemente para alterar a estrutura do plâncton e a transferência de mercúrio para peixes (<em>Hoplosternum littorale</em>) em condições controladas?</p></div>
+        <div class="qb"><div class="ql">EN</div><p>Does the intensification of "decoada" (organic matter + post-fire ashes) reduce dissolved oxygen enough to alter plankton structure and mercury transfer to fish (<em>Hoplosternum littorale</em>) under controlled mesocosm conditions?</p></div>
+      </div>
+      <div class="ac">
+        <h2 id="t-about-h">Sobre o Projeto</h2>
+        <p id="t-about-p1">A <strong style="color:var(--tx)">decoada</strong> é um fenômeno natural do Pantanal — queda súbita de oxigênio causada pela decomposição de matéria orgânica e cinzas de incêndio. Este experimento em mesocosmos testa 4 intensidades de decoada sobre a biota aquática durante ~15 semanas no LIPAN/UNEMAT.</p>
+        <p id="t-about-p2">Design: 12 mesocosmos (300L) · 4 tratamentos × 3 réplicas · 10 <em>H. littorale</em>/mesocosmo · Parceria Brasil–Holanda · Análise de Hg em laboratório credenciado.</p>
+      </div>
+    </div>
+    <div>
+      <div class="ac">
+        <span class="aslbl" id="t-team-lbl">Equipe do Projeto</span>
+        <div id="team-display"></div>
+        <div style="margin-top:1rem;padding:.8rem;background:var(--s3);border:1px solid var(--b1);border-radius:8px;">
+          <div style="font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--mu);font-family:Space Mono,monospace;margin-bottom:.6rem;">➕ Adicionar membro</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:.4rem;align-items:end;">
+            <div><label style="font-size:.6rem;color:var(--mu);display:block;margin-bottom:.2rem">Nome</label><input id="tm-name" type="text" placeholder="Nome" style="width:100%;background:var(--s2);border:1px solid var(--b1);color:var(--tx);padding:.3rem .5rem;border-radius:4px;font-size:.72rem;"></div>
+            <div><label style="font-size:.6rem;color:var(--mu);display:block;margin-bottom:.2rem">Função</label><input id="tm-role" type="text" placeholder="Função/área" style="width:100%;background:var(--s2);border:1px solid var(--b1);color:var(--tx);padding:.3rem .5rem;border-radius:4px;font-size:.72rem;"></div>
+            <div><label style="font-size:.6rem;color:var(--mu);display:block;margin-bottom:.2rem">Grupo</label>
+              <select id="tm-group" style="width:100%;background:var(--s2);border:1px solid var(--b1);color:var(--tx);padding:.3rem .5rem;border-radius:4px;font-size:.72rem;">
+                <option value="coord">Coordenadores</option>
+                <option value="campo">Campo</option>
+                <option value="colab">Colaboradores</option>
+              </select>
+            </div>
+            <button onclick="addTeamMember()" style="background:var(--a1);border:none;color:#fff;padding:.35rem .7rem;border-radius:4px;font-size:.7rem;cursor:pointer;white-space:nowrap;font-weight:700;">+ Adicionar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer style="flex-shrink:0;height:34px;border-top:1px solid var(--b1);background:rgba(7,8,12,.95);display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;z-index:100;">
+  <div style="display:flex;align-items:center;gap:.7rem;font-family:Space Mono,monospace;font-size:.6rem;color:var(--mu);">
+    <span style="font-size:1.1rem" title="Brasil">🇧🇷</span>
+    <span>×</span>
+    <span style="font-size:1.1rem" title="Holanda">🇳🇱</span>
+    <span style="margin-left:.3rem">CELBE-LIPAN/LEFA · UNEMAT · Cáceres, MT</span>
+    <span style="color:var(--b2)">|</span>
+    <span id="footer-clock"></span>
+  </div>
+  <div style="display:flex;gap:.5rem;align-items:center;">
+    <button onclick="exportExcel()" style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#22c55e;font-family:Space Mono,monospace;font-size:.6rem;padding:.2rem .65rem;border-radius:4px;cursor:pointer;font-weight:700;" title="Backup completo dos dados">⬇ BACKUP EXCEL</button>
+    <button onclick="exportCSV()" style="background:rgba(78,205,196,.08);border:1px solid rgba(78,205,196,.2);color:var(--a3);font-family:Space Mono,monospace;font-size:.6rem;padding:.2rem .65rem;border-radius:4px;cursor:pointer;">⬇ CSV</button>
+    <span id="db-status-footer" style="font-family:Space Mono,monospace;font-size:.58rem;color:var(--mu);"></span>
+  </div>
+</footer>
+
+<script>
+// ── Footer clock
+setInterval(function(){
+  var e=document.getElementById('footer-clock');
+  if(e)e.textContent=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+},1000);
+</script>
+
+<script>
+// ══════════════════════════════════════════════
+// STATE & LANGUAGE
+// ══════════════════════════════════════════════
+var lang = 'pt';
+var DB = []; // in-memory database for limnological records
+var mFilter = 'all';
+var mediaItems = [];
+// Note: os documentos do projeto devem ser carregados via upload nesta sessão
+var charts = {};
+var chartMeso = 'CR1';
+
+var TXT = {
+  pt:{
+    'nav-dash':'Dashboard','nav-viewer':'3D Mesocosmo','nav-meso':'12 Mesocosmos',
+    'nav-dados':'📊 Dados','nav-sched':'Cronograma','nav-prot':'Protocolos',
+    'nav-media':'Arquivos','nav-about':'Sobre',
+    'today':'⚡ Hoje — 13/03/2026 · DIA ZERO DAS CINZAS',
+    'prog1':'Progresso geral','prog2':'Fase: Aclimatação concluída · Cinzas: 13/03',
+    's1':'Mesocosmos','s2':'Tratamentos','s3':'Camboatás','s4':'Espécie',
+    't0l':'Controle','t1l':'Baixo','t2l':'Médio','t3l':'Alto',
+    't0s':'0g cinzas · 300L água','t1s':'500g cinzas · 300L','t2s':'1250g cinzas · 300L','t3s':'2500g cinzas · 300L',
+    'ti1':'Misturar cinzas: 3×500g, 3×1250g, 3×2500g → inserir nos mesocosmos',
+    'ti2':'Coletar dados limnológicos (todas as sondas)',
+    'ti3':'Coleta fluxo CO₂ (câmara + garrafas resp. ecossist.)',
+    'ti4':'Eutanásia 2 Hopl./mesocosmo → histologia + Hg',
+    'ti5':'Fitoplâncton + água para análise química',
+    'ti6':'Evaporação + reposição de água',
+    'ti7':'Registrar comportamento dos peixes',
+    '3dtitle':'🔬 Visualizador 3D — Mesocosmo 300L (clique nos componentes)',
+    'comphead':'COMPONENTES',
+    'meso12':'12 Mesocosmos — Estado Atual',
+    'lastdata':'Últimos dados limnológicos inseridos',
+    'datatitle':'Entrada de Dados & Gráficos em Tempo Real',
+    'formtitle':'INSERIR DADOS LIMNOLÓGICOS',
+    'ldate':'Data','ltime':'Hora','lmeso':'Mesocosmo','lop':'Operador',
+    'save':'💾 Salvar Registro','clear':'Limpar','export':'⬇ CSV',
+    'chart1':'OD (mg/L) — Série temporal','chart2':'pH — Série temporal','chart3':'Temperatura (°C)',
+    'regtitle':'Registros',
+    'sched-title':'📅 Cronograma de Atividades',
+    'prot-title':'📋 Protocolos de Coleta',
+    'media-title':'📁 Arquivos & Fotos do Projeto',
+    'dz1':'📂 Arraste arquivos ou clique para selecionar',
+    'dz2':'Fotos JPG/PNG, PDFs, planilhas Excel, documentos Word, vídeos — qualquer formato',
+    'aslbl1':'Questão Científica',
+    'about-h':'Sobre o Projeto',
+    'about-p1':'A <strong style="color:var(--tx)">decoada</strong> é um fenômeno natural do Pantanal — queda súbita de oxigênio causada pela decomposição de matéria orgânica e cinzas de incêndio. 12 mesocosmos de 300L, ~15 semanas, LIPAN/UNEMAT.',
+    'about-p2':'Design: 12 mesocosmos · 4 tratamentos × 3 réplicas · 10 H. littorale/mesocosmo · Parceria Brasil–Holanda · Análise Hg credenciada.',
+    'team-lbl':'Equipe do Projeto','coord':'Coordenadores','field':'Campo & Monitoramento','collab':'Colaboradores',
+    'r-ern':'Coordenador geral · CO₂ · Gases','r-kiwi':'Coord. Mercúrio · Amostras Hg',
+    'r-clau':'Coord. Peixes · Comportamento','r-lean':'Coord. Efeito Fisiológico · Histologia',
+    'r-gus':'Fitoplâncton · Sedimentação · Design Exp.',
+    'r-vit':'Graduação · Coleta & Análises','r-mir':'Mercúrio · Suporte Kiwi',
+    'ft-foto':'Fotos','ft-rel':'Relatórios','ft-dat':'Dados','ft-prot':'Protocolos',
+  },
+  en:{
+    'nav-dash':'Dashboard','nav-viewer':'3D Mesocosm','nav-meso':'12 Mesocosms',
+    'nav-dados':'📊 Data','nav-sched':'Schedule','nav-prot':'Protocols',
+    'nav-media':'Files','nav-about':'About',
+    'today':'⚡ Today — 13/03/2026 · ASH ADDITION DAY ZERO',
+    'prog1':'Overall progress','prog2':'Phase: Acclimation done · Ashes: 13/03',
+    's1':'Mesocosms','s2':'Treatments','s3':'Hoplos','s4':'Species',
+    't0l':'Control','t1l':'Low','t2l':'Medium','t3l':'High',
+    't0s':'0g ashes · 300L water','t1s':'500g ashes · 300L','t2s':'1250g ashes · 300L','t3s':'2500g ashes · 300L',
+    'ti1':'Mix ashes: 3×500g, 3×1250g, 3×2500g → add to mesocosms',
+    'ti2':'Collect limnological data (all probes)',
+    'ti3':'CO₂ flux (chamber + ecosystem resp. bottles)',
+    'ti4':'Euthanize 2 Hopl./mesocosm → histology + Hg',
+    'ti5':'Phytoplankton + water for chemical analysis',
+    'ti6':'Evaporation + water replenishment',
+    'ti7':'Record fish behavior',
+    '3dtitle':'🔬 3D Viewer — 300L Mesocosm (click components)',
+    'comphead':'COMPONENTS',
+    'meso12':'12 Mesocosms — Current Status',
+    'lastdata':'Latest limnological data entered',
+    'datatitle':'Data Entry & Real-time Charts',
+    'formtitle':'INSERT LIMNOLOGICAL DATA',
+    'ldate':'Date','ltime':'Time','lmeso':'Mesocosm','lop':'Operator',
+    'save':'💾 Save Record','clear':'Clear','export':'⬇ CSV',
+    'chart1':'DO (mg/L) — Time series','chart2':'pH — Time series','chart3':'Temperature (°C)',
+    'regtitle':'Records',
+    'sched-title':'📅 Activity Schedule',
+    'prot-title':'📋 Collection Protocols',
+    'media-title':'📁 Project Files & Photos',
+    'dz1':'📂 Drag files or click to select',
+    'dz2':'JPG/PNG photos, PDFs, Excel spreadsheets, Word documents, videos — any format',
+    'aslbl1':'Scientific Question',
+    'about-h':'About the Project',
+    'about-p1':'The <strong style="color:var(--tx)">decoada</strong> is a natural Pantanal phenomenon — a sudden oxygen drop caused by decomposition of organic matter and fire ashes. 12 mesocosms of 300L, ~15 weeks, LIPAN/UNEMAT.',
+    'about-p2':'Design: 12 mesocosms · 4 treatments × 3 replicates · 10 H. littorale/mesocosm · Brazil–Netherlands partnership · Accredited Hg analysis.',
+    'team-lbl':'Project Team','coord':'Coordinators','field':'Field & Monitoring','collab':'Collaborators',
+    'r-ern':'General Coordinator · CO₂ · Gases','r-kiwi':'Hg Coord. · Mercury Samples',
+    'r-clau':'Fish Coord. · Behavior','r-lean':'Physiology Coord. · Histology',
+    'r-gus':'Phytoplankton · Sedimentation · Exp. Design',
+    'r-vit':'Undergrad · Field collection & Analysis','r-mir':'Mercury · Support Kiwi',
+    'ft-foto':'Photos','ft-rel':'Reports','ft-dat':'Data','ft-prot':'Protocols',
+  }
+};
+
+function setLang(l, btn) {
+  lang = l;
+  document.querySelectorAll('.lbtn').forEach(b => b.classList.remove('on'));
+  if(btn) btn.classList.add('on');
+  document.documentElement.lang = l === 'pt' ? 'pt-BR' : 'en';
+  var T = TXT[l];
+  // Update all text
+  var map = {
+    't-today':'today','t-prog1':'prog1','t-prog2':'prog2',
+    't-s1':'s1','t-s2':'s2','t-s3':'s3','t-s4':'s4',
+    't-t0l':'t0l','t-t1l':'t1l','t-t2l':'t2l','t-t3l':'t3l',
+    't-t0s':'t0s','t-t1s':'t1s','t-t2s':'t2s','t-t3s':'t3s',
+    'ti1':'ti1','ti2':'ti2','ti3':'ti3','ti4':'ti4','ti5':'ti5','ti6':'ti6','ti7':'ti7',
+    't-3dtitle':'3dtitle','t-comphead':'comphead',
+    't-meso12':'meso12','t-lastdata':'lastdata',
+    't-datatitle':'datatitle','t-formtitle':'formtitle',
+    't-ldate':'ldate','t-ltime':'ltime','t-lmeso':'lmeso','t-lop':'lop',
+    't-save':'save','t-clear':'clear','t-export':'export',
+    't-regtitle':'regtitle',
+    't-sched-title':'sched-title','t-prot-title':'prot-title',
+    't-media-title':'media-title','t-dz1':'dz1','t-dz2':'dz2',
+    't-aslbl1':'aslbl1','t-about-h':'about-h','t-about-p1':'about-p1','t-about-p2':'about-p2',
+    't-team-lbl':'team-lbl','t-coord':'coord','t-field':'field','t-collab':'collab',
+    't-r-ern':'r-ern','t-r-kiwi':'r-kiwi','t-r-clau':'r-clau','t-r-lean':'r-lean',
+    't-r-gus':'r-gus','t-r-vit':'r-vit','t-r-mir':'r-mir',
+    'ft-foto':'ft-foto','ft-rel':'ft-rel','ft-dat':'ft-dat','ft-prot':'ft-prot',
+  };
+  Object.keys(map).forEach(function(id) {
+    var el = document.getElementById(id);
+    if(el && T[map[id]]) el.innerHTML = T[map[id]];
+  });
+  // nav buttons
+  var nbs = [['nb-dash','nav-dash'],['nb-viewer','nav-viewer'],['nb-mesoscosmos','nav-meso'],
+             ['nb-dados','nav-dados'],['nb-schedule','nav-sched'],['nb-protocols','nav-prot'],
+             ['nb-media','nav-media'],['nb-about','nav-about']];
+  nbs.forEach(function(p) { var el=document.getElementById(p[0]); if(el) el.textContent=T[p[1]]||el.textContent; });
+  buildSchedule(); buildProtocols(); buildMedia(); updateMesoOverview();
+}
+
+// ══════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════
+function go(id, btn) {
+  document.querySelectorAll('.sec').forEach(function(s) { s.classList.remove('on'); });
+  document.querySelectorAll('.navbtn').forEach(function(b) { b.classList.remove('on'); });
+  document.getElementById(id).classList.add('on');
+  if(btn) btn.classList.add('on');
+  if(id === 'viewer') setTimeout(function() { initCanvas(); buildClist(); }, 60);
+  if(id === 'dados') setTimeout(buildCharts, 100);
+  if(id === 'analises') setTimeout(buildAnalises, 100);
+  if(id === 'mesoscosmos') updateMesoOverview();
+}
+
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+
+// ══════════════════════════════════════════════
+// DATA / DATABASE
+// ══════════════════════════════════════════════
+function nv(id){var v=document.getElementById(id).value;return v===''?null:parseFloat(v);}
+
+// ══════════════════════════════════════════════
+// SERVER STORAGE (Artifact persistent storage)
+// ══════════════════════════════════════════════
+var STORAGE_KEY = 'cinzas_lipan_db_v1';
+var STORAGE_SHARED = false; // localStorage — persiste no dispositivo
+
+function setStatus(msg, col) {
+  var el = document.getElementById('db-status');
+  var el2 = document.getElementById('db-status-footer');
+  if(el){ el.textContent = msg; el.style.color = col || 'var(--mu)'; el.style.borderColor = col ? col+'44' : 'var(--b1)'; }
+  if(el2){ el2.textContent = msg; el2.style.color = col || 'var(--mu)'; }
+}
+
+function saveDB() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
+    setStatus('💾 ' + DB.length + ' registros · salvo localmente', '#22c55e');
+  } catch(e) {
+    setStatus('⚠ Erro ao salvar: ' + e.message, '#ef4444');
+  }
+}
+
+function loadDB() {
+  try {
+    var s = localStorage.getItem(STORAGE_KEY);
+    if(s) {
+      DB = JSON.parse(s);
+      DB.sort(function(a,b){return(a.date+a.time).localeCompare(b.date+b.time);});
+      setStatus('💾 ' + DB.length + ' registros · localStorage', '#22c55e');
+    } else {
+      setStatus('💾 pronto · 0 registros', '#22c55e');
+      DB = [];
+    }
+  } catch(e) {
+    setStatus('⚠ erro ao carregar', '#ef4444');
+    DB = [];
+  }
+  renderTable(); buildCharts(); updateMesoOverview();
+}
+
+function saveRecord() {
+  var rec = {
+    id: Date.now(),
+    date: document.getElementById('d-date').value,
+    time: document.getElementById('d-time').value,
+    meso: document.getElementById('d-meso').value,
+    op: document.getElementById('d-op').value,
+    ph: nv('d-ph'), orp: nv('d-orp'),
+    odp: nv('d-odp'), odm: nv('d-odm'),
+    cond: nv('d-cond'), tds: nv('d-tds'),
+    temp: nv('d-temp'), turb: nv('d-turb'),
+    kohm: nv('d-kohm'), kpa: nv('d-kpa'),
+    obs: document.getElementById('d-obs').value
+  };
+  if(!rec.date || !rec.meso) { toast('⚠ Preencha a data e o mesocosmo'); return; }
+  DB.push(rec);
+  DB.sort(function(a,b){return(a.date+a.time).localeCompare(b.date+b.time);});
+  saveDB();
+  toast('✓ Salvo! ' + rec.meso + ' — ' + rec.date);
+  renderTable(); buildCharts(); updateMesoOverview();
+  if(document.getElementById('analises').classList.contains('on')) buildAnalises();
+  clearForm();
+}
+
+function clearForm() {
+  ['d-ph','d-orp','d-odp','d-odm','d-cond','d-tds','d-temp','d-turb','d-kohm','d-kpa','d-obs'].forEach(function(id){
+    document.getElementById(id).value='';
+  });
+  var now=new Date();
+  document.getElementById('d-date').value=now.toISOString().slice(0,10);
+  document.getElementById('d-time').value=now.toTimeString().slice(0,5);
+}
+
+function delRecord(id) {
+  if(!confirm('Remover este registro?')) return;
+  DB = DB.filter(function(r){return r.id!==id;});
+  saveDB();
+  renderTable(); buildCharts(); updateMesoOverview();
+  if(document.getElementById('analises').classList.contains('on')) buildAnalises();
+  toast('Registro removido');
+}
+
+// Download via data: URI — funciona em TODOS os navegadores e GitHub Pages
+function triggerDownload(filename, content, mimeType){
+  var a = document.createElement('a');
+  a.style.display = 'none';
+  if(content instanceof Blob){
+    // Converter Blob para base64 de forma assíncrona
+    var reader = new FileReader();
+    reader.onload = function(){
+      a.href = reader.result.replace('application/octet-stream', mimeType);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function(){ document.body.removeChild(a); }, 500);
+    };
+    reader.readAsDataURL(content);
+    return;
+  }
+  // String content → base64
+  try {
+    var b64 = btoa(unescape(encodeURIComponent(content)));
+    a.href = 'data:' + mimeType + ';base64,' + b64;
+  } catch(e) {
+    a.href = 'data:' + mimeType + ',' + encodeURIComponent(content);
+  }
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ document.body.removeChild(a); }, 500);
+}
+
+function exportCSV(){
+  var hdr = 'Data,Hora,Mesocosmo,Tratamento,Operador,pH,ORP_mV,OD_pct,OD_mgL,Cond_uS,TDS_ppm,Temp_C,Turbidez_NTU,KOhm,KPA,Observacoes\n';
+  var rows = DB.map(function(r){
+    var t = TREAT_MAP[r.meso] || '';
+    var s = function(v){ return (v !== null && v !== undefined && v !== '') ? v : ''; };
+    return [s(r.date),s(r.time),s(r.meso),t,s(r.op),s(r.ph),s(r.orp),s(r.odp),s(r.odm),
+            s(r.cond),s(r.tds),s(r.temp),s(r.turb),s(r.kohm),s(r.kpa),'"'+(r.obs||'')+'"'].join(',');
+  }).join('\n');
+  var filename = 'CINZAS_LIPAN_' + new Date().toISOString().slice(0,10) + '.csv';
+  triggerDownload(filename, '\uFEFF' + hdr + rows, 'text/csv;charset=utf-8');
+  toast('✓ CSV — ' + DB.length + ' registros');
+}
+
+function importCSV(input){
+  var file=input.files[0]; if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var text=e.target.result.replace(/^\uFEFF/,''); // remove BOM
+      var lines=text.split('\n').filter(function(l){return l.trim();});
+      if(lines.length<2){toast('⚠ CSV vazio ou inválido');return;}
+      var hdrLine=lines[0].split(',');
+      // Map columns by name
+      var idx={};
+      hdrLine.forEach(function(h,i){idx[h.trim()]=i;});
+      var imported=0, skipped=0;
+      var existingIds=DB.map(function(r){return r.date+'|'+r.time+'|'+r.meso;});
+      lines.slice(1).forEach(function(line){
+        if(!line.trim())return;
+        // Handle quoted fields
+        var cols=[];var cur='';var inQ=false;
+        for(var i=0;i<line.length;i++){
+          var ch=line[i];
+          if(ch==='"'){inQ=!inQ;}
+          else if(ch===','&&!inQ){cols.push(cur);cur='';}
+          else cur+=ch;
+        }
+        cols.push(cur);
+        var g=function(k){var i2=idx[k];return i2!==undefined?(cols[i2]||'').trim():'';};
+        var rec={
+          id: Date.now()+Math.random(),
+          date:g('Data'),time:g('Hora'),meso:g('Mesocosmo'),op:g('Operador'),
+          ph:g('pH')||null,orp:g('ORP_mV')||null,
+          odp:g('OD_pct')||null,odm:g('OD_mgL')||null,
+          cond:g('Cond_uS')||null,tds:g('TDS_ppm')||null,
+          temp:g('Temp_C')||null,turb:g('Turbidez_NTU')||null,
+          kohm:g('KOhm')||null,kpa:g('KPA')||null,
+          obs:g('Observacoes')
+        };
+        if(!rec.date||!rec.meso)return;
+        var key=rec.date+'|'+rec.time+'|'+rec.meso;
+        if(existingIds.indexOf(key)>=0){skipped++;return;}
+        DB.push(rec);imported++;
+      });
+      DB.sort(function(a,b){return(a.date+a.time).localeCompare(b.date+b.time);});
+      saveDB();renderTable();buildCharts();updateMesoOverview();
+      toast('✓ Importados: '+imported+' · Duplicatas ignoradas: '+skipped);
+    }catch(err){toast('⚠ Erro ao importar: '+err.message);}
+    input.value='';
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+function showDataModal(){
+  var existing=document.getElementById('data-view-modal');
+  if(existing)existing.remove();
+  var hdr='Data,Hora,Mesocosmo,Tratamento,Operador,pH,ORP_mV,OD_pct,OD_mgL,Cond_uS,TDS_ppm,Temp_C,Turbidez_NTU,KOhm,KPA,Observacoes';
+  var rows=DB.map(function(r){
+    var t=TREAT_MAP[r.meso]||'';var s=function(v){return(v!==null&&v!==undefined&&v!=='')?v:'';};
+    return[s(r.date),s(r.time),s(r.meso),t,s(r.op),s(r.ph),s(r.orp),s(r.odp),s(r.odm),s(r.cond),s(r.tds),s(r.temp),s(r.turb),s(r.kohm),s(r.kpa),'"'+(r.obs||'')+'"'].join(',');
+  }).join('\n');
+  var csv=hdr+'\n'+rows;
+  var m=document.createElement('div');
+  m.id='data-view-modal';
+  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;';
+  m.innerHTML='<div style="background:#0f1623;border:2px solid #ff6b35;border-radius:12px;width:100%;max-width:760px;max-height:92vh;display:flex;flex-direction:column;">'
+    +'<div style="padding:.85rem 1rem;border-bottom:1px solid #1d2535;display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;">'
+    +'<div style="font-family:Space Mono,monospace;font-size:.72rem;color:#ff6b35;font-weight:700;">📋 SEUS DADOS — '+DB.length+' registros</div>'
+    +'<div style="display:flex;gap:.35rem;flex-wrap:wrap;">'
+    +'<button id="cpbtn" onclick="var t=document.getElementById(\'dvmtxt\');t.focus();t.select();t.setSelectionRange(0,999999);try{var ok=document.execCommand(\'copy\');document.getElementById(\'cpbtn\').textContent=ok?\'✓ Copiado!\':\'Selecione manualmente\';}catch(e){document.getElementById(\'cpbtn\').textContent=\'Pressione Ctrl+A, Ctrl+C\';}setTimeout(function(){document.getElementById(\'cpbtn\').textContent=\'📋 Copiar\';},3000);" style="background:rgba(255,107,53,.25);border:1px solid #ff6b35;color:#ff6b35;padding:.35rem .9rem;border-radius:5px;cursor:pointer;font-size:.75rem;font-weight:700;">📋 Copiar</button>'
+    +'<button onclick="exportCSV()" style="background:rgba(34,197,94,.12);border:1px solid #22c55e;color:#22c55e;padding:.35rem .7rem;border-radius:5px;cursor:pointer;font-size:.72rem;">⬇ CSV</button>'
+    +'<button onclick="exportExcel()" style="background:rgba(78,205,196,.1);border:1px solid #4ecdc4;color:#4ecdc4;padding:.35rem .7rem;border-radius:5px;cursor:pointer;font-size:.72rem;">⬇ Excel</button>'
+    +'<button onclick="document.getElementById(\'data-view-modal\').remove()" style="background:none;border:1px solid #2a3548;color:#5a6a84;padding:.35rem .65rem;border-radius:5px;cursor:pointer;font-size:.72rem;">✕</button>'
+    +'</div></div>'
+    +'<div style="padding:.3rem .9rem;font-size:.62rem;color:#5a6a84;font-family:Space Mono,monospace;background:rgba(255,107,53,.04);">Toque na área abaixo → Selecionar tudo → Copiar → Cole no WhatsApp, Google Sheets ou Email</div>'
+    +'<textarea id="dvmtxt" readonly onclick="this.focus();this.select();this.setSelectionRange(0,999999);" style="flex:1;min-height:320px;background:#07080c;color:#c0d0e0;font-family:Space Mono,monospace;font-size:.58rem;border:none;padding:.8rem;resize:none;outline:none;overflow:auto;"></textarea>'
+    +'</div>';
+  document.body.appendChild(m);
+  var ta=document.getElementById('dvmtxt');
+  ta.value=csv;
+  setTimeout(function(){ta.focus();ta.select();ta.setSelectionRange(0,999999);},150);
+}
+
+// Pure-JS minimal xlsx builder (no dependency needed)
+function buildXlsxBlob(sheets){
+  // sheets = [{name, rows: [[val,...],...]}]
+  function esc(s){return String(s===null||s===undefined?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function cellRef(c,r){var col='';var cc=c+1;while(cc>0){col=String.fromCharCode(64+(cc%26||26))+col;cc=Math.floor((cc-1)/26);}return col+(r+1);}
+  var sharedStr=[],ssMap={};
+  function si(s){var k=String(s);if(ssMap[k]===undefined){ssMap[k]=sharedStr.length;sharedStr.push(k);}return ssMap[k];}
+
+  var wsXmls=sheets.map(function(sh){
+    var rows=sh.rows.map(function(row,ri){
+      var cells=row.map(function(val,ci){
+        var ref=cellRef(ci,ri);
+        if(val===null||val===undefined||val==='')return'';
+        var num=typeof val==='number'||(typeof val==='string'&&val!==''&&!isNaN(+val)&&val.trim()!=='');
+        if(num&&val!=='')return'<c r="'+ref+'" t="n"><v>'+val+'</v></c>';
+        return'<c r="'+ref+'" t="s"><v>'+si(val)+'</v></c>';
+      }).join('');
+      return cells?'<row r="'+(ri+1)+'">'+cells+'</row>':'';
+    }).join('');
+    return'<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>'+rows+'</sheetData></worksheet>';
+  });
+
+  var ssXml='<?xml version="1.0" encoding="UTF-8"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="'+sharedStr.length+'" uniqueCount="'+sharedStr.length+'">'+sharedStr.map(function(s){return'<si><t xml:space="preserve">'+esc(s)+'</t></si>';}).join('')+'</sst>';
+
+  var wbXml='<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+sheets.map(function(sh,i){return'<sheet name="'+esc(sh.name)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>';}).join('')+'</sheets></workbook>';
+
+  var wbRels='<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+sheets.map(function(sh,i){return'<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>';}).join('')+'<Relationship Id="rId'+(sheets.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/></Relationships>';
+
+  var ct='<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+    +sheets.map(function(sh,i){return'<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';}).join('')
+    +'<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/></Types>';
+
+  var pkgRels='<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+
+  // Build ZIP manually
+  function strToBytes(s){var b=new Uint8Array(s.length);for(var i=0;i<s.length;i++)b[i]=s.charCodeAt(i)&0xff;return b;}
+  function u8concat(arrays){var len=arrays.reduce(function(s,a){return s+a.length;},0);var r=new Uint8Array(len);var off=0;arrays.forEach(function(a){r.set(a,off);off+=a.length;});return r;}
+  function crc32(data){var t=[];for(var i=0;i<256;i++){var c=i;for(var j=0;j<8;j++)c=c&1?(0xEDB88320^(c>>>1)):c>>>1;t[i]=c;}var crc=0xFFFFFFFF;for(var i=0;i<data.length;i++)crc=t[(crc^data[i])&0xFF]^(crc>>>8);return(crc^0xFFFFFFFF)>>>0;}
+  function ui32le(v){return new Uint8Array([v&0xff,(v>>8)&0xff,(v>>16)&0xff,(v>>24)&0xff]);}
+  function ui16le(v){return new Uint8Array([v&0xff,(v>>8)&0xff]);}
+
+  function makeEntry(path,content){
+    var data=typeof content==='string'?strToBytes(content):content;
+    var crc=crc32(data);var pathBytes=strToBytes(path);
+    var lh=u8concat([new Uint8Array([0x50,0x4B,0x03,0x04,0x14,0,0,0,0,0,0,0,0,0]),ui32le(crc),ui32le(data.length),ui32le(data.length),ui16le(pathBytes.length),ui16le(0)]);
+    return{path:path,data:data,crc:crc,lh:lh,pathBytes:pathBytes};
+  }
+
+  var files=[
+    ['[Content_Types].xml',ct],
+    ['_rels/.rels',pkgRels],
+    ['xl/workbook.xml',wbXml],
+    ['xl/_rels/workbook.xml.rels',wbRels],
+    ['xl/sharedStrings.xml',ssXml],
+  ];
+  sheets.forEach(function(sh,i){files.push(['xl/worksheets/sheet'+(i+1)+'.xml',wsXmls[i]]);});
+
+  var entries=files.map(function(f){return makeEntry(f[0],f[1]);});
+  var parts=[];var cdHeaders=[];var offset=0;
+  entries.forEach(function(e){
+    cdHeaders.push({e:e,offset:offset});
+    parts.push(e.lh,strToBytes(e.path),e.data);
+    offset+=e.lh.length+e.path.length+e.data.length;
+  });
+  var cdOffset=offset;
+  cdHeaders.forEach(function(item){
+    var e=item.e;
+    var cd=u8concat([new Uint8Array([0x50,0x4B,0x01,0x02,0x14,0,0x14,0,0,0,0,0,0,0,0,0]),ui32le(e.crc),ui32le(e.data.length),ui32le(e.data.length),ui16le(e.pathBytes.length),ui16le(0),ui16le(0),ui16le(0),ui16le(0),ui32le(0),ui32le(item.offset)]);
+    parts.push(cd,e.pathBytes);
+    offset+=cd.length+e.pathBytes.length;
+  });
+  var eocd=u8concat([new Uint8Array([0x50,0x4B,0x05,0x06,0,0,0,0]),ui16le(entries.length),ui16le(entries.length),ui32le(offset-cdOffset),ui32le(cdOffset),ui16le(0)]);
+  parts.push(eocd);
+  return new Blob([u8concat(parts)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+
+function exportExcel(){
+  try{
+    var DM={'T0':'0','T1':'2','T2':'5','T3':'10'};
+    var nv2=function(v){return(v!==null&&v!==undefined&&v!=='')?v:'';};
+
+    // Sheet 1: Dados brutos
+    var r1=[['Data','Hora','Mesocosmo','Tratamento','Dose_gL','Operador','pH','ORP_mV','OD_pct','OD_mgL','Cond_uS','TDS_ppm','Temp_C','Turbidez_NTU','KOhm','KPA','Observacoes']];
+    DB.forEach(function(r){
+      var t=TREAT_MAP[r.meso]||'';
+      r1.push([nv2(r.date),nv2(r.time),nv2(r.meso),t,DM[t]||'',nv2(r.op),nv2(r.ph),nv2(r.orp),nv2(r.odp),nv2(r.odm),nv2(r.cond),nv2(r.tds),nv2(r.temp),nv2(r.turb),nv2(r.kohm),nv2(r.kpa),nv2(r.obs)]);
+    });
+
+    // Sheets médias por variável
+    var allDates=[...new Set(DB.map(function(r){return r.date;}))].sort();
+    var VARS2=['ph','odm','odp','temp','cond','tds','turb','orp'];
+    var VLB=['pH','OD_mgL','OD_pct','Temp_C','Cond_uS','TDS_ppm','Turbidez','ORP_mV'];
+    var meanSheets=VARS2.map(function(v,vi){
+      var rows=[['Data','T0_media','T0_dp','T1_media','T1_dp','T2_media','T2_dp','T3_media','T3_dp']];
+      allDates.forEach(function(dt){
+        var row=[dt];
+        ['T0','T1','T2','T3'].forEach(function(t){
+          var ms=MESOS.filter(function(m){return TREAT_MAP[m]===t;});
+          var vals=DB.filter(function(r){return r.date===dt&&ms.indexOf(r.meso)>=0;}).map(function(r){return nnum(r[v]);}).filter(function(x){return x!==null;});
+          if(vals.length){var mn=vals.reduce(function(a,b){return a+b;})/vals.length;var sd=vals.length>1?Math.sqrt(vals.reduce(function(s,x){return s+Math.pow(x-mn,2);},0)/(vals.length-1)):0;row.push(Math.round(mn*1000)/1000,Math.round(sd*1000)/1000);}
+          else row.push('','');
+        });
+        rows.push(row);
+      });
+      return{name:VLB[vi],rows:rows};
+    });
+
+    // Sheet resumo
+    var rsum=[['Mesocosmo','Tratamento','Dose_gL','N_registros','pH_media','OD_mgL_media','Temp_media','Cond_media','Turb_media']];
+    MESOS.forEach(function(m){
+      var t=TREAT_MAP[m]||'';
+      var mr=DB.filter(function(r){return r.meso===m;});
+      var avg=function(k){var v=mr.map(function(r){return nnum(r[k]);}).filter(function(x){return x!==null;});return v.length?Math.round(v.reduce(function(a,b){return a+b;})/v.length*100)/100:'';};
+      rsum.push([m,t,DM[t]||'',mr.length,avg('ph'),avg('odm'),avg('temp'),avg('cond'),avg('turb')]);
+    });
+
+    var sheets=[{name:'Dados_Brutos',rows:r1}].concat(meanSheets).concat([{name:'Resumo_Mesocosmos',rows:rsum}]);
+    var fname = 'CINZAS_LIPAN_' + new Date().toISOString().slice(0,10) + '.xlsx';
+    var outBlob;
+    if(typeof XLSX !== 'undefined'){
+      var wb = XLSX.utils.book_new();
+      sheets.forEach(function(sh){ XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sh.rows), sh.name.slice(0,31)); });
+      var out = XLSX.write(wb, {type:'array', bookType:'xlsx'});
+      outBlob = new Blob([out], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    } else {
+      outBlob = buildXlsxBlob(sheets);
+    }
+    triggerDownload(fname, outBlob, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    toast('✓ Excel — ' + DB.length + ' registros · ' + sheets.length + ' abas');
+  } catch(err){
+    console.error('Excel:', err);
+    toast('⚠ Excel falhou → CSV');
+    exportCSV();
+  }
+}
+
+function renderTable() {
+  var tb=document.getElementById('data-tbody');
+  var rc=document.getElementById('rec-count');
+  if(!tb)return;
+  rc.textContent=DB.length+' registros';
+  if(!DB.length){tb.innerHTML='<tr><td colspan="8" class="no-data">Nenhum dado registrado ainda.<br>Use o formulário ao lado.</td></tr>';return;}
+  tb.innerHTML=DB.slice().reverse().slice(0,60).map(function(r){
+    var dv=function(v){return(v!==null&&v!==undefined)?v:'—';};
+    return '<tr><td style="font-family:Space Mono,monospace;font-size:.65rem">'+(r.date||'')+'<br>'+(r.time||'')+'</td>'
+      +'<td style="color:var(--a2);font-family:Space Mono,monospace">'+r.meso+'</td>'
+      +'<td>'+dv(r.ph)+'</td><td style="color:var(--a3)">'+dv(r.odm)+'</td>'
+      +'<td>'+dv(r.temp)+'</td><td>'+dv(r.cond)+'</td>'
+      +'<td style="color:var(--mu);font-size:.65rem">'+(r.obs||'')+'</td>'
+      +'<td><button class="del-row" onclick="delRecord('+r.id+')">✕</button></td></tr>';
+  }).join('');
+}
+
+// ══════════════════════════════════════════════
+// DASHBOARD — dynamic date + progress
+// ══════════════════════════════════════════════
+function initDashboard(){
+  var START = new Date('2026-02-24');
+  var END   = new Date('2026-06-19');
+  var CINZAS= new Date('2026-03-13');
+  var PEIXES= new Date('2026-03-06');
+  var today = new Date();
+  today.setHours(0,0,0,0);
+
+  // Progress
+  var total = (END-START)/(1000*86400);
+  var elapsed = Math.max(0,Math.min(total,(today-START)/(1000*86400)));
+  var pct = Math.round(elapsed/total*100);
+  var f=document.getElementById('dash-pfill'),f2=document.getElementById('dash-pfill2');
+  var pc=document.getElementById('dash-pct');
+  if(f){f.style.width=pct+'%';}
+  if(f2){f2.style.width=pct+'%';}
+  if(pc)pc.textContent=pct+'%';
+
+  var daysLeft=Math.max(0,Math.ceil((END-today)/(1000*86400)));
+  var dr=document.getElementById('dash-daysrem');if(dr)dr.textContent=daysLeft;
+
+  // Phase label
+  var phase='';
+  if(today<START)phase='Pré-experimento';
+  else if(today<PEIXES)phase='Preparação · Aguardando peixes';
+  else if(today<CINZAS)phase='🐟 Aclimatação — peixes nos mesocosmos';
+  else if(today<=END)phase='🔥 Experimento ativo — cinzas adicionadas';
+  else phase='✓ Experimento concluído';
+  var dp=document.getElementById('dash-phase');if(dp)dp.textContent=phase;
+  var dds=document.getElementById('dash-days');
+  if(dds){var weekN=Math.ceil(elapsed/7);dds.textContent='Semana '+Math.max(1,weekN)+'/16 · Dia '+Math.round(elapsed)+'/'+(Math.round(total));}
+
+  // Today's tasks — match against schedule
+  var todayStr=String(today.getDate()).padStart(2,'0')+'/'+String(today.getMonth()+1).padStart(2,'0')+'/'+today.getFullYear();
+  var tcard=document.getElementById('today-card');
+  var thead=document.getElementById('t-today');
+  var ttasks=document.getElementById('today-tasks');
+
+  // Check if today is a special milestone
+  var isToday06Mar=today.getTime()===new Date('2026-03-06').getTime();
+  var isToday13Mar=today.getTime()===new Date('2026-03-13').getTime();
+  var isToday12Jun=today.getTime()===new Date('2026-06-12').getTime();
+
+  // Find matching schedule entry
+  var match=null;
+  SCHED.forEach(function(s){
+    if(s.date===todayStr)match=s;
+    if(s.date.indexOf('–')>=0||s.date.indexOf('-')>=0){
+      var parts=s.date.replace('–','-').split('-').map(function(x){return x.trim();});
+      if(parts.length===2){
+        try{
+          var d1=parseDate(parts[0]),d2=parseDate(parts[1]);
+          if(d1&&d2&&today>=d1&&today<=d2)match=s;
+        }catch(e){}
+      }
+    }
+  });
+
+  var label='⚡ Hoje — '+todayStr;
+  if(isToday13Mar)label='🔥 HOJE — DIA ZERO · ADIÇÃO DAS CINZAS';
+  else if(isToday06Mar)label='🐟 HOJE — CHEGADA DOS PEIXES';
+  else if(isToday12Jun)label='🏁 HOJE — DIA FINAL DO EXPERIMENTO';
+
+  if(thead){
+    thead.textContent=label;
+    if(isToday13Mar||isToday06Mar||isToday12Jun){
+      thead.classList.add('blink');
+      if(tcard)tcard.classList.add('pulse-today');
+    }
+  }
+
+  if(ttasks){
+    if(match){
+      var tasks=match.tasks[lang]||match.tasks.pt;
+      var team=match.team[lang]||match.team.pt;
+      ttasks.innerHTML='<div style="font-size:.62rem;color:var(--mu);font-family:Space Mono,monospace;margin-bottom:.6rem;">'+team+'</div>'
+        +tasks.map(function(t,i){
+          var isSpecial=t.startsWith('⭐')||t.startsWith('🔥');
+          return '<div class="ti"><div class="dot '+(i<2?'a':'p')+'"></div><span'+(isSpecial?' style="color:var(--a1);font-weight:600"':'')+'>'+t+'</span></div>';
+        }).join('');
+    } else {
+      // No specific task today — show generic monitoring
+      ttasks.innerHTML='<div class="ti"><div class="dot a"></div><span>Coletar dados limnológicos (todas as sondas)</span></div>'
+        +'<div class="ti"><div class="dot p"></div><span>Registrar comportamento dos peixes</span></div>'
+        +'<div class="ti"><div class="dot p"></div><span>Medir evaporação e repor água</span></div>'
+        +'<div class="ti"><div class="dot p"></div><span>Dados climáticos (T°, UR, vento)</span></div>';
+    }
+  }
+}
+
+function parseDate(s){
+  // parse "DD/MM/YYYY" or "DD/MM/AAAA"
+  var p=s.trim().split('/');
+  if(p.length===3){var d=new Date(parseInt(p[2]),parseInt(p[1])-1,parseInt(p[0]));d.setHours(0,0,0,0);return d;}
+  return null;
+}
+// ══════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// TEAM MANAGEMENT
+// ══════════════════════════════════════════════
+var TEAM_KEY = 'cinzas_team_v1';
+var TEAM = [
+  {name:'Ernandes Sobreira', role:'Coordenador geral · CO₂ · Gases', group:'coord', color:'#e85d2f'},
+  {name:'Kiwi',              role:'Coord. Mercúrio · Amostras Hg',   group:'coord', color:'#4ecdc4'},
+  {name:'Claumir',           role:'Coord. Peixes · Comportamento',   group:'coord', color:'#3498db'},
+  {name:'Leandro',           role:'Coord. Fisiologia · Histologia',  group:'coord', color:'#9b59b6'},
+  {name:'Lisa',              role:'Campo · Limnologia · Holanda',    group:'campo', color:'#8e44ad'},
+  {name:'Niels',             role:'Campo · Monitoramento · Holanda', group:'campo', color:'#27ae60'},
+  {name:'Gustavo',           role:'Fitoplâncton · Sedimentação',     group:'campo', color:'#f39c12'},
+  {name:'Mirtha',            role:'Campo · Coleta Hg',               group:'campo', color:'#00bcd4'},
+  {name:'Vitória',           role:'Graduação · Coleta & Análises',   group:'colab', color:'#e91e63'},
+];
+var TEAM_GROUPS = {coord:{label:'Coordenadores',icon:'👑'},campo:{label:'Campo & Coleta',icon:'🌿'},colab:{label:'Colaboradores',icon:'🎓'}};
+var AVATAR_COLORS=['#e85d2f','#4ecdc4','#3498db','#9b59b6','#27ae60','#f39c12','#e91e63','#00bcd4','#ef4444','#8e44ad','#f97316','#22c55e'];
+
+function avatarColor(name){var h=0;for(var i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))%AVATAR_COLORS.length;return AVATAR_COLORS[h];}
+
+function saveTeam(){try{localStorage.setItem(TEAM_KEY,JSON.stringify(TEAM));}catch(e){}}
+function loadTeam(){
+  try{var r=localStorage.getItem(TEAM_KEY);if(r)TEAM=JSON.parse(r);}catch(e){}
+  buildTeamDisplay();buildOperatorDropdown();
+}
+
+function buildTeamDisplay(){
+  var el=document.getElementById('team-display');if(!el)return;
+  var groups={coord:[],campo:[],colab:[]};
+  TEAM.forEach(function(m,i){if(groups[m.group])groups[m.group].push({m:m,i:i});});
+  el.innerHTML=Object.keys(groups).map(function(g){
+    if(!groups[g].length)return'';
+    var grp=TEAM_GROUPS[g];
+    return '<div class="team-section"><div class="tsub">'+grp.icon+' '+grp.label+'</div>'
+      +groups[g].map(function(item){
+        var m=item.m,i=item.i;
+        var col=m.color||avatarColor(m.name);
+        var ini=m.name.split(' ').map(function(w){return w[0];}).slice(0,2).join('');
+        return '<div class="tm" style="justify-content:space-between">'
+          +'<div style="display:flex;align-items:center;gap:.6rem">'
+          +'<div class="tav" style="background:linear-gradient(135deg,'+col+','+col+'88)">'+ini+'</div>'
+          +'<div><div class="tmn">'+m.name+'</div><div class="tmr">'+m.role+'</div></div></div>'
+          +'<button onclick="removeTeamMember('+i+')" style="background:none;border:1px solid rgba(239,68,68,.3);color:#ef4444;border-radius:4px;padding:.15rem .45rem;font-size:.65rem;cursor:pointer;flex-shrink:0">✕</button>'
+          +'</div>';
+      }).join('')+'</div>';
+  }).join('');
+}
+
+function buildOperatorDropdown(){
+  var sel=document.getElementById('d-op');if(!sel)return;
+  var prev=sel.value;
+  var grpNames={coord:'Coord.',campo:'Campo',colab:'Colab.'};
+  sel.innerHTML=TEAM.map(function(m){return'<option value="'+m.name+'">'+m.name+' ('+( grpNames[m.group]||m.group)+')</option>';}).join('');
+  if(prev&&TEAM.find(function(m){return m.name===prev;}))sel.value=prev;
+}
+
+async function addTeamMember(){
+  var name=document.getElementById('tm-name').value.trim();
+  var role=document.getElementById('tm-role').value.trim();
+  var group=document.getElementById('tm-group').value;
+  if(!name){toast('⚠ Informe o nome');return;}
+  TEAM.push({name:name,role:role||'Equipe CINZAS',group:group,color:avatarColor(name)});
+  document.getElementById('tm-name').value='';
+  document.getElementById('tm-role').value='';
+  buildTeamDisplay();buildOperatorDropdown();
+  saveTeam();
+  toast('✓ '+name+' adicionado(a) à equipe');
+}
+
+async function removeTeamMember(i){
+  var m=TEAM[i];if(!m)return;
+  if(!confirm('Remover '+m.name+' da equipe?'))return;
+  TEAM.splice(i,1);buildTeamDisplay();buildOperatorDropdown();
+  saveTeam();toast('✓ '+m.name+' removido(a)');
+}
+
+var TREATS = ['T0','T1','T2','T3'];
+var TREAT_LABELS = {'T0':'T0 — Controle (0 g/L)','T1':'T1 — 2 g/L (500g)','T2':'T2 — 5 g/L (1250g)','T3':'T3 — 10 g/L (2500g)'};
+var TREAT_COLS   = {'T0':'#22c55e','T1':'#eab308','T2':'#f97316','T3':'#ef4444'};
+var TREAT_MESOS  = {'T0':['CR1','CR2','CR3'],'T1':['2GR1','2GR2','2GR3'],'T2':['5GR1','5GR2','5GR3'],'T3':['10GR1','10GR2','10GR3']};
+var anCharts = {};
+
+function getVarLabel(v){var L={'odm':'OD (mg/L)','odp':'OD (%)','ph':'pH','temp':'Temp (°C)','cond':'Cond (μS/cm)','tds':'TDS (ppm)','turb':'Turbidez (NTU)','orp':'ORP (mV)'};return L[v]||v;}
+
+function nnum(v){if(v===null||v===undefined||v==='')return null;var n=+v;return isNaN(n)?null:n;}
+
+function stats(arr){
+  var vals=arr.map(nnum).filter(function(x){return x!==null;});
+  if(!vals.length)return null;
+  vals.sort(function(a,b){return a-b;});
+  var n=vals.length,mean=vals.reduce(function(s,x){return s+x;},0)/n;
+  var sd=n>1?Math.sqrt(vals.reduce(function(s,x){return s+Math.pow(x-mean,2);},0)/(n-1)):0;
+  var cv=mean!==0?Math.abs(sd/mean*100):0;
+  return{n:n,mean:Math.round(mean*1000)/1000,sd:Math.round(sd*1000)/1000,min:vals[0],max:vals[n-1],cv:Math.round(cv*10)/10};
+}
+
+function buildAnalises(){
+  var v=document.getElementById('an-var').value;
+  var vl=getVarLabel(v);
+  document.getElementById('an-status').textContent=DB.length+' registros · var: '+vl;
+
+  ['an-ch-trat','an-ch-box'].forEach(function(id){if(anCharts[id]){anCharts[id].destroy();delete anCharts[id];}});
+
+  function getVals(mesos,dt){
+    return DB.filter(function(r){
+      return(!mesos||mesos.indexOf(r.meso)>=0)&&(!dt||r.date===dt)&&nnum(r[v])!==null;
+    }).map(function(r){return nnum(r[v]);});
+  }
+
+  // ── 1. Evolução temporal ──
+  var dates=[...new Set(DB.map(function(r){return r.date;}))].sort();
+  var ds=TREATS.map(function(t){
+    var col=TREAT_COLS[t];
+    return{label:TREAT_LABELS[t],borderColor:col,backgroundColor:col+'30',fill:false,tension:.35,pointRadius:4,borderWidth:2.2,spanGaps:true,
+      data:dates.map(function(dt){
+        var vals=getVals(TREAT_MESOS[t],dt);
+        return vals.length?Math.round(vals.reduce(function(s,x){return s+x;})/vals.length*1000)/1000:null;
+      })};
+  });
+  var cvT=document.getElementById('an-ch-trat');
+  if(cvT){anCharts['an-ch-trat']=new Chart(cvT,{type:'line',data:{labels:dates,datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#5a6a84',font:{size:9}}}},scales:{x:{ticks:{color:'#5a6a84',font:{size:8},maxTicksLimit:8},grid:{color:'#1d2535'}},y:{ticks:{color:'#5a6a84',font:{size:9}},grid:{color:'#1d2535'},title:{display:true,text:vl,color:'#5a6a84',font:{size:9}}}}}});}
+
+  // ── 2. Bar chart médias por tratamento ──
+  var bmeans=TREATS.map(function(t){var vals=getVals(TREAT_MESOS[t],null);return vals.length?Math.round(vals.reduce(function(s,x){return s+x;})/vals.length*1000)/1000:null;});
+  var cvB=document.getElementById('an-ch-box');
+  if(cvB){anCharts['an-ch-box']=new Chart(cvB,{type:'bar',data:{labels:TREATS.map(function(t){return t+' ('+TREAT_COLS[t].slice(0,0)+')'+TREAT_LABELS[t].split('—')[1];}),datasets:[{label:vl,data:bmeans,backgroundColor:TREATS.map(function(t){return TREAT_COLS[t]+'99';}),borderColor:TREATS.map(function(t){return TREAT_COLS[t];}),borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#5a6a84',font:{size:9}}}},scales:{x:{ticks:{color:'#5a6a84',font:{size:8}},grid:{color:'#1d2535'}},y:{ticks:{color:'#5a6a84',font:{size:9}},grid:{color:'#1d2535'},title:{display:true,text:vl,color:'#5a6a84',font:{size:9}}}}}});}
+
+  // ── 3. Cards por tratamento ──
+  var tdc=document.getElementById('an-treat-cards');
+  if(tdc){tdc.innerHTML=TREATS.map(function(t){
+    var vals=getVals(TREAT_MESOS[t],null);
+    var st=stats(vals);
+    var col=TREAT_COLS[t];
+    if(!st)return '<div class="sbox" style="border:1px solid '+col+'33;background:'+col+'05"><div class="sl" style="color:'+col+'">'+t+'</div><div style="color:var(--mu);font-size:.7rem;margin-top:.5rem">sem dados</div></div>';
+    return '<div class="sbox" style="border:1px solid '+col+'55;background:'+col+'0a">'
+      +'<div class="sl" style="color:'+col+';margin-bottom:.3rem">'+t+' · n='+st.n+'</div>'
+      +'<div class="sn" style="color:'+col+';font-size:1.5rem">'+st.mean+'</div>'
+      +'<div style="font-size:.65rem;color:var(--mu);margin-top:.2rem">±'+st.sd+' DP</div>'
+      +'<div style="font-size:.62rem;color:'+(st.cv>30?'#ef4444':st.cv>20?'#eab308':'var(--mu)')+'">CV: '+st.cv+'%</div>'
+      +'<div style="font-size:.62rem;color:var(--mu)">'+st.min+' – '+st.max+'</div>'
+      +'</div>';
+  }).join('');}
+
+  // ── 4. Tabela réplicas + outlier ──
+  var rows=[];var alerts=[];
+  TREATS.forEach(function(t){
+    var treatVals=getVals(TREAT_MESOS[t],null);
+    var tst=stats(treatVals);
+    TREAT_MESOS[t].forEach(function(m){
+      var vals=getVals([m],null);
+      var st=stats(vals);
+      if(!st){rows.push({t:t,m:m,n:0,mean:'—',sd:'—',min:'—',max:'—',cv:'—',outlier:false});return;}
+      var outlier=false;
+      if(tst&&tst.sd>0){var z=Math.abs((st.mean-tst.mean)/tst.sd);if(z>1.5){outlier=true;alerts.push({t:t,m:m,v:vl,mean:st.mean,tmean:tst.mean,z:Math.round(z*100)/100});}}
+      if(st.cv>30)outlier=true;
+      rows.push({t:t,m:m,n:st.n,mean:st.mean,sd:st.sd,min:st.min,max:st.max,cv:st.cv,outlier:outlier});
+    });
+  });
+  var rb=document.getElementById('an-replica-body');
+  if(rb)rb.innerHTML=rows.map(function(r){
+    var col=TREAT_COLS[r.t];
+    var status=r.outlier?'<span style="color:#ef4444;font-weight:700">⚠ VERIFICAR</span>':'<span style="color:#22c55e">✓ ok</span>';
+    return '<tr><td style="color:'+col+';font-family:Space Mono,monospace">'+r.t+'</td>'
+      +'<td style="font-family:Space Mono,monospace">'+r.m+'</td>'
+      +'<td>'+r.n+'</td><td><strong>'+r.mean+'</strong></td><td>'+r.sd+'</td>'
+      +'<td>'+r.min+'</td><td>'+r.max+'</td>'
+      +'<td style="color:'+(r.cv!=='—'&&r.cv>30?'#ef4444':r.cv>20?'#eab308':'var(--tx)')+'">'+r.cv+'%</td>'
+      +'<td>'+status+'</td></tr>';
+  }).join('');
+
+  // ── 5. Alertas ──
+  var alertEl=document.getElementById('an-alerts');
+  if(alertEl){
+    if(alerts.length){
+      alertEl.innerHTML='<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:.85rem 1rem;margin-bottom:.5rem;">'
+        +'<div style="font-size:.65rem;letter-spacing:.14em;color:#ef4444;text-transform:uppercase;margin-bottom:.5rem;font-family:Space Mono,monospace">⚠ Atenção — réplicas com desvio significativo em '+vl+'</div>'
+        +alerts.map(function(a){return '<div style="font-size:.74rem;padding:.2rem 0">→ <strong style="color:#eab308">'+a.m+'</strong> ('+a.t+'): média <strong>'+a.mean+'</strong> vs. média do tratamento <strong>'+a.tmean+'</strong> — Z='+a.z+' DP</div>';}).join('')+'</div>';
+    } else if(DB.length){
+      alertEl.innerHTML='<div style="background:rgba(34,197,94,.05);border:1px solid rgba(34,197,94,.2);border-radius:8px;padding:.65rem 1rem;font-size:.72rem;color:#22c55e;margin-bottom:.5rem;">✓ Todas as réplicas dentro do padrão para <strong>'+vl+'</strong></div>';
+    } else alertEl.innerHTML='';
+  }
+
+  // ── 6. Detalhe por réplica ──
+  var td2=document.getElementById('an-trat-detail');
+  if(td2){
+    Object.keys(anCharts).forEach(function(k){if(k.startsWith('an-det-')){anCharts[k].destroy();delete anCharts[k];}});
+    td2.innerHTML=TREATS.map(function(t){
+      return '<div class="chart-card"><h3 style="color:'+TREAT_COLS[t]+'">'+t+' — réplicas</h3><div class="chart-wrap" style="height:170px"><canvas id="an-det-'+t+'"></canvas></div></div>';
+    }).join('');
+    setTimeout(function(){
+      TREATS.forEach(function(t){
+        var cv2=document.getElementById('an-det-'+t);if(!cv2)return;
+        var col=TREAT_COLS[t];
+        var allD=[...new Set(DB.filter(function(r){return TREAT_MESOS[t].indexOf(r.meso)>=0;}).map(function(r){return r.date;}))].sort();
+        var dsets=TREAT_MESOS[t].map(function(m,mi){
+          return{label:m,borderColor:[col,col+'cc','#888888'][mi],backgroundColor:'transparent',
+            borderDash:mi===2?[4,3]:mi===1?[2,2]:[],pointRadius:3,borderWidth:1.8,tension:.3,spanGaps:true,
+            data:allD.map(function(dt){var rec=DB.find(function(r){return r.meso===m&&r.date===dt;});return rec&&nnum(rec[v])!==null?nnum(rec[v]):null;})};
+        });
+        anCharts['an-det-'+t]=new Chart(cv2,{type:'line',data:{labels:allD,datasets:dsets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#5a6a84',font:{size:8}}}},scales:{x:{ticks:{color:'#5a6a84',font:{size:7},maxTicksLimit:6},grid:{color:'#1d2535'}},y:{ticks:{color:'#5a6a84',font:{size:8}},grid:{color:'#1d2535'}}}}});
+      });
+    },80);
+  }
+}
+
+// ══════════════════════════════════════════════
+// CHARTS
+// ══════════════════════════════════════════════
+var MESOS = ['CR1','CR2','CR3','2GR1','2GR2','2GR3','5GR1','5GR2','5GR3','10GR1','10GR2','10GR3'];
+var TREAT_COLORS = {'CR':'#22c55e','2GR':'#eab308','5GR':'#f97316','10GR':'#ef4444'};
+
+function getTreatColor(meso) {
+  if(meso.startsWith('CR')) return '#22c55e';
+  if(meso.startsWith('2GR')) return '#eab308';
+  if(meso.startsWith('5GR')) return '#f97316';
+  return '#ef4444';
+}
+
+function buildChartMesoTabs() {
+  var wrap = document.getElementById('chart-meso-tabs');
+  if(!wrap) return;
+  wrap.innerHTML = MESOS.map(function(m) {
+    return '<div class="mstab'+(m===chartMeso?' on':'')+'" onclick="switchChartMeso(\''+m+'\',this)">'+m+'</div>';
+  }).join('');
+}
+
+function switchChartMeso(m, el) {
+  chartMeso = m;
+  document.querySelectorAll('.mstab').forEach(function(t) { t.classList.remove('on'); });
+  if(el) el.classList.add('on');
+  buildCharts();
+}
+
+function buildCharts() {
+  buildChartMesoTabs();
+  var recs = DB.filter(function(r) { return r.meso === chartMeso; }).sort(function(a,b){return(a.date+a.time).localeCompare(b.date+b.time);});
+  var labels = recs.map(function(r) { return r.date + (r.time?' '+r.time.slice(0,5):''); });
+  var col = getTreatColor(chartMeso);
+  var chartCfg = function(canvasId, label, data, color) {
+    var canvas = document.getElementById(canvasId);
+    if(!canvas) return;
+    if(charts[canvasId]) { charts[canvasId].destroy(); delete charts[canvasId]; }
+    var hasData = data.some(function(d){return d!==null&&d!==undefined;});
+    charts[canvasId] = new Chart(canvas, {
+      type:'line',
+      data:{
+        labels: hasData ? labels : ['—'],
+        datasets:[{
+          label: label + ' — ' + chartMeso,
+          data: hasData ? data : [null],
+          borderColor: color||col,
+          backgroundColor: (color||col)+'22',
+          fill:true, tension:.35, pointRadius:3, pointHoverRadius:6,
+          borderWidth:2, spanGaps:true
+        }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{labels:{color:'#5a6a84',font:{family:'Space Mono',size:9}}}},
+        scales:{
+          x:{ticks:{color:'#5a6a84',font:{size:8},maxTicksLimit:6},grid:{color:'#1d2535'}},
+          y:{ticks:{color:'#5a6a84',font:{size:9}},grid:{color:'#1d2535'}}
+        }
+      }
+    });
+  };
+  chartCfg('ch-od',  'OD (mg/L)',    recs.map(function(r){return r.odm;}),  col);
+  chartCfg('ch-odp', 'OD (%)',       recs.map(function(r){return r.odp;}),  col+'bb');
+  chartCfg('ch-ph',  'pH',           recs.map(function(r){return r.ph;}),   '#4ecdc4');
+  chartCfg('ch-temp','Temp °C',      recs.map(function(r){return r.temp;}), '#a855f7');
+  chartCfg('ch-cond','Cond (μS/cm)', recs.map(function(r){return r.cond;}), '#f39c12');
+  chartCfg('ch-tds', 'TDS (ppm)',    recs.map(function(r){return r.tds;}),  '#e67e22');
+  chartCfg('ch-turb','Turbidez NTU', recs.map(function(r){return r.turb;}), '#e74c3c');
+  chartCfg('ch-orp', 'ORP (mV)',     recs.map(function(r){return r.orp;}),  '#3498db');
+}
+
+// ══════════════════════════════════════════════
+// MESO OVERVIEW
+// ══════════════════════════════════════════════
+var TREAT_MAP = {
+  'CR1':'T0','CR2':'T0','CR3':'T0',
+  '2GR1':'T1','2GR2':'T1','2GR3':'T1',
+  '5GR1':'T2','5GR2':'T2','5GR3':'T2',
+  '10GR1':'T3','10GR2':'T3','10GR3':'T3'
+};
+var TREAT_CLASS = {'T0':'t0','T1':'t1','T2':'t2','T3':'t3'};
+var TREAT_DOSE = {'T0':'0 g L⁻¹','T1':'2 g L⁻¹','T2':'5 g L⁻¹','T3':'10 g L⁻¹'};
+
+function getLatest(meso) {
+  var recs = DB.filter(function(r){return r.meso===meso;}).sort(function(a,b){return(b.date+b.time).localeCompare(a.date+a.time);});
+  return recs[0]||null;
+}
+
+function updateMesoOverview() {
+  var wrap = document.getElementById('meso-overview');
+  if(!wrap) return;
+  wrap.innerHTML = MESOS.map(function(m) {
+    var t = TREAT_MAP[m]; var tc = TREAT_CLASS[t]; var d = TREAT_DOSE[t];
+    var latest = getLatest(m);
+    var stats = latest
+      ? '<div class="mc2-stat"><span>pH</span><span class="val">'+(latest.ph||'—')+'</span></div>'
+        +'<div class="mc2-stat"><span>OD</span><span class="val">'+(latest.odm||'—')+' mg/L</span></div>'
+        +'<div class="mc2-stat"><span>T°</span><span class="val">'+(latest.temp||'—')+'°C</span></div>'
+        +'<div class="mc2-stat"><span>Data</span><span class="val" style="font-size:.6rem">'+(latest.date||'—')+'</span></div>'
+      : '<div class="mc2-stat"><span style="color:var(--mu);font-size:.68rem">Sem dados</span></div>';
+    return '<div class="mcard2" onclick="go(\'dados\',document.getElementById(\'nb-dados\'));setTimeout(function(){document.getElementById(\'d-meso\').value=\''+m+'\';},200)">'
+      +'<div class="mc2-head '+tc+'"><div class="mc2-id">'+m+'</div><div class="mc2-treat" style="color:'+(tc==='t0'?'#22c55e':tc==='t1'?'#eab308':tc==='t2'?'#f97316':'#ef4444')+'">'+t+' · '+d+'</div></div>'
+      +'<div class="mc2-body">'+stats+'</div>'
+      +'<button class="mc2-btn">+ Inserir dado</button></div>';
+  }).join('');
+
+  // summary table
+  var tb = document.getElementById('meso-summary-body');
+  if(!tb) return;
+  tb.innerHTML = MESOS.map(function(m) {
+    var l = getLatest(m); var t = TREAT_MAP[m];
+    if(!l) return '<tr><td style="color:var(--a2);font-family:Space Mono,monospace">'+m+'</td><td>'+t+'</td><td colspan="6" style="color:var(--mu)">sem dados</td></tr>';
+    return '<tr><td style="color:var(--a2);font-family:Space Mono,monospace">'+m+'</td><td>'+t+'</td><td>'+l.date+'</td><td>'+(l.ph||'—')+'</td><td style="color:var(--a3)">'+(l.odm||'—')+'</td><td>'+(l.temp||'—')+'</td><td>'+(l.cond||'—')+'</td><td>'+(l.turb||'—')+'</td></tr>';
+  }).join('');
+}
+
+// ══════════════════════════════════════════════
+// 3D CANVAS
+// ══════════════════════════════════════════════
+var canvas3d, ctx3d, W3, H3, DPR3;
+var rX=0.30, rY=0.42, zm=1.0, dragging=false, lmx=0,lmy=0, raf3=null;
+var view3='full', selComp=null, treatLevel=0;
+
+function initCanvas() {
+  canvas3d = document.getElementById('cv');
+  if(!canvas3d) return;
+  DPR3 = window.devicePixelRatio||1;
+  var r = canvas3d.getBoundingClientRect();
+  W3=r.width; H3=r.height;
+  canvas3d.width=W3*DPR3; canvas3d.height=H3*DPR3;
+  ctx3d=canvas3d.getContext('2d'); ctx3d.scale(DPR3,DPR3);
+  canvas3d.onmousedown=function(e){dragging=true;lmx=e.clientX;lmy=e.clientY;};
+  canvas3d.onmousemove=function(e){if(!dragging)return;rY+=(e.clientX-lmx)*0.007;rX+=(e.clientY-lmy)*0.004;lmx=e.clientX;lmy=e.clientY;};
+  canvas3d.onmouseup=canvas3d.onmouseleave=function(){dragging=false;};
+  canvas3d.onwheel=function(e){e.preventDefault();zm=Math.max(0.35,Math.min(3.0,zm-e.deltaY*0.001));};
+  if(raf3)cancelAnimationFrame(raf3);
+  (function loop(){if(!dragging)rY+=0.002;draw3d();raf3=requestAnimationFrame(loop);})();
+  window.addEventListener('resize',function(){if(document.getElementById('viewer').classList.contains('on'))initCanvas();});
+}
+
+function setView(v,btn){view3=v;document.querySelectorAll('.vb').forEach(function(b){b.classList.remove('on');});if(btn)btn.classList.add('on');}
+function resetV(){rX=0.30;rY=0.42;zm=1.0;view3='full';document.querySelectorAll('.vb').forEach(function(b){b.classList.remove('on');});document.querySelector('.vb').classList.add('on');}
+function updateTreat(){treatLevel=parseInt(document.getElementById('treatSel').value)||0;}
+
+function pr3(x,y,z){
+  var sX=Math.sin(rX),cX=Math.cos(rX),sY=Math.sin(rY),cY=Math.cos(rY);
+  var x1=x*cY+z*sY,z1=-x*sY+z*cY,y1=y*cX-z1*sX,z2=y*sX+z1*cX;
+  var sc=zm*(Math.min(W3,H3)*0.36);
+  var p=700/(700+z2*sc*0.011);
+  return{sx:W3/2+x1*sc*p,sy:H3/2+y1*sc*p,z:z2,p:p};
+}
+function pg3(pts,fill,str,lw){
+  ctx3d.beginPath();ctx3d.moveTo(pts[0].sx,pts[0].sy);
+  for(var i=1;i<pts.length;i++)ctx3d.lineTo(pts[i].sx,pts[i].sy);
+  ctx3d.closePath();
+  if(fill){ctx3d.fillStyle=fill;ctx3d.fill();}
+  if(str){ctx3d.strokeStyle=str;ctx3d.lineWidth=lw||0.5;ctx3d.stroke();}
+}
+function bx3(x,y,z,w,h,d){return[[x,y,z],[x+w,y,z],[x+w,y,z+d],[x,y,z+d],[x,y+h,z],[x+w,y+h,z],[x+w,y+h,z+d],[x,y+h,z+d]].map(function(v){return pr3(v[0],v[1],v[2]);});}
+function drawBox3(pts,col,alpha,glow){
+  if(glow){ctx3d.shadowColor='#4ecdc4';ctx3d.shadowBlur=18;}
+  var faces=[{i:[4,5,6,7],br:1.0},{i:[0,1,5,4],br:0.75},{i:[1,2,6,5],br:0.55},{i:[2,3,7,6],br:0.65},{i:[3,0,4,7],br:0.85},{i:[0,1,2,3],br:0.4}];
+  faces.sort(function(a,b){return(a.i.reduce(function(s,i){return s+pts[i].z;},0))-(b.i.reduce(function(s,i){return s+pts[i].z;},0));});
+  var a=alpha||1;var r=parseInt(col.slice(1,3),16),g=parseInt(col.slice(3,5),16),b=parseInt(col.slice(5,7),16);
+  faces.forEach(function(f){var pp=f.i.map(function(i){return pts[i];});pg3(pp,'rgba('+Math.round(r*f.br)+','+Math.round(g*f.br)+','+Math.round(b*f.br)+','+a+')');});
+  ctx3d.shadowBlur=0;
+}
+function cyl3(x1,y1,z1,x2,y2,z2,rad,col,alpha,glow){
+  var N=10,bot=[],top=[];
+  for(var i=0;i<N;i++){var a=i*2*Math.PI/N,cs=Math.cos(a),sn=Math.sin(a);bot.push(pr3(x1+cs*rad,y1,z1+sn*rad));top.push(pr3(x2+cs*rad,y2,z2+sn*rad));}
+  if(glow){ctx3d.shadowColor='#4ecdc4';ctx3d.shadowBlur=10;}
+  var rv=parseInt(col.slice(1,3),16),gv=parseInt(col.slice(3,5),16),bv=parseInt(col.slice(5,7),16);
+  for(var i=0;i<N;i++){var j=(i+1)%N;var br=0.5+0.5*Math.abs(Math.sin(i*Math.PI/N));pg3([bot[i],bot[j],top[j],top[i]],'rgba('+Math.round(rv*br)+','+Math.round(gv*br)+','+Math.round(bv*br)+','+(alpha||.9)+')');}
+  ctx3d.beginPath();bot.forEach(function(p,i){i===0?ctx3d.moveTo(p.sx,p.sy):ctx3d.lineTo(p.sx,p.sy);});ctx3d.closePath();ctx3d.fillStyle='rgba('+rv+','+gv+','+bv+','+(alpha||.9)+')';ctx3d.fill();
+  ctx3d.beginPath();top.forEach(function(p,i){i===0?ctx3d.moveTo(p.sx,p.sy):ctx3d.lineTo(p.sx,p.sy);});ctx3d.closePath();ctx3d.fillStyle='rgba('+Math.min(255,rv+20)+','+Math.min(255,gv+20)+','+Math.min(255,bv+20)+','+(alpha||.9)+')';ctx3d.fill();
+  ctx3d.shadowBlur=0;
+}
+function ln3d(x1,y1,z1,x2,y2,z2,col,lw,glow){
+  var a=pr3(x1,y1,z1),b=pr3(x2,y2,z2);
+  if(glow){ctx3d.shadowColor=col;ctx3d.shadowBlur=6;}
+  ctx3d.beginPath();ctx3d.moveTo(a.sx,a.sy);ctx3d.lineTo(b.sx,b.sy);ctx3d.strokeStyle=col;ctx3d.lineWidth=lw||1.5;ctx3d.stroke();ctx3d.shadowBlur=0;
+}
+function sph3(x,y,z,r,col,glow){
+  var p=pr3(x,y,z);var sc=zm*(Math.min(W3,H3)*0.36)*p.p*r*0.015;sc=Math.max(3,sc);
+  if(glow){ctx3d.shadowColor='#4ecdc4';ctx3d.shadowBlur=10;}
+  var gr=ctx3d.createRadialGradient(p.sx-sc*.3,p.sy-sc*.3,0,p.sx,p.sy,sc);
+  gr.addColorStop(0,'rgba(255,255,255,.7)');gr.addColorStop(.3,col);gr.addColorStop(1,darken3(col,.4));
+  ctx3d.beginPath();ctx3d.arc(p.sx,p.sy,sc,0,Math.PI*2);ctx3d.fillStyle=gr;ctx3d.fill();ctx3d.shadowBlur=0;
+}
+function lbl3(x,y,z,txt,col,sz){
+  var p=pr3(x,y,z);col=col||'#dde4f0';sz=sz||9;
+  ctx3d.font=sz+'px Space Mono,monospace';ctx3d.textAlign='center';ctx3d.textBaseline='middle';
+  var tw=ctx3d.measureText(txt).width;
+  ctx3d.fillStyle='rgba(7,8,12,.85)';
+  if(ctx3d.roundRect)ctx3d.roundRect(p.sx-tw/2-4,p.sy-sz*.7,tw+8,sz*1.4,3);else ctx3d.rect(p.sx-tw/2-4,p.sy-sz*.7,tw+8,sz*1.4);
+  ctx3d.fill();ctx3d.fillStyle=col;ctx3d.fillText(txt,p.sx,p.sy);
+}
+function darken3(h,f){var r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return'rgb('+Math.round(r*f)+','+Math.round(g*f)+','+Math.round(b*f)+')';}
+
+var COMPS = [
+  {id:'tank',    label:{pt:'Caixa PEAD 300L',               en:'HDPE Tank 300L'},           desc:{pt:'Mesocosmo de polietileno 300L. Paredes transparentes para observação. Abertura superior para acesso.',en:'300L polyethylene mesocosm. Transparent walls for observation. Top opening for access.'},tag:'estrutura',col:'#2471a3',vis:true},
+  {id:'support', label:{pt:'Poste Central (PVC)',            en:'Central PVC Post'},          desc:{pt:'Poste vertical central em PVC ao qual estão pendurados os funis de bolhas, garrafas de respiração ecossistêmica e câmara de CO₂. Fixado ao fundo e à borda superior.',en:'Central vertical PVC post where bubble funnels, ecosystem respiration bottles, and CO₂ chamber are hung. Fixed to bottom and top rim.'},tag:'estrutura',col:'#566573',vis:true},
+  {id:'sediment',label:{pt:'Sedimento do Rio (24L)',         en:'River Sediment (24L)'},      desc:{pt:'24 litros de sedimento coletado do rio Paraguai. Distribuído uniformemente no fundo. Substrato bentônico.',en:'24L Paraguai River sediment. Evenly distributed on bottom. Benthic substrate.'},tag:'base',col:'#6e4c1e',vis:true},
+  {id:'water',   label:{pt:'Coluna d\'Água (≈250L)',         en:'Water Column (≈250L)'},      desc:{pt:'Água do rio Paraguai. Volume ajustado diariamente para compensar evaporação. Sofre alteração de OD, pH e turbidez com as cinzas.',en:'Paraguai River water. Volume adjusted daily for evaporation. DO, pH and turbidity change with ashes.'},tag:'variável',col:'#1a6fa0',vis:true},
+  {id:'ash',     label:{pt:'Cinzas (farelos pretos)',        en:'Ashes (black flakes)'},      desc:{pt:'Adicionadas no Dia 0 (13/03). T0=0g, T1=500g, T2=1250g, T3=2500g. Depositam-se gradualmente tornando a água turva. Reforço na semana 3.',en:'Added Day 0 (13/03). T0=0g, T1=500g, T2=1250g, T3=2500g. Gradually settle making water turbid. Reinforcement in week 3.'},tag:'tratamento',col:'#2c2c2c',vis:true},
+  {id:'aguape',  label:{pt:'Aguapé / E. crassipes (2,5kg)', en:'Water Hyacinth (2.5kg)'},    desc:{pt:'Eichhornia crassipes. 2,5 kg por mesocosmo. Flutua na superfície. 5 kg separados para análise de Hg (Kiwi).',en:'Eichhornia crassipes. 2.5kg per mesocosm. Floats on surface. 5kg reserved for Hg analysis (Kiwi).'},tag:'biota',col:'#1e8449',vis:true},
+  {id:'hopl',    label:{pt:'Hoplosternum littorale (10×)',   en:'H. littorale (10×)'},        desc:{pt:'Camboatá / cará-cascudo. 10 por mesocosmo (120 total). Bentônico, tolerante a baixo OD. Sem Astyanax neste experimento.',en:'Cascudo/hoplo. 10 per mesocosm (120 total). Benthic, tolerant of low DO. No Astyanax in this experiment.'},tag:'biota',col:'#7d6608',vis:true},
+  {id:'lumtemp', label:{pt:'Sensor T°/Lux (interno)',        en:'T°/Light Sensor (internal)'},desc:{pt:'Instalado DENTRO do mesocosmo. Registro contínuo de temperatura e luminosidade. Iniciado em 06/03, retirado em 12/06.',en:'Installed INSIDE the mesocosm. Continuous T° and luminosity recording. Started 06/03, removed 12/06.'},tag:'sensor',col:'#3498db',vis:true},
+  {id:'sensor',  label:{pt:'Sonda Multiparâmetro',           en:'Multiparameter Probe'},      desc:{pt:'YSI. Mede pH, mV ORP, %OD, mg/L OD, Cond μS, KΩcm, TDS ppm, Temp°C, KPA. Coleta diária, 3 réplicas, mesmo horário e ordem.',en:'YSI probe. Measures pH, mV ORP, %DO, mg/L DO, Cond μS, KΩcm, TDS ppm, Temp°C, KPA. Daily, 3 replicates, same time and order.'},tag:'sensor',col:'#27ae60',vis:true},
+  {id:'funnel',  label:{pt:'2× Funis Armadilha de Bolhas',  en:'2× Bubble Trap Funnels'},    desc:{pt:'2 funis invertidos pendurados no poste central por ganchos. Coletam bolhas de gás produzidas na coluna d\'água. Protocolo Gustavo a partir de 03/04.',en:'2 inverted funnels hung from central post by hooks. Collect gas bubbles from water column. Gustavo protocol from 03/04.'},tag:'sensor',col:'#f39c12',vis:true},
+  {id:'bottle',  label:{pt:'Garrafas de Respiração Ecossist.',en:'Ecosystem Resp. Bottles'},  desc:{pt:'Garrafas azuis penduradas no poste central. Medem respiração ecossistêmica. Coletadas com o fluxo de CO₂.',en:'Blue bottles hung from central post. Measure ecosystem respiration. Collected with CO₂ flux.'},tag:'sensor',col:'#1a5f8a',vis:true},
+  {id:'co2',     label:{pt:'Câmara de Fluxo CO₂',           en:'CO₂ Flux Chamber'},          desc:{pt:'Flutua na superfície cobrindo a água. Protocolo Ernandes. 3 repetições por mesocosmo. Ciclo nictemeral em: 03/04, 24/04, 15/05, 05/06.',en:'Floats on surface covering water. Ernandes protocol. 3 replicates per mesocosm. Nyctemeral cycle: 03/04, 24/04, 15/05, 05/06.'},tag:'sensor',col:'#e74c3c',vis:true},
+  {id:'sedtrap', label:{pt:'Câmaras de Sedimentação',        en:'Sedimentation Chambers'},    desc:{pt:'Cilindros no fundo do mesocosmo (visíveis na imagem original). Coletadas no último dia (12/06). 3 alíquotas Falcon 50mL → estufa 200°C/24h → pesagem.',en:'Cylinders at mesocosm bottom. Collected on last day (12/06). 3 Falcon 50mL aliquots → oven 200°C/24h → weighing.'},tag:'sensor',col:'#9b59b6',vis:true},
+];
+
+function isV(id){return COMPS.find(function(c){return c.id===id;})?.vis;}
+function isG(id){return selComp===id;}
+
+function draw3d() {
+  if(!ctx3d) return;
+  ctx3d.clearRect(0,0,W3,H3);
+  var bg=ctx3d.createRadialGradient(W3/2,H3/2,0,W3/2,H3/2,Math.max(W3,H3)/2);
+  bg.addColorStop(0,'#0d1018');bg.addColorStop(1,'#07080c');
+  ctx3d.fillStyle=bg;ctx3d.fillRect(0,0,W3,H3);
+
+  var exp=view3==='explode', cut=view3==='cut';
+  // ash turbidity based on treatment level
+  var ashOpacity = [0, 0.15, 0.3, 0.5][treatLevel];
+  var ashDose = [0,500,1250,2500][treatLevel];
+  var ashLabel = ['0g','500g','1250g','2500g'][treatLevel];
+
+  function ey(base,layer){return exp?base+layer*0.85:base;}
+
+  // ── CENTRAL PVC POST ──
+  if(isV('support')){
+    var postTop = ey(2.8,4.5);
+    cyl3(0,-1.02,0, 0,postTop,0, 0.04,'#566573',0.9,isG('support'));
+    lbl3(0.18,postTop+0.15,0,'Poste PVC','#7f8c8d',8);
+    // horizontal arm (to support funnels)
+    var armY=ey(0.85,2.8);
+    ln3d(-0.6,armY,0, 0.6,armY,0,'#7f8c8d',2,false);
+    // hooks
+    [-0.55,0.55].forEach(function(hx){ln3d(hx,armY,0,hx,armY-0.12,0,'#aaa',1.5);});
+  }
+
+  // ── TANK WALLS ──
+  if(isV('tank')){
+    // cylindrical tank approximated with box
+    var pts=bx3(-1.05,-1.05,-0.85, 2.1,2.1,1.7);
+    drawBox3(pts,'#2471a3',cut?0.12:0.42,isG('tank'));
+    // rim
+    var rim=bx3(-1.1,1.03,-0.9,2.2,0.07,1.8);
+    drawBox3(rim,'#1a5276',0.8);
+    lbl3(1.55,0.2,0,'300L','#2980b9',9);
+  }
+
+  // ── SEDIMENT ──
+  if(isV('sediment')){
+    var sY=ey(-1.05,0);
+    var pts=bx3(-0.95,sY,-0.75, 1.9,0.3,1.5);
+    drawBox3(pts,'#6e4c1e',1.0,isG('sediment'));
+    lbl3(0,sY+0.37,0,'Sedimento 24L','#c0a060',9);
+  }
+
+  // ── WATER (with turbidity from ash) ──
+  if(isV('water')){
+    var wY=ey(-0.75,0.5);
+    // clear water at bottom
+    ctx3d.globalAlpha=cut?0.12:0.28;
+    var pts=bx3(-0.95,wY,-0.75, 1.9,0.8,1.5);
+    drawBox3(pts,'#1a6fa0',1.0);
+    ctx3d.globalAlpha=1;
+    // turbid upper zone (from ash)
+    if(ashOpacity>0){
+      ctx3d.globalAlpha=cut?ashOpacity*0.3:ashOpacity*0.6;
+      var pts2=bx3(-0.95,wY+0.8,-0.75, 1.9,0.8,1.5);
+      drawBox3(pts2,'#5a4a3a',1.0);
+      ctx3d.globalAlpha=1;
+    }
+    // surface shimmer
+    var ws=pr3(0,wY+1.6,0);
+    ctx3d.globalAlpha=0.12;ctx3d.beginPath();ctx3d.ellipse(ws.sx,ws.sy,zm*170,zm*46,rY,0,Math.PI*2);ctx3d.fillStyle='#4fc3f7';ctx3d.fill();ctx3d.globalAlpha=1;
+  }
+
+  // ── ASH PARTICLES (black flakes drifting down) ──
+  if(isV('ash') && treatLevel>0){
+    var t=Date.now()*0.001;
+    var numParticles=[0,6,12,20][treatLevel];
+    // settled ash layer on sediment
+    var ashY=ey(-0.75,0.5);
+    var ashPts=bx3(-0.92,ashY,-0.72, 1.84,0.06,1.44);
+    drawBox3(ashPts,'#2c2c2c',[0,0.35,0.65,0.9][treatLevel]);
+    // floating particles
+    for(var i=0;i<numParticles;i++){
+      var px=Math.sin(i*2.3+t*0.3)*0.7;
+      var py=ey(-0.4,0.8)+Math.sin(i*1.7+t*0.5)*0.5+Math.cos(t*0.2+i)*0.1;
+      var pz=Math.cos(i*1.9+t*0.2)*0.55;
+      var pp=pr3(px,py,pz);
+      ctx3d.globalAlpha=[0,0.35,0.55,0.8][treatLevel];
+      ctx3d.beginPath();ctx3d.arc(pp.sx,pp.sy,zm*2.5*pp.p,0,Math.PI*2);
+      ctx3d.fillStyle='#3a3530';ctx3d.fill();ctx3d.globalAlpha=1;
+    }
+    lbl3(0,ey(-0.72,0.5)+0.15,0,'Cinzas '+ashLabel,'#999',9);
+  }
+
+  // ── AGUAPÉ ──
+  if(isV('aguape')){
+    var gY=ey(0.78,3.5);
+    [[-0.45,-0.28],[0.08,-0.36],[0.5,0.22],[-0.1,0.38],[-0.58,0.3],[0.28,0.08]].forEach(function(pad,pi){
+      var p=pr3(pad[0],gY,pad[1]);
+      ctx3d.beginPath();ctx3d.ellipse(p.sx,p.sy,zm*55*p.p,zm*17*p.p,rY+0.15,0,Math.PI*2);
+      ctx3d.fillStyle=isG('aguape')?'#27ae60cc':'#1e8449aa';
+      if(isG('aguape')){ctx3d.shadowColor='#4ecdc4';ctx3d.shadowBlur=10;}
+      ctx3d.fill();ctx3d.shadowBlur=0;ctx3d.strokeStyle='#2ecc71';ctx3d.lineWidth=0.6;ctx3d.stroke();
+      var stem=pr3(pad[0],gY-0.3,pad[1]);
+      ctx3d.beginPath();ctx3d.moveTo(p.sx,p.sy);ctx3d.lineTo(stem.sx,stem.sy);ctx3d.strokeStyle='#27ae60';ctx3d.lineWidth=1.4;ctx3d.stroke();
+      if(pi<3){ctx3d.beginPath();ctx3d.arc(p.sx,p.sy-5,3,0,Math.PI*2);ctx3d.fillStyle='#8e44ad';ctx3d.fill();}
+    });
+    lbl3(0,gY+0.4,0,'Aguapé 2,5kg','#27ae60',9);
+  }
+
+  // ── HOPLOSTERNUM (5 benthic, near bottom) ──
+  if(isV('hopl')){
+    var hY=ey(-0.72,0.3);
+    // 5 bottom-dwellers
+    [[-0.42,-0.25],[0.3,0.18],[-0.62,0.08],[0.55,-0.18],[0.0,0.35]].forEach(function(p2,i){
+      var fp=pr3(p2[0],hY,p2[1]);
+      ctx3d.save();ctx3d.translate(fp.sx,fp.sy);ctx3d.scale(fp.p,fp.p);
+      ctx3d.beginPath();ctx3d.ellipse(0,0,16*zm,4.5*zm,Math.sin(i*1.1)*0.2,0,Math.PI*2);
+      ctx3d.fillStyle=isG('hopl')?'#d4ac0d':'#7d6608';
+      if(isG('hopl')){ctx3d.shadowColor='#4ecdc4';ctx3d.shadowBlur=10;}
+      ctx3d.fill();ctx3d.shadowBlur=0;
+      ctx3d.beginPath();ctx3d.moveTo(-14*zm,0);ctx3d.lineTo(-20*zm,-4*zm);ctx3d.lineTo(-20*zm,4*zm);ctx3d.closePath();ctx3d.fillStyle='#5d4e0a';ctx3d.fill();
+      // barbels
+      [[-2,-.5],[-.5,-1],[1,-1],[2,-.5]].forEach(function(bb){ctx3d.beginPath();ctx3d.arc(14*zm+bb[0],bb[1]*zm,1.5,0,Math.PI*2);ctx3d.fillStyle='#9a7400';ctx3d.fill();});
+      ctx3d.restore();
+    });
+  }
+
+  // ── TEMP/LIGHT SENSOR INSIDE (small disc on tank wall, internal) ──
+  if(isV('lumtemp')){
+    var lsY=ey(-0.2,3.8);
+    // Small sensor stuck to inside wall - not a vertical tube
+    var lp=pr3(-0.88,lsY,-0.2);
+    var sz=zm*12*lp.p;
+    if(isG('lumtemp')){ctx3d.shadowColor='#4ecdc4';ctx3d.shadowBlur=10;}
+    ctx3d.beginPath();ctx3d.ellipse(lp.sx,lp.sy,sz,sz*0.6,0,0,Math.PI*2);
+    ctx3d.fillStyle=isG('lumtemp')?'#3498db':'#1a5276';ctx3d.fill();
+    ctx3d.strokeStyle='#3498db';ctx3d.lineWidth=1;ctx3d.stroke();ctx3d.shadowBlur=0;
+    // light rays
+    for(var i=0;i<5;i++){var a=i*Math.PI*2/5-0.3;ctx3d.beginPath();ctx3d.moveTo(lp.sx+Math.cos(a)*sz,lp.sy+Math.sin(a)*sz*0.6);ctx3d.lineTo(lp.sx+Math.cos(a)*sz*1.7,lp.sy+Math.sin(a)*sz*1.2);ctx3d.strokeStyle=isG('lumtemp')?'#4ecdc4':'rgba(52,152,219,.5)';ctx3d.lineWidth=1;ctx3d.stroke();}
+    lbl3(-0.88,lsY+0.28,-0.2,'T°/Lux','#3498db',8);
+  }
+
+  // ── MULTIPARAMETER PROBE (external, shown dipping in from top) ──
+  if(isV('sensor')){
+    var spY=ey(1.1,4.2);
+    // probe cable coming from outside top-right
+    ln3d(1.3,spY+0.4,0.3,0.85,spY-0.1,0.35,'#27ae60',1.2,false);
+    sph3(0.85,spY-0.1,0.35,0.55,'#27ae60',isG('sensor'));
+    // probe body (small rect)
+    var prp=pr3(0.85,spY-0.1,0.35);
+    var psz=zm*10*prp.p;
+    if(isG('sensor')){ctx3d.shadowColor='#4ecdc4';ctx3d.shadowBlur=8;}
+    ctx3d.beginPath();ctx3d.rect(prp.sx-psz*0.5,prp.sy-psz,psz,psz*1.8);ctx3d.fillStyle='#145a32';ctx3d.fill();ctx3d.strokeStyle='#27ae60';ctx3d.lineWidth=1;ctx3d.stroke();ctx3d.shadowBlur=0;
+    lbl3(0.85,spY+0.12,0.35,'YSI','#27ae60',8);
+  }
+
+  // ── 2 BUBBLE FUNNELS hung from arm ──
+  if(isV('funnel')){
+    var armY2=ey(0.85,2.8);
+    [[-0.55,0],[0.55,0]].forEach(function(fn,fi){
+      var fx=fn[0],fz=fn[1];
+      // wire from arm to funnel
+      var funnTop=ey(0.7,2.5);
+      ln3d(fx,armY2,fz,fx,funnTop,fz,'#aaa',1.2);
+      // funnel body (inverted triangle shape)
+      var fp1=pr3(fx,funnTop,fz),fp2=pr3(fx,funnTop-0.32,fz);
+      var wT=zm*22*fp1.p,wB=zm*6*fp2.p;
+      ctx3d.beginPath();ctx3d.moveTo(fp1.sx-wT,fp1.sy);ctx3d.lineTo(fp1.sx+wT,fp1.sy);ctx3d.lineTo(fp2.sx+wB,fp2.sy);ctx3d.lineTo(fp2.sx-wB,fp2.sy);ctx3d.closePath();
+      ctx3d.fillStyle=isG('funnel')?'rgba(243,156,18,.8)':'rgba(243,156,18,.55)';
+      if(isG('funnel')){ctx3d.shadowColor='#4ecdc4';ctx3d.shadowBlur=10;}
+      ctx3d.fill();ctx3d.shadowBlur=0;ctx3d.strokeStyle='#f39c12';ctx3d.lineWidth=1;ctx3d.stroke();
+      // gas bubble
+      var bp=pr3(fx,funnTop-0.16,fz);
+      ctx3d.beginPath();ctx3d.arc(bp.sx,bp.sy,4,0,Math.PI*2);ctx3d.fillStyle='rgba(78,205,196,.6)';ctx3d.fill();
+      lbl3(fx,funnTop+0.18,fz,'Funil '+(fi+1),'#f39c12',8);
+    });
+  }
+
+  // ── ECOSYSTEM RESPIRATION BOTTLES (blue, hanging) ──
+  if(isV('bottle')){
+    var barmY=ey(0.2,2.0);
+    // two bottles hanging below the arm
+    [[-0.15,0.2],[0.15,-0.2]].forEach(function(bpos,bi){
+      var bx2=bpos[0],bz=bpos[1];
+      // string from post
+      var btop=ey(0.85,2.8);
+      ln3d(bx2,btop,bz,bx2,barmY+0.35,bz,'#aaa',1.0);
+      // bottle body
+      cyl3(bx2,barmY,bz,bx2,barmY+0.35,bz,0.1,'#1a5f8a',0.85,isG('bottle'));
+      // bottle neck
+      cyl3(bx2,barmY+0.35,bz,bx2,barmY+0.48,bz,0.04,'#1a5f8a',0.9);
+      var bp2=pr3(bx2,barmY+0.52,bz);
+      ctx3d.beginPath();ctx3d.arc(bp2.sx,bp2.sy,3,0,Math.PI*2);ctx3d.fillStyle='#7f8c8d';ctx3d.fill();
+    });
+    lbl3(0,barmY-0.15,0,'Resp. Ecosist.','#1a6fa0',8);
+  }
+
+  // ── CO2 FLUX CHAMBER (dome on water surface) ──
+  if(isV('co2')){
+    var cY2=ey(2.1,5.0);
+    var cp=pr3(0,cY2,0);
+    ctx3d.beginPath();ctx3d.ellipse(cp.sx,cp.sy,zm*88*cp.p,zm*28*cp.p,rY*0.5,0,Math.PI*2);
+    ctx3d.fillStyle=isG('co2')?'rgba(231,76,60,.38)':'rgba(231,76,60,.2)';
+    if(isG('co2')){ctx3d.shadowColor='#4ecdc4';ctx3d.shadowBlur=14;}
+    ctx3d.fill();ctx3d.shadowBlur=0;ctx3d.strokeStyle='#e74c3c';ctx3d.lineWidth=1.8;ctx3d.stroke();
+    [-0.4,0,0.4].forEach(function(dx){
+      ctx3d.setLineDash([4,3]);
+      var a1=pr3(dx,cY2-0.22,0),a2=pr3(dx,cY2-0.5,0);
+      ctx3d.beginPath();ctx3d.moveTo(a2.sx,a2.sy);ctx3d.lineTo(a1.sx,a1.sy);ctx3d.strokeStyle='rgba(231,76,60,.5)';ctx3d.lineWidth=1.5;ctx3d.stroke();ctx3d.setLineDash([]);
+    });
+    lbl3(0,cY2+0.24,0,'CO₂ Chamber','#e74c3c',9);
+  }
+
+  // ── SEDIMENTATION CHAMBERS (cylinders at bottom) ──
+  if(isV('sedtrap')){
+    var stY=ey(-1.0,-2.8);
+    // Two sedimentation chambers visible in reference image
+    [[-0.22,0],[0.22,0]].forEach(function(sc,sci){
+      cyl3(sc[0],stY,sc[1],sc[0],stY+0.38,sc[1],0.13,'#9b59b6',0.88,isG('sedtrap'));
+      var stp=pr3(sc[0],stY-0.08,sc[1]);
+      ctx3d.beginPath();ctx3d.moveTo(stp.sx-zm*10*stp.p,stp.sy);ctx3d.lineTo(stp.sx+zm*10*stp.p,stp.sy);ctx3d.lineTo(stp.sx+zm*4*stp.p,stp.sy+zm*12*stp.p);ctx3d.lineTo(stp.sx-zm*4*stp.p,stp.sy+zm*12*stp.p);ctx3d.closePath();
+      ctx3d.fillStyle='#7d3c9888';ctx3d.fill();ctx3d.strokeStyle='#9b59b6';ctx3d.lineWidth=0.8;ctx3d.stroke();
+    });
+    lbl3(0,stY-0.22,0,'Câm. Sedimentação','#9b59b6',8);
+  }
+
+  // RED/GREEN SENSOR LIGHTS (from reference image - at top)
+  if(isV('support')){
+    var topY = ey(2.8,4.5);
+    // Red light (left)
+    var rp=pr3(-0.35,topY+0.08,0);
+    ctx3d.beginPath();ctx3d.arc(rp.sx,rp.sy,zm*8*rp.p,0,Math.PI*2);
+    ctx3d.fillStyle='rgba(239,68,68,.7)';ctx3d.shadowColor='#ef4444';ctx3d.shadowBlur=12;ctx3d.fill();ctx3d.shadowBlur=0;
+    // Green light (right)
+    var gp=pr3(0.35,topY+0.08,0);
+    ctx3d.beginPath();ctx3d.arc(gp.sx,gp.sy,zm*6*gp.p,0,Math.PI*2);
+    ctx3d.fillStyle='rgba(34,197,94,.7)';ctx3d.shadowColor='#22c55e';ctx3d.shadowBlur=10;ctx3d.fill();ctx3d.shadowBlur=0;
+  }
+
+  // HUD
+  ctx3d.textAlign='center';ctx3d.textBaseline='top';ctx3d.font='bold 10px Space Mono,monospace';
+  var treatLabels=['T0 — Controle (0g cinzas)','T1 — 2 g L⁻¹ (500g cinzas)','T2 — 5 g L⁻¹ (1250g cinzas)','T3 — 10 g L⁻¹ (2500g cinzas)'];
+  var tcols=['#22c55e','#eab308','#f97316','#ef4444'];
+  ctx3d.fillStyle=tcols[treatLevel];ctx3d.fillText(treatLabels[treatLevel],W3/2,12);
+  ctx3d.fillStyle='rgba(90,106,132,.6)';ctx3d.font='9px Space Mono,monospace';
+  ctx3d.fillText('Arrastar: girar  ·  Scroll: zoom  ·  Clique no painel: detalhes',W3/2,H3-14);
+}
+
+// ══════════════════════════════════════════════
+// COMPONENT PANEL
+// ══════════════════════════════════════════════
+function buildClist(){
+  var list=document.getElementById('clist');if(!list)return;list.innerHTML='';
+  COMPS.forEach(function(c){
+    var d=document.createElement('div');d.className='ci'+(selComp===c.id?' sel':'');d.id='ci-'+c.id;
+    var det=document.createElement('div');det.className='ci-detail'+(selComp===c.id?' open':'');det.id='det-'+c.id;
+    det.innerHTML='<h4>'+c.label[lang]+'</h4><p>'+c.desc[lang]+'</p>'
+      +'<div class="ci-edit"><label>Renomear / nota</label><input type="text" id="cin-'+c.id+'" value="" placeholder="Nota de campo..."><button class="savebtn" onclick="saveCompNote(\''+c.id+'\')">Salvar nota</button></div>';
+    d.innerHTML='<div class="ci-top"><div class="ci-dot" style="background:'+c.col+'"></div><div class="ci-name">'+c.label[lang]+'</div></div>'
+      +'<div class="ci-desc">'+c.desc[lang].slice(0,80)+(c.desc[lang].length>80?'…':'')+'</div>'
+      +'<div class="ci-foot"><span class="ci-tag">'+c.tag+'</span><div class="tog '+(c.vis?'on':'')+'" id="tog-'+c.id+'"></div></div>';
+    d.querySelector('.tog').onclick=function(e){e.stopPropagation();c.vis=!c.vis;e.currentTarget.classList.toggle('on',c.vis);};
+    d.onclick=function(e){if(e.target.classList.contains('tog'))return;selComp=selComp===c.id?null:c.id;buildClist();};
+    list.appendChild(d);list.appendChild(det);
+  });
+}
+function saveCompNote(id){var inp=document.getElementById('cin-'+id);if(inp)toast('Nota salva para '+id+': '+inp.value);}
+
+// ══════════════════════════════════════════════
+// SCHEDULE
+// ══════════════════════════════════════════════
+var SCHED = [
+  {date:'24/02/2026',team:{pt:'08h · Todos',en:'08h · Everyone'},done:true,tasks:{
+    pt:['Esvaziar caixas, limpar, montar suportes (poste central, funis, câmaras sedimentação)','Sortear/identificar 12 mesocosmos: CR1-3, 2GR1-3, 5GR1-3, 10GR1-3','Coletar do rio: sedimento 300L, água 3000L, aguapé 50kg','24L sedimento + água + 2,5kg aguapé por mesocosmo','5kg aguapé → análise Hg (Kiwi)','3 amostras água (Gustavo) + 3 fitoplâncton + dados limnológicos'],
+    en:['Empty tanks, clean, assemble central post, funnels, sedimentation chambers','Randomize/ID 12 mesocosms: CR1-3, 2GR1-3, 5GR1-3, 10GR1-3','Collect from river: sediment 300L, water 3000L, water hyacinth 50kg','24L sediment + water + 2.5kg water hyacinth per mesocosm','5kg water hyacinth → Hg analysis (Kiwi)','3 water samples (Gustavo) + 3 phytoplankton + limnological data']
+  }},
+  {date:'06/03/2026',team:{pt:'07h · Todos',en:'07h · Everyone'},done:true,tasks:{
+    pt:['Coletar/comprar 120 Hoplosternum littorale → transportar ao LIPAN','10 Hopl./mesocosmo (120 total, sem Astyanax neste experimento)','Instalar suportes + iniciar sensores T°/Lux internos','Eutanásia T0: 5 Hopl./mesocosmo (60 total) → histologia (Leandro) + Hg (Kiwi)','Limnologia + dados climáticos + CO₂ + água + fitoplâncton + evaporação'],
+    en:['Collect/buy 120 Hoplosternum littorale → transport to LIPAN','10 Hopl./mesocosm (120 total, no Astyanax in this experiment)','Install supports + start T°/Lux sensors inside','T0 euthanasia: 5 Hopl./mesocosm (60 total) → histology (Leandro) + Hg (Kiwi)','Limnology + climate data + CO₂ + water + phytoplankton + evaporation']
+  }},
+  {date:'07/03 – 12/03/2026',team:{pt:'08h · Todos',en:'08h · Everyone'},done:true,tasks:{
+    pt:['Limnologia diária + dados climáticos','Registrar comportamento dos peixes','Evaporação dos mesocosmos'],
+    en:['Daily limnology + climate data','Record fish behavior','Mesocosm evaporation']
+  }},
+  {date:'13/03/2026',team:{pt:'08h · Todos',en:'08h · Everyone'},done:false,now:true,hl:true,tasks:{
+    pt:['⭐ DIA ZERO — ADIÇÃO DAS CINZAS','Misturar cinzas: 3×500g, 3×1250g, 3×2500g → inserir nos mesocosmos sortedos','Limnologia + dados climáticos + CO₂ + evaporação + fitoplâncton + água','Registrar comportamento','Eutanásia 2 Hopl./mesocosmo → histologia + Hg'],
+    en:['⭐ DAY ZERO — ASH ADDITION','Mix ashes: 3×500g, 3×1250g, 3×2500g → add to assigned mesocosms','Limnology + climate data + CO₂ + evaporation + phytoplankton + water','Record behavior','Euthanize 2 Hopl./mesocosm → histology + Hg']
+  }},
+  {date:'14/03 – 19/03/2026',team:{pt:'Lisa + Niels',en:'Lisa + Niels'},tasks:{
+    pt:['Limnologia diária + dados climáticos + comportamento + evaporação'],
+    en:['Daily limnology + climate data + behavior + evaporation']
+  }},
+  {date:'20/03 · 27/03/2026',team:{pt:'13h · Lisa + Gustavo + Niels',en:'13h · Lisa + Gustavo + Niels'},tasks:{
+    pt:['Limnologia + dados climáticos + CO₂ + evaporação + fitoplâncton + água + comportamento'],
+    en:['Limnology + climate data + CO₂ + evaporation + phytoplankton + water + behavior']
+  }},
+  {date:'03/04/2026',team:{pt:'13h · Lisa + Gustavo + Niels',en:'13h · Lisa + Gustavo + Niels'},tasks:{
+    pt:['Limnologia + CO₂ nictemeral + GASES DOS FUNIS (Gustavo) + fitoplâncton + água + comportamento'],
+    en:['Limnology + nyctemeral CO₂ + GAS FUNNELS (Gustavo) + phytoplankton + water + behavior']
+  }},
+  {date:'04/04 – 16/04/2026',team:{pt:'Lisa + Niels',en:'Lisa + Niels'},tasks:{
+    pt:['Limnologia diária + dados climáticos + comportamento + evaporação'],
+    en:['Daily limnology + climate data + behavior + evaporation']
+  }},
+  {date:'17/04 · 24/04 · 01/05/2026',team:{pt:'13h · Lisa + Gustavo + Niels',en:'13h · Lisa + Gustavo + Niels'},tasks:{
+    pt:['Limnologia + CO₂ (nictemeral 24/04) + gases dos funis (17/04, 01/05) + fitoplâncton + água + comportamento'],
+    en:['Limnology + CO₂ (nyctemeral 24/04) + gas funnels (17/04, 01/05) + phytoplankton + water + behavior']
+  }},
+  {date:'08/05 · 22/05/2026',team:{pt:'13h · Lisa + Gustavo + Niels',en:'13h · Lisa + Gustavo + Niels'},tasks:{
+    pt:['Limnologia + CO₂ + fitoplâncton + água + comportamento'],
+    en:['Limnology + CO₂ + phytoplankton + water + behavior']
+  }},
+  {date:'15/05/2026',team:{pt:'13h · Lisa + Gustavo + Niels',en:'13h · Lisa + Gustavo + Niels'},tasks:{
+    pt:['Limnologia + CO₂ nictemeral + GASES DOS FUNIS + fitoplâncton + água + comportamento'],
+    en:['Limnology + nyctemeral CO₂ + GAS FUNNELS + phytoplankton + water + behavior']
+  }},
+  {date:'29/05/2026',team:{pt:'13h · Lisa + Gustavo + Niels',en:'13h · Lisa + Gustavo + Niels'},tasks:{
+    pt:['Limnologia + CO₂ + GASES DOS FUNIS + fitoplâncton + água + comportamento'],
+    en:['Limnology + CO₂ + GAS FUNNELS + phytoplankton + water + behavior']
+  }},
+  {date:'05/06/2026',team:{pt:'13h · Lisa + Gustavo + Niels',en:'13h · Lisa + Gustavo + Niels'},tasks:{
+    pt:['Limnologia + CO₂ nictemeral + fitoplâncton + água + comportamento'],
+    en:['Limnology + nyctemeral CO₂ + phytoplankton + water + behavior']
+  }},
+  {date:'12/06/2026',team:{pt:'07h · TODOS',en:'07h · EVERYONE'},hl:true,tasks:{
+    pt:['⭐ ÚLTIMO DIA — COLETA FINAL','Limnologia + CO₂ + GASES DOS FUNIS + fitoplâncton + água + comportamento','Eutanásia 2 Hopl./mesocosmo → histologia + Hg','Aguapé → análise Hg (Kiwi)','Retirar câmaras de sedimentação (Gustavo) + sensores T°/Lux'],
+    en:['⭐ LAST DAY — FINAL COLLECTION','Limnology + CO₂ + GAS FUNNELS + phytoplankton + water + behavior','Euthanize 2 Hopl./mesocosm → histology + Hg','Water hyacinth → Hg analysis (Kiwi)','Remove sedimentation chambers (Gustavo) + T°/Lux sensors']
+  }},
+  {date:'13/06/2026',team:{pt:'07h · Todos',en:'07h · Everyone'},tasks:{
+    pt:['Esvaziar mesocosmos, pesar sedimentos, colocar secar','Lavar caixas + câmaras sedimentação, guardar equipamentos, organizar LIPAN'],
+    en:['Empty mesocosms, weigh sediments, set to dry','Wash tanks + sedimentation chambers, store equipment, organize LIPAN']
+  }},
+  {date:'19/06/2026',team:{pt:'13h · Lisa + Gustavo + Niels',en:'13h · Lisa + Gustavo + Niels'},tasks:{
+    pt:['Pesar sedimento seco e descartar'],
+    en:['Weigh dry sediment and discard']
+  }},
+];
+
+function buildSchedule(){
+  var tl=document.getElementById('tline');if(!tl)return;tl.innerHTML='';
+  var today=new Date();
+  SCHED.forEach(function(item){
+    var d=document.createElement('div');d.className='tli';
+    var dc=item.done?'done':item.now?'now':'up';
+    var tasks=item.tasks[lang]||item.tasks.pt;
+    d.innerHTML='<div class="tldot '+dc+'"></div><div class="tldate">'+item.date+'</div>'
+      +'<div class="tlcard'+(item.hl?' hl':'')+'"><div class="tlteam">'+(item.team[lang]||item.team.pt)+'</div>'
+      +'<ul class="tltasks">'+tasks.map(function(t){return'<li>'+t+'</li>';}).join('')+'</ul></div>';
+    tl.appendChild(d);
+  });
+}
+buildSchedule();
+
+// ══════════════════════════════════════════════
+// PROTOCOLS
+// ══════════════════════════════════════════════
+var PROTS = [
+  {title:{pt:'Dados Limnológicos',en:'Limnological Data'},owner:'Sonda YSI',steps:{
+    pt:['Calibrar sonda antes de cada sessão','Medir: pH, mV ORP, %OD, mg/L OD, Cond μS, KΩcm, TDS ppm, Temp°C, KPA','Coletar 3 réplicas por mesocosmo','Mesmo horário e mesma ordem todo dia','Anotar dados nas tabelas + qualquer alteração observada'],
+    en:['Calibrate probe before each session','Measure: pH, mV ORP, %DO, mg/L DO, Cond μS, KΩcm, TDS ppm, Temp°C, KPA','3 replicates per mesocosm','Same time and order every day','Record data in tables + any observed changes']
+  },note:{pt:'Calibrar constantemente. Nunca variar horário ou ordem. Digitar no sistema imediatamente.',en:'Calibrate constantly. Never vary time or order. Enter in system immediately.'}},
+  {title:{pt:'Fluxo de CO₂',en:'CO₂ Flux'},owner:'Ernandes Sobreira',steps:{
+    pt:['Protocolo Ernandes para o novo aparelho','Câmara flutuante na superfície + garrafas de resp. ecossistêmica penduradas no poste','3 repetições por mesocosmo','Dados climáticos: T°, UR, vento, ponto de orvalho, P, altitude, iluminação','Ciclo nictemeral em: 03/04, 24/04, 15/05, 05/06'],
+    en:['Ernandes protocol for new equipment','Floating chamber on surface + ecosystem resp. bottles hung from post','3 replicates per mesocosm','Climate data: T°, RH, wind, dew point, P, altitude, illumination','Nyctemeral cycle: 03/04, 24/04, 15/05, 05/06']
+  },note:{pt:'Coletar nos mesmos horários em cada ocasião.',en:'Collect at same times on each occasion.'}},
+  {title:{pt:'Fitoplâncton',en:'Phytoplankton'},owner:'Gustavo',steps:{
+    pt:['Lavar garrafa com água do sistema, secar sacudindo','Encher 300mL diretamente dentro do mesocosmo','Adicionar 4 gotas de lugol, lacrar','Etiquetar: local, data, mesocosmo, réplica','2 réplicas por mesocosmo'],
+    en:['Wash bottle with system water, dry by shaking','Fill 300mL directly inside the mesocosm','Add 4 drops of lugol, seal','Label: location, date, mesocosm, replicate','2 replicates per mesocosm']
+  },note:{pt:'Conforme cronograma.',en:'According to schedule.'}},
+  {title:{pt:'Coleta de Gases dos Funis',en:'Funnel Gas Collection'},owner:'Gustavo',steps:{
+    pt:['Funis invertidos pendurados no poste central por ganchos','Coletar gás acumulado nos funis','Seringue o gás para frascos estéreis etiquetados','Datas: 03/04, 17/04, 01/05, 15/05, 29/05, 12/06'],
+    en:['Inverted funnels hung from central post by hooks','Collect accumulated gas from funnels','Syringe gas into labeled sterile vials','Dates: 03/04, 17/04, 01/05, 15/05, 29/05, 12/06']
+  },note:{pt:'Coletar conforme cronograma de datas previstas.',en:'Collect according to the scheduled dates.'}},
+  {title:{pt:'Coleta de Amostras de Mercúrio',en:'Mercury Sample Collection'},owner:'Kiwi + Mirtha',steps:{
+    pt:['Coletar tecidos de Hoplosternum (T0 e final): músculo + fígado','Coletar aguapé no início e no final do experimento','Etiquetar todos os frascos adequadamente e armazenar conforme protocolo','Manter cadeia de custódia até envio ao laboratório credenciado'],
+    en:['Collect Hoplosternum tissues (T0 and final): muscle + liver','Collect water hyacinth at start and end of experiment','Label all vials adequately and store per protocol','Maintain chain of custody until shipment to accredited laboratory']
+  },note:{pt:'Seguir rigorosamente os procedimentos de biossegurança e cadeia de custódia.',en:'Strictly follow biosafety procedures and chain of custody.'}},
+  {title:{pt:'Histologia e Efeito Fisiológico',en:'Histology and Physiological Effects'},owner:'Leandro',steps:{
+    pt:['Eutanásia humanitária dos peixes (MS-222)','Coleta de brânquias, fígado e músculo','Fixação em formol 10% tamponado por 24 horas','Processamento histológico e análise microscópica','Documentar lesões: melanomacrófahos, necrose, edema'],
+    en:['Humane euthanasia (MS-222)','Collect gills, liver and muscle','Fix in 10% buffered formalin for 24 hours','Histological processing and microscopic analysis','Document lesions: melanomacrophages, necrosis, edema']
+  },note:{pt:'Coordenar com equipe de campo para registro comportamental antes da eutanásia.',en:'Coordinate with field team for behavioral recording before euthanasia.'}},
+];
+
+function buildProtocols(){
+  var g=document.getElementById('pgrid');if(!g)return;g.innerHTML='';
+  PROTS.forEach(function(p){
+    var c=document.createElement('div');c.className='pc';
+    var steps=p.steps[lang]||p.steps.pt;
+    var note=p.note[lang]||p.note.pt;
+    c.innerHTML='<h3>'+(p.title[lang]||p.title.pt)+'</h3>'
+      +'<ol class="psteps">'+steps.map(function(s){return'<li>'+s+'</li>';}).join('')+'</ol>'
+      +'<div class="pnote">'+note+'</div>';
+    g.appendChild(c);
+  });
+}
+buildProtocols();
+
+// ══════════════════════════════════════════════
+// MEDIA
+// ══════════════════════════════════════════════
+function getExt(n){return n.split('.').pop().toLowerCase();}
+function getEmoji(e){var m={jpg:'🖼️',jpeg:'🖼️',png:'🖼️',gif:'🖼️',webp:'🖼️',mp4:'🎬',mov:'🎬',pdf:'📕',docx:'📋',doc:'📋',xlsx:'📊',xls:'📊',csv:'📊',pptx:'🖼️',txt:'📝',zip:'📦'};return m[e]||'📁';}
+function getType(e){if(['jpg','jpeg','png','gif','webp'].indexOf(e)>=0)return'foto';if(['pdf','docx','doc'].indexOf(e)>=0)return'relatorio';if(['xlsx','xls','csv'].indexOf(e)>=0)return'dados';return'protocolo';}
+function fmtSz(b){if(b<1024)return b+'B';if(b<1048576)return(b/1024).toFixed(1)+'KB';return(b/1048576).toFixed(1)+'MB';}
+
+function handleFiles(files){
+  Array.from(files).forEach(function(file){
+    var ext=getExt(file.name);
+    var isImg=['jpg','jpeg','png','gif','webp'].indexOf(ext)>=0;
+    var url=URL.createObjectURL(file);
+    var now=new Date();
+    var dt=String(now.getDate()).padStart(2,'0')+'/'+String(now.getMonth()+1).padStart(2,'0')+'/'+now.getFullYear();
+    mediaItems.push({name:file.name,type:getType(ext),size:fmtSz(file.size),date:dt,emoji:getEmoji(ext),url:url,isImg:isImg,file:file});
+    toast('✓ '+file.name+' — pronto para download');
+  });
+  buildMedia();
+  document.getElementById('fileInput').value='';
+}
+
+var dz=document.getElementById('dropzone');
+dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('drag');});
+dz.addEventListener('dragleave',function(){dz.classList.remove('drag');});
+dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('drag');handleFiles(e.dataTransfer.files);});
+
+function filterM(type,el){
+  mFilter=type;
+  document.querySelectorAll('.ftab').forEach(function(t){t.classList.remove('on');});
+  if(el)el.classList.add('on');
+  buildMedia();
+}
+
+function delMedia(idx){
+  if(mediaItems[idx].url)URL.revokeObjectURL(mediaItems[idx].url);
+  mediaItems.splice(idx,1);buildMedia();toast('Arquivo removido');
+}
+
+function dlMedia(idx){
+  var m=mediaItems[idx];
+  if(!m){toast('⚠ Arquivo não encontrado');return;}
+  if(!m.url){toast('⚠ URL não disponível — recarregue o arquivo');return;}
+  var a=document.createElement('a');
+  a.href=m.url;a.download=m.name;
+  document.body.appendChild(a);a.click();
+  setTimeout(function(){document.body.removeChild(a);},200);
+  toast('✓ Baixando: '+m.name);
+}
+
+function buildMedia(){
+  var g=document.getElementById('mgrid');if(!g)return;
+  var filtered=mFilter==='all'?mediaItems:mediaItems.filter(function(m){return m.type===mFilter;});
+  if(!filtered.length){
+    g.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:3rem 1rem;color:var(--mu);font-family:Space Mono,monospace;font-size:.72rem;border:1px dashed var(--b2);border-radius:10px;margin-top:.5rem;">'
+      +'<div style="font-size:2rem;margin-bottom:.7rem">📂</div>'
+      +(mFilter==='all'
+        ?'<div style="color:var(--tx);margin-bottom:.4rem;font-size:.78rem">Nenhum arquivo carregado ainda</div><div>Arraste seus documentos acima ou clique na área para selecionar.<br>Todos os arquivos carregados ficam disponíveis para download imediato.</div>'
+        :'<div>Nenhum arquivo nesta categoria.</div>'
+      )+'</div>';
+    return;
+  }
+  g.innerHTML=filtered.map(function(m){
+    var realIdx=mediaItems.indexOf(m);
+    var th=m.isImg&&m.url?'<img src="'+m.url+'" alt="" style="width:100%;height:100%;object-fit:cover;">':'<div style="font-size:2.2rem">'+m.emoji+'</div>';
+    return '<div class="mc">'
+      +'<div class="mthumb">'+th+'</div>'
+      +'<div class="minfo">'
+      +'<h4 title="'+m.name+'">'+m.name+'</h4>'
+      +'<p>'+m.date+' · '+m.size+'</p>'
+      +'<span class="mtag">'+m.type+'</span>'
+      +'<div class="macts">'
+      +'<div class="mact" onclick="dlMedia('+realIdx+')" style="background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.3);color:#22c55e;font-weight:700;">⬇ Baixar</div>'
+      +'<div class="mact del" onclick="delMedia('+realIdx+')">✕</div>'
+      +'</div></div></div>';
+  }).join('');
+}
+buildMedia();
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+(function init(){
+  var now=new Date();
+  document.getElementById('d-date').value=now.toISOString().slice(0,10);
+  document.getElementById('d-time').value=now.toTimeString().slice(0,5);
+  buildChartMesoTabs();
+  initDashboard();
+  loadTeam();
+  loadDB();
+})();
+</script>
+</body>
+</html>
