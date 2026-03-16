@@ -760,41 +760,112 @@ footer strong { color:#fff; }
 <div class="sec" id="analises">
   <div class="ph">
     <div class="ph-title">🔬 <span data-i="analysis_title">Análises</span></div>
-    <div class="ph-sub" data-i="analysis_sub">Comparação por tratamento · médias · desvio padrão · outliers</div>
+    <div class="ph-sub" data-i="analysis_sub">Média ± DP por tratamento · Jitterplot por réplica · Série temporal</div>
   </div>
-  <div class="pad">
-    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;flex-wrap:wrap;">
-      <div class="field" style="flex:0 0 200px;margin:0;">
-        <label data-i="f_var">Variável</label>
-        <select id="an-var" onchange="buildAnalises()">
-          <option value="ph">pH</option>
-          <option value="odm">OD (mg/L)</option>
-          <option value="odp">OD (%)</option>
-          <option value="temp">Temperatura (°C)</option>
-          <option value="cond">Condutividade (μS/cm)</option>
-          <option value="conda">Cond. A (μS/cm)</option>
-          <option value="tds">TDS (ppm)</option>
-          <option value="fnu">FNU (Turbidez)</option>
-          <option value="orp">ORP (mV)</option>
-          <option value="resist">Resist. (MΩ·cm)</option>
-          <option value="psu">PSU</option>
-          <option value="psi">Pressão (psi)</option>
-          <option value="co2">CO₂</option>
-          <option value="ch4">CH₄</option>
-        </select>
+
+  <!-- CONTROLS -->
+  <div style="background:var(--white);border-bottom:1px solid var(--border);padding:.65rem 1.5rem;display:flex;gap:.75rem;flex-wrap:wrap;align-items:flex-end;">
+    <div class="field" style="margin:0;flex:0 0 200px;">
+      <label data-i="f_var">Variável</label>
+      <select id="an-var" onchange="buildAnalises()">
+        <option value="ph">pH</option>
+        <option value="odm">OD (mg/L)</option>
+        <option value="odp">OD (%)</option>
+        <option value="temp">Temperatura (°C)</option>
+        <option value="cond">Condutividade (μS/cm)</option>
+        <option value="conda">Cond. A (μS/cm)</option>
+        <option value="tds">TDS (ppm)</option>
+        <option value="fnu">FNU (Turbidez)</option>
+        <option value="orp">ORP (mV)</option>
+        <option value="resist">Resist. (MΩ·cm)</option>
+        <option value="psu">PSU</option>
+        <option value="psi">Pressão (psi)</option>
+        <option value="co2">CO₂</option>
+        <option value="ch4">CH₄</option>
+      </select>
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--ink3);line-height:1.6;">
+      <div>⚠ CV &gt; 30% → réplica suspeita</div>
+      <div>⚠ Z-score &gt; 1.5 → verificar campo</div>
+    </div>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="g4" style="padding:.85rem 1.5rem .5rem;">
+    <div class="card t0" id="an-t0">
+      <div class="card-label">T0 — Controle</div>
+      <div class="stat-n t0c" id="an-t0-val">—</div>
+      <div class="stat-u" id="an-t0-sub">n=0</div>
+    </div>
+    <div class="card t1" id="an-t1">
+      <div class="card-label">T1 — 2 g/L</div>
+      <div class="stat-n t1c" id="an-t1-val">—</div>
+      <div class="stat-u" id="an-t1-sub">n=0</div>
+    </div>
+    <div class="card t2" id="an-t2">
+      <div class="card-label">T2 — 5 g/L</div>
+      <div class="stat-n t2c" id="an-t2-val">—</div>
+      <div class="stat-u" id="an-t2-sub">n=0</div>
+    </div>
+    <div class="card t3" id="an-t3">
+      <div class="card-label">T3 — 10 g/L</div>
+      <div class="stat-n t3c" id="an-t3-val">—</div>
+      <div class="stat-u" id="an-t3-sub">n=0</div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW -->
+  <div class="g2" style="padding:.5rem 1.5rem;align-items:start;">
+
+    <!-- Chart 1: Bar + DP (treatment comparison) -->
+    <div class="card" style="padding:1rem;">
+      <div class="card-label">📊 Média ± DP por Tratamento</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--ink3);margin-bottom:.5rem;">Cada barra = média de todas as réplicas do tratamento</div>
+      <canvas id="chart-bar" height="220" style="width:100%;display:block;"></canvas>
+    </div>
+
+    <!-- Chart 2: Jitter (per mesocosm per replica) -->
+    <div class="card" style="padding:1rem;">
+      <div class="card-label">🔵 Jitterplot — Réplicas individuais</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--ink3);margin-bottom:.5rem;">Pontos = cada coleta · ⚠ em vermelho = suspeito (Z &gt; 1.5 ou CV &gt; 30%)</div>
+      <canvas id="chart-jitter" height="220" style="width:100%;display:block;"></canvas>
+    </div>
+  </div>
+
+  <!-- Chart 3: Time series -->
+  <div style="padding:0 1.5rem .85rem;">
+    <div class="card" style="padding:1rem;">
+      <div class="card-label">📈 Série Temporal — Controle vs Tratamentos</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--ink3);margin-bottom:.5rem;">Média de cada tratamento por data de coleta</div>
+      <canvas id="chart-time" height="180" style="width:100%;display:block;"></canvas>
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:.65rem;">
+        <div style="display:flex;align-items:center;gap:.35rem;font-family:'JetBrains Mono',monospace;font-size:.6rem;"><span style="width:24px;height:3px;background:var(--t0);border-radius:2px;display:inline-block;"></span> T0 Controle</div>
+        <div style="display:flex;align-items:center;gap:.35rem;font-family:'JetBrains Mono',monospace;font-size:.6rem;"><span style="width:24px;height:3px;background:var(--t1);border-radius:2px;display:inline-block;"></span> T1 2 g/L</div>
+        <div style="display:flex;align-items:center;gap:.35rem;font-family:'JetBrains Mono',monospace;font-size:.6rem;"><span style="width:24px;height:3px;background:var(--t2);border-radius:2px;display:inline-block;"></span> T2 5 g/L</div>
+        <div style="display:flex;align-items:center;gap:.35rem;font-family:'JetBrains Mono',monospace;font-size:.6rem;"><span style="width:24px;height:3px;background:var(--t3);border-radius:2px;display:inline-block;"></span> T3 10 g/L</div>
       </div>
     </div>
-    <div class="g4" style="padding:0;margin-bottom:1rem;">
-      <div class="card t0" id="an-t0"><div class="card-label">T0 — Controle</div><div class="stat-n t0c">—</div><div class="stat-u">n=0</div></div>
-      <div class="card t1" id="an-t1"><div class="card-label">T1 — 2 g/L</div><div class="stat-n t1c">—</div><div class="stat-u">n=0</div></div>
-      <div class="card t2" id="an-t2"><div class="card-label">T2 — 5 g/L</div><div class="stat-n t2c">—</div><div class="stat-u">n=0</div></div>
-      <div class="card t3" id="an-t3"><div class="card-label">T3 — 10 g/L</div><div class="stat-n t3c">—</div><div class="stat-u">n=0</div></div>
-    </div>
+  </div>
+
+  <!-- REPLICA TABLE -->
+  <div style="padding:0 1.5rem 1.5rem;">
     <div class="card">
-      <div class="card-label" data-i="replica_table">Detalhe por réplica</div>
+      <div class="card-label" data-i="replica_table">🔍 Detalhe por Réplica — Alertas</div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th data-i="th_treat">Trat.</th><th data-i="th_meso">Meso</th><th>Rep.</th><th>N</th><th data-i="th_mean">Média</th><th>DP</th><th>CV%</th><th>Status</th></tr></thead>
+          <thead>
+            <tr>
+              <th data-i="th_treat">Trat.</th>
+              <th data-i="th_meso">Mesocosmo</th>
+              <th>Rep.</th>
+              <th>N coletas</th>
+              <th data-i="th_mean">Média</th>
+              <th>DP</th>
+              <th>CV%</th>
+              <th>Z vs T</th>
+              <th>⚠ Status</th>
+            </tr>
+          </thead>
           <tbody id="an-tbody"></tbody>
         </table>
       </div>
@@ -915,7 +986,7 @@ var COL_MAP = {
 };
 
 var TEAM = [
-  {name:'Ernandes Sobreira', role:'Coord. Geral · CO₂ · Gases', color:'#e8340a'},
+  {name:'Ernandes Sobreira', role:'Professor · CO₂ · Gases', color:'#e8340a'},
   {name:'Kiwi',              role:'Coord. Mercúrio', color:'#0891b2'},
   {name:'Claumir',           role:'Coord. Peixes · Comportamento', color:'#7c3aed'},
   {name:'Leandro',           role:'Coord. Fisiologia · Histologia', color:'#0e7490'},
@@ -1568,43 +1639,387 @@ function stats(arr){
   return{n,mean:Math.round(mean*1000)/1000,sd:Math.round(sd*1000)/1000,cv:Math.round(cv*10)/10};
 }
 
+// ════════════════════════════════════════════
+// ANALYSES + CHARTS (Canvas 2D, no external lib)
+// ════════════════════════════════════════════
+var T_COLORS  = {T0:'#16a34a',T1:'#d97706',T2:'#ea580c',T3:'#dc2626'};
+var T_COLORS_A= {T0:'rgba(22,163,74,.15)',T1:'rgba(217,119,6,.15)',T2:'rgba(234,88,12,.15)',T3:'rgba(220,38,38,.15)'};
+var MESO_COLORS={
+  CR1:'#16a34a',CR2:'#22c55e',CR3:'#4ade80',
+  '2GR1':'#92400e','2GR2':'#d97706','2GR3':'#fbbf24',
+  '5GR1':'#9a3412','5GR2':'#ea580c','5GR3':'#fb923c',
+  '10GR1':'#991b1b','10GR2':'#dc2626','10GR3':'#f87171'
+};
+
 function buildAnalises(){
   var v=document.getElementById('an-var').value;
-  var labels={T0:'T0 — Controle',T1:'T1 — 2 g/L',T2:'T2 — 5 g/L',T3:'T3 — 10 g/L'};
+  var varLabels={ph:'pH',odm:'OD (mg/L)',odp:'OD (%)',temp:'Temperatura (°C)',
+    cond:'Cond (μS/cm)',conda:'CondA (μS/cm)',tds:'TDS (ppm)',fnu:'FNU (Turbidez)',
+    orp:'ORP (mV)',resist:'Resist (MΩ·cm)',psu:'PSU',psi:'Pressão (psi)',co2:'CO₂',ch4:'CH₄'};
+  var vLabel=varLabels[v]||v;
+
+  // ── Per-treatment stats
+  var tStats={};
   ['T0','T1','T2','T3'].forEach(t=>{
     var mesos=MESOS.filter(m=>TM[m]===t);
     var vals=DB.filter(r=>mesos.includes(r.meso)).map(r=>nn(r[v])).filter(x=>x!==null);
-    var st=stats(vals);
-    var el=document.getElementById('an-'+t.toLowerCase()); if(!el) return;
-    el.querySelector('.stat-n').textContent=st?st.mean:'—';
-    el.querySelector('.stat-u').textContent=st?'n='+st.n+' · DP='+st.sd:'n=0';
-    el.querySelector('.card-label').textContent=labels[t]+(st?' · cv='+st.cv+'%':'');
+    tStats[t]=stats(vals)||{n:0,mean:null,sd:0,cv:0};
   });
+
+  // Update stat cards
+  var tLabels={T0:'T0 — Controle',T1:'T1 — 2 g/L',T2:'T2 — 5 g/L',T3:'T3 — 10 g/L'};
+  ['T0','T1','T2','T3'].forEach(t=>{
+    var st=tStats[t];
+    var el=document.getElementById('an-'+t.toLowerCase()); if(!el) return;
+    el.querySelector('.card-label').textContent=tLabels[t]+(st.n?' · CV='+st.cv+'%':'');
+    var vEl=document.getElementById('an-'+t.toLowerCase()+'-val'); if(vEl) vEl.textContent=st.mean!==null?st.mean:'—';
+    var sEl=document.getElementById('an-'+t.toLowerCase()+'-sub'); if(sEl) sEl.textContent=st.n?'n='+st.n+' · DP='+st.sd:'n=0';
+  });
+
+  // ── Per-mesocosm stats (for jitter + table)
+  var mesoStats={};
+  MESOS.forEach(m=>{
+    var vals=DB.filter(r=>r.meso===m).map(r=>nn(r[v])).filter(x=>x!==null);
+    mesoStats[m]=stats(vals);
+  });
+
+  // ── Per-replica stats
+  var repStats={};
+  MESOS.forEach(m=>{
+    ['R1','R2'].forEach(rep=>{
+      var key=m+'_'+rep;
+      var vals=DB.filter(r=>r.meso===m&&(r.rep||'R1')===rep).map(r=>nn(r[v])).filter(x=>x!==null);
+      repStats[key]=stats(vals);
+    });
+  });
+
+  // ── CHART 1: Bar + DP
+  drawBarChart('chart-bar', tStats, vLabel);
+
+  // ── CHART 2: Jitterplot
+  drawJitter('chart-jitter', v, tStats, vLabel);
+
+  // ── CHART 3: Time series
+  drawTimeSeries('chart-time', v, vLabel);
+
+  // ── TABLE
   var tbody=document.getElementById('an-tbody'); if(!tbody) return;
   var rows=[];
   ['T0','T1','T2','T3'].forEach(t=>{
-    var tVals=DB.filter(r=>MESOS.filter(m=>TM[m]===t).includes(r.meso)).map(r=>nn(r[v])).filter(x=>x!==null);
-    var tSt=stats(tVals);
+    var tSt=tStats[t];
     MESOS.filter(m=>TM[m]===t).forEach(m=>{
       ['R1','R2'].forEach(rep=>{
-        var vals=DB.filter(r=>r.meso===m&&(r.rep||'R1')===rep).map(r=>nn(r[v])).filter(x=>x!==null);
-        var st=stats(vals);
-        var outlier=st&&tSt&&tSt.sd>0&&Math.abs((st.mean-tSt.mean)/tSt.sd)>1.5;
-        if(st&&st.cv>30) outlier=true;
-        rows.push(`<tr>
+        var key=m+'_'+rep;
+        var st=repStats[key];
+        var z=st&&tSt&&tSt.sd>0?Math.abs((st.mean-tSt.mean)/tSt.sd):null;
+        var outlier=(st&&st.cv>30)||(z&&z>1.5);
+        var zTxt=z!==null?z.toFixed(2):'—';
+        rows.push(`<tr style="${outlier?'background:rgba(220,38,38,.04);':''}">
           <td><span class="badge badge-${t.toLowerCase()}">${t}</span></td>
           <td style="font-weight:700;" class="${TCH[t]}">${m}</td>
           <td><span class="badge badge-r">${rep}</span></td>
           <td>${st?st.n:0}</td>
           <td class="mono">${st?st.mean:'—'}</td>
           <td class="mono">${st?st.sd:'—'}</td>
-          <td class="${st?st.cv>30?'an-err':st.cv>20?'an-warn':'an-ok':''}">${st?st.cv+'%':'—'}</td>
-          <td>${outlier?'<span class="an-err">⚠ VERIFICAR</span>':'<span class="an-ok">✓ ok</span>'}</td>
+          <td class="${st?(st.cv>30?'an-err':st.cv>20?'an-warn':'an-ok'):''}">
+            ${st?st.cv+'%':'—'}</td>
+          <td class="mono ${z?(z>1.5?'an-err':z>1?'an-warn':'an-ok'):''}">${zTxt}</td>
+          <td>${outlier
+            ?'<span class="an-err" style="font-weight:700;">⚠ VERIFICAR</span>'
+            :(st&&st.n>0?'<span class="an-ok">✓ ok</span>':'<span style="color:var(--ink3)">sem dados</span>')
+          }</td>
         </tr>`);
       });
     });
   });
-  tbody.innerHTML=rows.join('')||'<tr><td colspan="8" style="text-align:center;padding:1.5rem;color:var(--ink3);">Sem dados para análise</td></tr>';
+  tbody.innerHTML=rows.join('')||'<tr><td colspan="9" style="text-align:center;padding:1.5rem;color:var(--ink3);">Sem dados para análise</td></tr>';
+}
+
+// ── CHART HELPERS ────────────────────────────
+function getCanvasSize(id) {
+  var el=document.getElementById(id);
+  var W=el.parentElement.clientWidth-32||400;
+  el.width=W*window.devicePixelRatio||W;
+  el.height=parseInt(el.getAttribute('height'))*(window.devicePixelRatio||1);
+  el.style.width=W+'px';
+  return {ctx:el.getContext('2d'), W:el.width, H:el.height, dpr:window.devicePixelRatio||1};
+}
+
+function drawBarChart(id, tStats, vLabel) {
+  var {ctx,W,H,dpr}=getCanvasSize(id);
+  ctx.clearRect(0,0,W,H);
+  var PAD={l:52*dpr,r:20*dpr,t:20*dpr,b:48*dpr};
+  var chartW=W-PAD.l-PAD.r, chartH=H-PAD.t-PAD.b;
+  var treats=['T0','T1','T2','T3'];
+  var vals=treats.map(t=>tStats[t].mean).filter(x=>x!==null);
+  if(!vals.length){
+    ctx.fillStyle='#9ca3af'; ctx.font=`${12*dpr}px Inter`; ctx.textAlign='center';
+    ctx.fillText('Sem dados',W/2,H/2); return;
+  }
+  var sds=treats.map(t=>tStats[t].sd||0);
+  var maxV=Math.max(...vals.map((v,i)=>v+(sds[i]||0)))*1.15;
+  var minV=Math.min(0,...vals.map((v,i)=>v-(sds[i]||0))*0.9);
+  if(minV===maxV){maxV+=1;}
+  var scaleY=v=>PAD.t+chartH-(v-minV)/(maxV-minV)*chartH;
+  var bW=chartW/treats.length*0.55;
+  var gap=chartW/treats.length;
+
+  // Grid lines
+  var nLines=5;
+  for(var i=0;i<=nLines;i++){
+    var yv=minV+(maxV-minV)*i/nLines;
+    var yp=scaleY(yv);
+    ctx.strokeStyle='rgba(0,0,0,.07)'; ctx.lineWidth=dpr;
+    ctx.beginPath(); ctx.moveTo(PAD.l,yp); ctx.lineTo(PAD.l+chartW,yp); ctx.stroke();
+    ctx.fillStyle='#6b7280'; ctx.font=`${9*dpr}px JetBrains Mono,monospace`;
+    ctx.textAlign='right';
+    ctx.fillText(yv.toFixed(yv>100?0:yv>10?1:2),PAD.l-6*dpr,yp+3*dpr);
+  }
+
+  // Y axis label
+  ctx.save(); ctx.translate(12*dpr,H/2); ctx.rotate(-Math.PI/2);
+  ctx.fillStyle='#374151'; ctx.font=`bold ${9*dpr}px Inter`; ctx.textAlign='center';
+  ctx.fillText(vLabel,0,0); ctx.restore();
+
+  treats.forEach((t,i)=>{
+    var st=tStats[t];
+    if(st.mean===null) return;
+    var x=PAD.l+gap*i+(gap-bW)/2;
+    var yTop=scaleY(st.mean);
+    var yBot=scaleY(minV<0?0:minV);
+    var col=T_COLORS[t];
+
+    // Bar
+    ctx.fillStyle=col+'33';
+    ctx.strokeStyle=col;
+    ctx.lineWidth=2*dpr;
+    ctx.beginPath();
+    ctx.roundRect(x,Math.min(yTop,yBot),bW,Math.abs(yBot-yTop),4*dpr);
+    ctx.fill(); ctx.stroke();
+
+    // DP whiskers
+    if(st.sd>0){
+      var yUp=scaleY(st.mean+st.sd);
+      var yDn=scaleY(st.mean-st.sd);
+      var cx=x+bW/2;
+      ctx.strokeStyle=col; ctx.lineWidth=2.5*dpr;
+      ctx.beginPath(); ctx.moveTo(cx,yUp); ctx.lineTo(cx,yDn); ctx.stroke();
+      // caps
+      ctx.beginPath(); ctx.moveTo(cx-8*dpr,yUp); ctx.lineTo(cx+8*dpr,yUp); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx-8*dpr,yDn); ctx.lineTo(cx+8*dpr,yDn); ctx.stroke();
+    }
+
+    // Mean value label
+    ctx.fillStyle=col; ctx.font=`bold ${10*dpr}px JetBrains Mono,monospace`; ctx.textAlign='center';
+    ctx.fillText(st.mean,x+bW/2,yTop-8*dpr);
+
+    // X label
+    ctx.fillStyle='#374151'; ctx.font=`bold ${9*dpr}px Inter`; ctx.textAlign='center';
+    ctx.fillText(t,x+bW/2,H-PAD.b+16*dpr);
+    ctx.fillStyle='#6b7280'; ctx.font=`${8*dpr}px Inter`;
+    ctx.fillText(['0 g/L','2 g/L','5 g/L','10 g/L'][i],x+bW/2,H-PAD.b+26*dpr);
+  });
+}
+
+function drawJitter(id, v, tStats, vLabel) {
+  var {ctx,W,H,dpr}=getCanvasSize(id);
+  ctx.clearRect(0,0,W,H);
+  var PAD={l:52*dpr,r:20*dpr,t:20*dpr,b:60*dpr};
+  var chartW=W-PAD.l-PAD.r, chartH=H-PAD.t-PAD.b;
+
+  // Gather all points per mesocosm
+  var points=[];
+  MESOS.forEach(m=>{
+    DB.filter(r=>r.meso===m).forEach(r=>{
+      var val=nn(r[v]);
+      if(val!==null) points.push({meso:m,rep:r.rep||'R1',val});
+    });
+  });
+
+  if(!points.length){
+    ctx.fillStyle='#9ca3af'; ctx.font=`${12*dpr}px Inter`; ctx.textAlign='center';
+    ctx.fillText('Sem dados',W/2,H/2); return;
+  }
+
+  var allVals=points.map(p=>p.val);
+  var allSDs=Object.values(tStats).map(s=>s.sd||0);
+  var maxSd=Math.max(...allSDs);
+  var maxV=Math.max(...allVals)*1.12;
+  var minV=Math.min(...allVals)*0.88;
+  if(minV===maxV){maxV+=1;}
+  var scaleY=v=>PAD.t+chartH-(v-minV)/(maxV-minV)*chartH;
+
+  // Grid
+  for(var i=0;i<=4;i++){
+    var yv=minV+(maxV-minV)*i/4;
+    var yp=scaleY(yv);
+    ctx.strokeStyle='rgba(0,0,0,.07)'; ctx.lineWidth=dpr;
+    ctx.beginPath(); ctx.moveTo(PAD.l,yp); ctx.lineTo(PAD.l+chartW,yp); ctx.stroke();
+    ctx.fillStyle='#6b7280'; ctx.font=`${9*dpr}px JetBrains Mono,monospace`; ctx.textAlign='right';
+    ctx.fillText(yv.toFixed(yv>100?0:yv>10?1:2),PAD.l-5*dpr,yp+3*dpr);
+  }
+
+  // Y label
+  ctx.save(); ctx.translate(12*dpr,H/2); ctx.rotate(-Math.PI/2);
+  ctx.fillStyle='#374151'; ctx.font=`bold ${9*dpr}px Inter`; ctx.textAlign='center';
+  ctx.fillText(vLabel,0,0); ctx.restore();
+
+  // Slot per mesocosm
+  var slotW=chartW/MESOS.length;
+  MESOS.forEach((m,mi)=>{
+    var t=TM[m];
+    var tSt=tStats[t];
+    var col=T_COLORS[t];
+    var mPts=points.filter(p=>p.meso===m);
+    var mVals=mPts.map(p=>p.val);
+    var mSt=stats(mVals);
+    var cx=PAD.l+slotW*mi+slotW/2;
+
+    // Treatment band background
+    if(mi%3===0){
+      ctx.fillStyle=T_COLORS_A[t];
+      ctx.fillRect(PAD.l+slotW*mi,PAD.t,slotW*3,chartH);
+    }
+
+    // Mean line for mesocosm
+    if(mSt){
+      var myp=scaleY(mSt.mean);
+      ctx.strokeStyle=col; ctx.lineWidth=2*dpr; ctx.globalAlpha=0.5;
+      ctx.beginPath(); ctx.moveTo(cx-slotW*0.4,myp); ctx.lineTo(cx+slotW*0.4,myp); ctx.stroke();
+      ctx.globalAlpha=1;
+      // DP bar
+      if(mSt.sd>0){
+        var yUp=scaleY(mSt.mean+mSt.sd), yDn=scaleY(mSt.mean-mSt.sd);
+        ctx.strokeStyle=col+'88'; ctx.lineWidth=dpr;
+        ctx.beginPath(); ctx.moveTo(cx,yUp); ctx.lineTo(cx,yDn); ctx.stroke();
+      }
+    }
+
+    // Points (jitter)
+    var jSlots=['R1','R2'];
+    mPts.forEach((p,pi)=>{
+      var jitterX=cx+(jSlots.indexOf(p.rep)-0.5)*slotW*0.25;
+      var py=scaleY(p.val);
+      // Outlier check
+      var isOut=tSt&&tSt.sd>0&&Math.abs((p.val-(tSt.mean||0))/tSt.sd)>1.5;
+      var mSt2=mSt;
+      if(mSt2&&mSt2.cv>30) isOut=true;
+      ctx.beginPath();
+      ctx.arc(jitterX,py,5*dpr,0,Math.PI*2);
+      if(isOut){
+        ctx.fillStyle='#dc2626'; ctx.strokeStyle='#991b1b'; ctx.lineWidth=2*dpr;
+      } else {
+        ctx.fillStyle=MESO_COLORS[m]||col; ctx.strokeStyle='rgba(0,0,0,.2)'; ctx.lineWidth=dpr;
+      }
+      ctx.fill(); ctx.stroke();
+
+      // Tooltip label (rep)
+      if(mPts.length<=4){
+        ctx.fillStyle=isOut?'#dc2626':'#374151';
+        ctx.font=`${7.5*dpr}px JetBrains Mono,monospace`; ctx.textAlign='center';
+        ctx.fillText(p.rep,jitterX,py-7*dpr);
+      }
+    });
+
+    // X labels
+    ctx.fillStyle=col; ctx.font=`bold ${8*dpr}px Inter`; ctx.textAlign='center';
+    ctx.fillText(m,cx,H-PAD.b+14*dpr);
+    ctx.fillStyle='#9ca3af'; ctx.font=`${7*dpr}px JetBrains Mono,monospace`;
+    ctx.fillText(t,cx,H-PAD.b+24*dpr);
+  });
+
+  // Legend
+  var lx=PAD.l+4*dpr, ly=H-PAD.b+38*dpr;
+  ctx.fillStyle='#dc2626'; ctx.beginPath(); ctx.arc(lx+5*dpr,ly,4*dpr,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#374151'; ctx.font=`${8*dpr}px Inter`; ctx.textAlign='left';
+  ctx.fillText('⚠ Outlier (Z>1.5 ou CV>30%)',lx+12*dpr,ly+3*dpr);
+}
+
+function drawTimeSeries(id, v, vLabel) {
+  var {ctx,W,H,dpr}=getCanvasSize(id);
+  ctx.clearRect(0,0,W,H);
+  var PAD={l:52*dpr,r:20*dpr,t:20*dpr,b:38*dpr};
+  var chartW=W-PAD.l-PAD.r, chartH=H-PAD.t-PAD.b;
+
+  // Get all dates sorted
+  var datesSet=new Set(DB.map(r=>r.date).filter(Boolean));
+  var dates=[...datesSet].sort();
+  if(!dates.length){
+    ctx.fillStyle='#9ca3af'; ctx.font=`${12*dpr}px Inter`; ctx.textAlign='center';
+    ctx.fillText('Sem dados temporais',W/2,H/2); return;
+  }
+
+  // For each treatment × date → mean
+  var series={};
+  ['T0','T1','T2','T3'].forEach(t=>{
+    series[t]=dates.map(d=>{
+      var mesos=MESOS.filter(m=>TM[m]===t);
+      var vals=DB.filter(r=>mesos.includes(r.meso)&&r.date===d).map(r=>nn(r[v])).filter(x=>x!==null);
+      var st=stats(vals);
+      return st?st.mean:null;
+    });
+  });
+
+  var allVals=[...Object.values(series)].flat().filter(x=>x!==null);
+  if(!allVals.length){
+    ctx.fillStyle='#9ca3af'; ctx.font=`${12*dpr}px Inter`; ctx.textAlign='center';
+    ctx.fillText('Sem dados para série temporal',W/2,H/2); return;
+  }
+  var maxV=Math.max(...allVals)*1.1;
+  var minV=Math.min(...allVals)*0.9;
+  if(minV===maxV){maxV+=1;}
+  var scaleY=val=>PAD.t+chartH-(val-minV)/(maxV-minV)*chartH;
+  var scaleX=i=>PAD.l+i/(Math.max(dates.length-1,1))*chartW;
+
+  // Grid
+  for(var i=0;i<=4;i++){
+    var yv=minV+(maxV-minV)*i/4;
+    var yp=scaleY(yv);
+    ctx.strokeStyle='rgba(0,0,0,.07)'; ctx.lineWidth=dpr;
+    ctx.beginPath(); ctx.moveTo(PAD.l,yp); ctx.lineTo(PAD.l+chartW,yp); ctx.stroke();
+    ctx.fillStyle='#6b7280'; ctx.font=`${8*dpr}px JetBrains Mono,monospace`; ctx.textAlign='right';
+    ctx.fillText(yv.toFixed(yv>100?0:yv>10?1:2),PAD.l-5*dpr,yp+3*dpr);
+  }
+
+  // Y label
+  ctx.save(); ctx.translate(12*dpr,H/2); ctx.rotate(-Math.PI/2);
+  ctx.fillStyle='#374151'; ctx.font=`bold ${9*dpr}px Inter`; ctx.textAlign='center';
+  ctx.fillText(vLabel,0,0); ctx.restore();
+
+  // X labels
+  var maxLabels=Math.min(dates.length,8);
+  var step=Math.max(1,Math.floor(dates.length/maxLabels));
+  dates.forEach((d,i)=>{
+    if(i%step===0||i===dates.length-1){
+      ctx.fillStyle='#6b7280'; ctx.font=`${8*dpr}px JetBrains Mono,monospace`; ctx.textAlign='center';
+      // Format date DD/MM
+      var parts=d.split('-');
+      ctx.fillText(parts.length===3?parts[2]+'/'+parts[1]:d, scaleX(i), H-PAD.b+12*dpr);
+    }
+  });
+
+  // Draw lines per treatment
+  ['T0','T1','T2','T3'].forEach(t=>{
+    var pts=series[t];
+    var col=T_COLORS[t];
+    ctx.strokeStyle=col; ctx.lineWidth=2.5*dpr; ctx.lineJoin='round'; ctx.lineCap='round';
+    ctx.beginPath();
+    var started=false;
+    pts.forEach((val,i)=>{
+      if(val===null){started=false;return;}
+      var x=scaleX(i), y=scaleY(val);
+      if(!started){ctx.moveTo(x,y);started=true;}else{ctx.lineTo(x,y);}
+    });
+    ctx.stroke();
+    // Dots
+    pts.forEach((val,i)=>{
+      if(val===null) return;
+      var x=scaleX(i), y=scaleY(val);
+      ctx.beginPath(); ctx.arc(x,y,4*dpr,0,Math.PI*2);
+      ctx.fillStyle=col; ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,.8)'; ctx.lineWidth=1.5*dpr; ctx.stroke();
+    });
+  });
 }
 
 // ════════════════════════════════════════════
@@ -1655,6 +2070,9 @@ function exportExcel(){
   setLang('pt');
   dtab('form',document.getElementById('dtab-form'));
 })();
+
+// Redraw charts on resize
+var _resizeT; window.addEventListener('resize',()=>{clearTimeout(_resizeT);_resizeT=setTimeout(()=>{if(document.getElementById('analises').classList.contains('on')) buildAnalises();},200);});
 </script>
 </body>
 </html>
