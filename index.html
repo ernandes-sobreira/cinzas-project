@@ -434,6 +434,7 @@ footer strong { color:#fff; }
     <button class="tnb" onclick="go('diario',this,'di')">📓 <span data-i="nav_diary">Diário</span></button>
     <button class="tnb" onclick="go('ashzap',this,'az')">💬 AshZap</button>
     <button class="tnb" onclick="go('analises',this,'an')">🔬 <span data-i="nav_analysis">Análises</span></button>
+    <button class="tnb" onclick="go('crono',this,'cr')">📅 Cronograma</button>
     <button class="tnb" onclick="go('sobre',this,'s')">👥 <span data-i="nav_about">Sobre</span></button>
   </nav>
 
@@ -456,6 +457,7 @@ footer strong { color:#fff; }
   <button class="bnb" onclick="go('diario',this,'di')"><span class="bi">📓</span><span data-i="nav_diary">Diário</span></button>
   <button class="bnb" onclick="go('ashzap',this,'az')"><span class="bi">💬</span>AshZap</button>
   <button class="bnb" onclick="go('analises',this,'an')"><span class="bi">🔬</span><span data-i="nav_analysis">Análise</span></button>
+  <button class="bnb" onclick="go('crono',this,'cr')"><span class="bi">📅</span>Crono</button>
   <button class="bnb" onclick="go('sobre',this,'s')"><span class="bi">👥</span><span data-i="nav_about">Sobre</span></button>
 </nav>
 
@@ -521,13 +523,10 @@ footer strong { color:#fff; }
   </div>
 
   <div class="g2" style="padding-top:0;">
-    <div class="card">
-      <div class="card-label" data-i="card_today">Tarefas de Hoje</div>
-      <div style="font-size:.88rem;line-height:2;color:var(--ink2);">
-        <div>● Dados limnológicos (todas as sondas)</div>
-        <div>● Evaporação e reposição de água</div>
-        <div>● Comportamento dos peixes</div>
-        <div>● Dados climáticos (T°, UR, vento)</div>
+    <div class="card" id="dash-alerts-card">
+      <div class="card-label" id="dash-alerts-label">📋 Tarefas de Hoje</div>
+      <div id="dash-alerts" style="font-size:.86rem;line-height:1.85;color:var(--ink2);margin-top:.3rem;">
+        <div class="loading"><div class="spin"></div> Calculando…</div>
       </div>
     </div>
     <div class="card">
@@ -818,27 +817,40 @@ footer strong { color:#fff; }
   <!-- CHARTS ROW -->
   <div class="g2" style="padding:.5rem 1.5rem;align-items:start;">
 
-    <!-- Chart 1: Bar + DP (treatment comparison) -->
+    <!-- Chart 1: Bar + DP -->
     <div class="card" style="padding:1rem;">
       <div class="card-label">📊 Média ± DP por Tratamento</div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--ink3);margin-bottom:.5rem;">Cada barra = média de todas as réplicas do tratamento</div>
-      <canvas id="chart-bar" height="220" style="width:100%;display:block;"></canvas>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--ink3);margin-bottom:.5rem;">Cada barra = média de todas as réplicas · barras de erro = DP</div>
+      <div style="height:200px;position:relative;"><canvas id="chart-bar" style="position:absolute;inset:0;width:100%;height:100%;"></canvas></div>
     </div>
 
-    <!-- Chart 2: Jitter (per mesocosm per replica) -->
+    <!-- Chart 2: Jitter -->
     <div class="card" style="padding:1rem;">
       <div class="card-label">🔵 Jitterplot — Réplicas individuais</div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--ink3);margin-bottom:.5rem;">Pontos = cada coleta · ⚠ em vermelho = suspeito (Z &gt; 1.5 ou CV &gt; 30%)</div>
-      <canvas id="chart-jitter" height="220" style="width:100%;display:block;"></canvas>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--ink3);margin-bottom:.5rem;">Pontos = cada coleta · 🔴 vermelho = suspeito (Z &gt; 1.5 ou CV &gt; 30%)</div>
+      <div style="height:200px;position:relative;"><canvas id="chart-jitter" style="position:absolute;inset:0;width:100%;height:100%;"></canvas></div>
     </div>
   </div>
 
-  <!-- Chart 3: Time series -->
+  <!-- Chart 3: Time series with date filter -->
   <div style="padding:0 1.5rem .85rem;">
     <div class="card" style="padding:1rem;">
-      <div class="card-label">📈 Série Temporal — Controle vs Tratamentos</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.5rem;">
+        <div class="card-label" style="margin:0;">📈 Série Temporal — Controle vs Tratamentos</div>
+        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+          <div class="field" style="margin:0;display:flex;align-items:center;gap:.35rem;">
+            <label style="font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;">De:</label>
+            <input type="date" id="ts-from" style="background:var(--bg);border:1px solid var(--border);color:var(--ink);border-radius:6px;padding:.3rem .5rem;font-family:'JetBrains Mono',monospace;font-size:.72rem;outline:none;" onchange="buildAnalises()">
+          </div>
+          <div class="field" style="margin:0;display:flex;align-items:center;gap:.35rem;">
+            <label style="font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;">Até:</label>
+            <input type="date" id="ts-to" style="background:var(--bg);border:1px solid var(--border);color:var(--ink);border-radius:6px;padding:.3rem .5rem;font-family:'JetBrains Mono',monospace;font-size:.72rem;outline:none;" onchange="buildAnalises()">
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="clearTsDates()" style="font-size:.7rem;">Todas as datas</button>
+        </div>
+      </div>
       <div style="font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--ink3);margin-bottom:.5rem;">Média de cada tratamento por data de coleta</div>
-      <canvas id="chart-time" height="180" style="width:100%;display:block;"></canvas>
+      <div style="height:180px;position:relative;"><canvas id="chart-time" style="position:absolute;inset:0;width:100%;height:100%;"></canvas></div>
       <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:.65rem;">
         <div style="display:flex;align-items:center;gap:.35rem;font-family:'JetBrains Mono',monospace;font-size:.6rem;"><span style="width:24px;height:3px;background:var(--t0);border-radius:2px;display:inline-block;"></span> T0 Controle</div>
         <div style="display:flex;align-items:center;gap:.35rem;font-family:'JetBrains Mono',monospace;font-size:.6rem;"><span style="width:24px;height:3px;background:var(--t1);border-radius:2px;display:inline-block;"></span> T1 2 g/L</div>
@@ -869,6 +881,45 @@ footer strong { color:#fff; }
           </thead>
           <tbody id="an-tbody"></tbody>
         </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     CRONOGRAMA
+════════════════════════════════════════════ -->
+<div class="sec" id="crono">
+  <div class="ph">
+    <div class="ph-title">📅 Cronograma BRASA</div>
+    <div class="ph-sub">Linha do tempo · fases · coletas · alertas</div>
+  </div>
+
+  <!-- Progress visual -->
+  <div class="prog-wrap">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem;">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:700;color:var(--ink2);">Progresso total do experimento</span>
+      <span class="prog-pct" id="crono-pct">0%</span>
+    </div>
+    <div class="prog-track"><div class="prog-fill" id="crono-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="pad" style="padding-top:.5rem;">
+    <!-- Timeline -->
+    <div class="card" style="margin-bottom:1rem;">
+      <div class="card-label">📌 Linha do tempo</div>
+      <div id="crono-timeline" style="margin-top:.5rem;display:flex;flex-direction:column;gap:.15rem;"></div>
+    </div>
+
+    <!-- Weekly collection schedule -->
+    <div class="g2" style="padding:0;gap:1rem;">
+      <div class="card">
+        <div class="card-label">🔬 Coletas limnológicas programadas</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:.72rem;line-height:2.2;color:var(--ink2);margin-top:.3rem;" id="crono-collections"></div>
+      </div>
+      <div class="card">
+        <div class="card-label">⚠️ Alertas & Marcos importantes</div>
+        <div id="crono-milestones" style="display:flex;flex-direction:column;gap:.5rem;margin-top:.3rem;"></div>
       </div>
     </div>
   </div>
@@ -1008,15 +1059,15 @@ var COL_MAP = {
 };
 
 var TEAM = [
-  {name:'Ernandes Sobreira', role:'Professor · CO₂ · Gases', color:'#e8340a'},
-  {name:'Kiwi',              role:'Coord. Mercúrio', color:'#0891b2'},
-  {name:'Claumir',           role:'Coord. Peixes · Comportamento', color:'#7c3aed'},
-  {name:'Leandro',           role:'Coord. Fisiologia · Histologia', color:'#0e7490'},
-  {name:'Lisa',              role:'Campo · Limnologia · Holanda 🇳🇱', color:'#1d4ed8'},
-  {name:'Niels',             role:'Campo · Monitoramento · Holanda 🇳🇱', color:'#059669'},
-  {name:'Gustavo',           role:'Fitoplâncton · Sedimentação', color:'#d97706'},
-  {name:'Mirtha',            role:'Campo · Coleta Hg · Bolívia 🇧🇴', color:'#be185d'},
-  {name:'Vitória',           role:'Graduação · Coleta & Análises', color:'#7c3aed'},
+  {name:'Ernandes Sobreira', role:'Prof. · Coord. GEE · CO₂ · Gases', color:'#e8340a', avatar:'🔬'},
+  {name:'Kiwi',              role:'Coord. Mercúrio', color:'#0891b2', avatar:'⚗️'},
+  {name:'Claumir',           role:'Coord. Peixes · Comportamento', color:'#7c3aed', avatar:'🐟'},
+  {name:'Leandro',           role:'Coord. Fisiologia · Histologia', color:'#0e7490', avatar:'🔭'},
+  {name:'Lisa',              role:'Campo · Limnologia · Holanda 🇳🇱', color:'#1d4ed8', avatar:'🌊'},
+  {name:'Niels',             role:'Campo · Monitoramento · Holanda 🇳🇱', color:'#059669', avatar:'📡'},
+  {name:'Gustavo',           role:'Fitoplâncton · Sedimentação', color:'#d97706', avatar:'🌱'},
+  {name:'Mirtha',            role:'Campo · Coleta Hg · Bolívia 🇧🇴', color:'#be185d', avatar:'⚡'},
+  {name:'Vitória',           role:'Graduação · Coleta & Análises', color:'#7c3aed', avatar:'🧪'},
 ];
 
 var DB = [];
@@ -1118,6 +1169,8 @@ function go(id, btn) {
   document.getElementById(id).classList.add('on');
   if(btn) btn.classList.add('on');
   if(id==='analises') buildAnalises();
+  if(id==='crono') buildCronograma();
+  if(id==='dash') buildDashAlerts();
   window.scrollTo(0,0);
 }
 
@@ -1173,22 +1226,61 @@ initProgress();
 // ════════════════════════════════════════════
 // TEAM
 // ════════════════════════════════════════════
+var AVATAR_EMOJIS = ['🔬','⚗️','🐟','🌊','📡','🌱','⚡','🧪','🔭','🦎','🦋','🌿','🐊','🔥','💧','🌙','🦜','🐛','🍃','🦈','🐙','🌺','🦅','🏕️','🧬','🌍','🎯','⭐','🏆','🎓'];
+
 function renderTeam() {
-  var tl=document.getElementById('team-list');
-  if(tl) tl.innerHTML=TEAM.map((m,i)=>
-    `<div class="team-card">
-      <div class="team-av" style="background:${m.color}">${m.name[0]}</div>
-      <div style="flex:1;min-width:0;">
-        <div class="team-name">${m.name}</div>
-        <div class="team-role">${m.role}</div>
-      </div>
-      <button class="btn btn-danger btn-sm" onclick="removeMember(${i})" style="padding:.2rem .45rem;font-size:.65rem;">✕</button>
-    </div>`
-  ).join('');
-  var opts=TEAM.map(m=>`<option>${m.name}</option>`).join('');
-  ['f-op','chat-sender','diary-author','xls-op'].forEach(id=>{
-    var el=document.getElementById(id); if(el) el.innerHTML=opts;
+  var tl = document.getElementById('team-list');
+  if (tl) tl.innerHTML = TEAM.map(function(m, i) {
+    var av = m.avatar || m.name[0];
+    var isEmoji = av.length > 1 || av.charCodeAt(0) > 127;
+    return '<div class="team-card" id="tc-' + i + '">' +
+      '<div class="team-av" style="background:' + m.color + ';cursor:pointer;font-size:' + (isEmoji ? '1.3rem' : '.95rem') + ';position:relative;" onclick="openAvatarPicker(' + i + ')" title="Trocar avatar">' +
+        av +
+        '<div style="position:absolute;bottom:-3px;right:-3px;background:#fff;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-size:.5rem;border:1px solid var(--border);cursor:pointer;">✏️</div>' +
+      '</div>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div class="team-name">' + m.name + '</div>' +
+        '<div class="team-role">' + m.role + '</div>' +
+      '</div>' +
+      '<button class="btn btn-danger btn-sm" onclick="removeMember(' + i + ')" style="padding:.2rem .45rem;font-size:.65rem;">✕</button>' +
+    '</div>';
+  }).join('');
+
+  var opts = TEAM.map(function(m) { return '<option>' + m.name + '</option>'; }).join('');
+  ['f-op','chat-sender','diary-author','xls-op'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.innerHTML = opts;
   });
+}
+
+function openAvatarPicker(idx) {
+  var existing = document.getElementById('avatar-picker-' + idx);
+  if (existing) { existing.remove(); return; }
+  // Remove any other open pickers
+  document.querySelectorAll('[id^="avatar-picker-"]').forEach(function(el) { el.remove(); });
+  var card = document.getElementById('tc-' + idx);
+  if (!card) return;
+  var picker = document.createElement('div');
+  picker.id = 'avatar-picker-' + idx;
+  picker.style.cssText = 'position:absolute;z-index:500;background:var(--white);border:2px solid var(--fire);border-radius:12px;padding:.6rem;box-shadow:0 8px 32px rgba(0,0,0,.2);display:flex;flex-wrap:wrap;gap:.3rem;max-width:280px;margin-top:.3rem;';
+  picker.innerHTML = '<div style="width:100%;font-family:\'JetBrains Mono\',monospace;font-size:.58rem;color:var(--ink3);margin-bottom:.3rem;letter-spacing:.1em;">ESCOLHA O AVATAR</div>' +
+    AVATAR_EMOJIS.map(function(e) {
+      return '<button onclick="setAvatar(' + idx + ',\'' + e + '\')" style="width:36px;height:36px;border:none;border-radius:8px;font-size:1.2rem;cursor:pointer;background:var(--bg);transition:.12s;" onmouseover="this.style.background=\'var(--bg2)\'" onmouseout="this.style.background=\'var(--bg)\'">' + e + '</button>';
+    }).join('');
+  card.style.position = 'relative';
+  card.appendChild(picker);
+  // Close on outside click
+  setTimeout(function() {
+    document.addEventListener('click', function closePicker(e) {
+      if (!picker.contains(e.target)) { picker.remove(); document.removeEventListener('click', closePicker); }
+    });
+  }, 10);
+}
+
+function setAvatar(idx, emoji) {
+  TEAM[idx].avatar = emoji;
+  document.querySelectorAll('[id^="avatar-picker-"]').forEach(function(el) { el.remove(); });
+  renderTeam();
+  toast('Avatar atualizado para ' + TEAM[idx].name + ' ' + emoji, 'ok');
 }
 
 function addMember() {
@@ -1360,6 +1452,7 @@ function renderTable() {
 }
 
 function updateDashboard() {
+  buildDashAlerts();
   ['T0','T1','T2','T3'].forEach(t=>{
     var mesos=MESOS.filter(m=>TM[m]===t);
     var recs=DB.filter(r=>mesos.includes(r.meso)&&r.ph!==null&&r.ph!==undefined);
@@ -1707,9 +1800,137 @@ function renderUploadHistory(hist) {
   }).join('');
 }
 
-// ════════════════════════════════════════════ (Canvas 2D, no external lib)
 // ════════════════════════════════════════════
-var T_COLORS  = {T0:'#16a34a',T1:'#d97706',T2:'#ea580c',T3:'#dc2626'};
+// CRONOGRAMA & SMART ALERTS
+// ════════════════════════════════════════════
+var SCHEDULE = [
+  { date:'2026-02-24', label:'🏗️ Setup dos mesocosmos', type:'marco', done:true },
+  { date:'2026-03-06', label:'🐟 Adição de 120 H. littorale · T0 eutanásia · Sensores', type:'marco', done:true },
+  { date:'2026-03-13', label:'🔥 DIA ZERO — Adição das cinzas', type:'marco', done:true },
+  { date:'2026-03-20', label:'📊 Coleta limnológica — Semana 1', type:'coleta', done:false },
+  { date:'2026-03-27', label:'📊 Coleta limnológica — Semana 2', type:'coleta', done:false },
+  { date:'2026-04-03', label:'📊 Coleta limnológica — Semana 3', type:'coleta', done:false },
+  { date:'2026-04-10', label:'📊 Coleta limnológica — Semana 4 · 1 mês pós-cinzas', type:'coleta', done:false },
+  { date:'2026-04-17', label:'📊 Coleta limnológica — Semana 5', type:'coleta', done:false },
+  { date:'2026-04-24', label:'📊 Coleta limnológica — Semana 6', type:'coleta', done:false },
+  { date:'2026-05-01', label:'📊 Coleta limnológica — Semana 7', type:'coleta', done:false },
+  { date:'2026-05-08', label:'📊 Coleta limnológica — Semana 8 · 2 meses pós-cinzas', type:'coleta', done:false },
+  { date:'2026-05-15', label:'📊 Coleta limnológica — Semana 9', type:'coleta', done:false },
+  { date:'2026-05-22', label:'📊 Coleta limnológica — Semana 10', type:'coleta', done:false },
+  { date:'2026-05-29', label:'📊 Coleta limnológica — Semana 11', type:'coleta', done:false },
+  { date:'2026-06-05', label:'📊 Coleta limnológica — Semana 12', type:'coleta', done:false },
+  { date:'2026-06-12', label:'🎯 COLETA FINAL — peixes + amostras completas', type:'marco', done:false },
+  { date:'2026-06-19', label:'🧹 Desmontagem dos mesocosmos', type:'marco', done:false },
+];
+
+function dateStr(d) { return d.toISOString().slice(0,10); }
+
+function buildDashAlerts() {
+  var today = new Date(); today.setHours(0,0,0,0);
+  var todayS = dateStr(today);
+  var tomorrowS = dateStr(new Date(today.getTime() + 86400000));
+  var cinzas = new Date('2026-03-13');
+  var dSinceAsh = Math.max(0, Math.round((today - cinzas) / 86400000));
+  var weekSinceAsh = Math.floor(dSinceAsh / 7) + 1;
+  var isTodayCollection = SCHEDULE.some(function(s){return s.date===todayS&&s.type==='coleta';});
+  var isTomorrowColl    = SCHEDULE.some(function(s){return s.date===tomorrowS&&s.type==='coleta';});
+  var isTodayMarco      = SCHEDULE.some(function(s){return s.date===todayS&&s.type==='marco';});
+  var nextColl = SCHEDULE.filter(function(s){return s.date>=todayS&&s.type==='coleta';})[0];
+  var daysToNext = nextColl ? Math.round((new Date(nextColl.date)-today)/86400000) : null;
+  var todayHasData = DB.some(function(r){return r.date===todayS;});
+  var todayCount = DB.filter(function(r){return r.date===todayS;}).length;
+  var alerts = [];
+  var labelEl = document.getElementById('dash-alerts-label');
+
+  if (today < cinzas) {
+    if (labelEl) labelEl.textContent = '📋 Fase de preparação · pré-cinzas';
+    alerts.push({icon:'🐟', text:'Verificar condição dos peixes (aclimatação)', hi:false, ok:false});
+    alerts.push({icon:'📏', text:'Medir evaporação e repor água nos mesocosmos', hi:false, ok:false});
+    if (todayS === '2026-03-13') alerts.push({icon:'🔥', text:'<strong>HOJE É O DIA ZERO!</strong> Adicionar as cinzas nos tratamentos', hi:true, ok:false});
+  } else if (today <= new Date('2026-06-12')) {
+    if (labelEl) labelEl.textContent = '🔥 D+' + dSinceAsh + ' · Semana ' + weekSinceAsh + ' pós-cinzas';
+    if (isTodayCollection)
+      alerts.push({icon:'🚨', text:'<strong>COLETA HOJE — Semana '+weekSinceAsh+'!</strong> Limnologia completa em todos os 12 mesocosmos', hi:true, ok:false});
+    if (isTodayMarco)
+      alerts.push({icon:'🎯', text:'<strong>Marco hoje:</strong> ' + SCHEDULE.find(function(s){return s.date===todayS;}).label, hi:true, ok:false});
+    if (isTomorrowColl)
+      alerts.push({icon:'⚠️', text:'Amanhã é dia de coleta — prepare sondas e equipamentos hoje!', hi:false, ok:false});
+    alerts.push({icon:todayHasData?'✅':'📊',
+      text:todayHasData?'<strong>'+todayCount+' registros</strong> inseridos hoje ✓':'Sem dados registrados para hoje ainda — vá para a aba Dados',
+      hi:false, ok:todayHasData});
+    alerts.push({icon:'💧', text:'Medir evaporação e repor volume (manter 300 L)', hi:false, ok:false});
+    alerts.push({icon:'🐟', text:'Observar comportamento, postura e mortalidade dos peixes', hi:false, ok:false});
+    alerts.push({icon:'🌡️', text:'Registrar T°, UR e vento no Diário de Campo', hi:false, ok:false});
+    if (daysToNext!==null && daysToNext>0)
+      alerts.push({icon:'📅', text:'Próxima coleta em <strong>'+daysToNext+' dia'+(daysToNext===1?'':'s')+'</strong> ('+nextColl.date.split('-').reverse().slice(0,2).join('/') +')', hi:false, ok:false});
+  } else {
+    if (labelEl) labelEl.textContent = '✅ Experimento concluído';
+    alerts.push({icon:'🎉', text:'Experimento finalizado — analise os dados finais na aba Análises', hi:false, ok:true});
+  }
+
+  var el = document.getElementById('dash-alerts'); if(!el) return;
+  el.innerHTML = alerts.map(function(a){
+    var sty = a.hi ? 'background:rgba(232,52,10,.06);border-left:3px solid var(--fire);padding:.28rem .6rem;border-radius:0 6px 6px 0;margin:.1rem 0;' : 'padding:.18rem 0;';
+    return '<div style="display:flex;align-items:flex-start;gap:.5rem;'+sty+'">' +
+      '<span style="font-size:1rem;flex-shrink:0;line-height:1.5;">'+a.icon+'</span>' +
+      '<span style="'+(a.ok?'color:var(--green);font-weight:600;':'')+'line-height:1.5;">'+a.text+'</span>' +
+    '</div>';
+  }).join('');
+}
+
+function buildCronograma() {
+  var today = new Date(); today.setHours(0,0,0,0);
+  var todayS = dateStr(today);
+  var START = new Date('2026-02-24'), END = new Date('2026-06-19');
+  var pct = Math.round(Math.max(0,Math.min(1,(today-START)/(END-START)))*100);
+  var cf=document.getElementById('crono-fill'); if(cf) setTimeout(function(){cf.style.width=pct+'%';},200);
+  var cp=document.getElementById('crono-pct'); if(cp) cp.textContent=pct+'%';
+
+  var tl=document.getElementById('crono-timeline');
+  if(tl) tl.innerHTML=SCHEDULE.map(function(s){
+    var isPast=s.date<todayS, isToday=s.date===todayS;
+    var col=s.type==='marco'?(isPast?'#16a34a':isToday?'#e8340a':'#9ca3af'):(isPast?'#0891b2':isToday?'#e8340a':'#c4c9d6');
+    var dp=s.date.split('-'); var dl=dp[2]+'/'+dp[1]+'/'+dp[0];
+    return '<div style="display:flex;align-items:center;gap:.6rem;padding:.3rem .45rem;border-radius:6px;'+(isToday?'background:rgba(232,52,10,.07);border:1px solid rgba(232,52,10,.2);':'')+'">'+
+      '<div style="width:10px;height:10px;border-radius:50%;background:'+col+';flex-shrink:0;'+(isToday?'box-shadow:0 0 0 4px rgba(232,52,10,.25);':'')+'"></div>'+
+      '<span style="font-family:\'JetBrains Mono\',monospace;font-size:.6rem;color:'+(isToday?'var(--fire)':'var(--ink3)')+';flex-shrink:0;min-width:78px;">'+dl+'</span>'+
+      '<span style="font-size:.82rem;color:'+(isPast?'var(--ink3)':isToday?'var(--fire)':'var(--ink2)')+';'+(isPast?'text-decoration:line-through;':'')+(isToday?'font-weight:700;':'')+'">'+
+        (isPast?'✓ ':isToday?'👉 ':'')+s.label+
+        (DB.some(function(r){return r.date===s.date;})?'<span style="margin-left:.4rem;color:var(--green);font-size:.7rem;">dados ✅</span>':'')
+      +'</span></div>';
+  }).join('');
+
+  var colls=SCHEDULE.filter(function(s){return s.type==='coleta';});
+  var cc=document.getElementById('crono-collections');
+  if(cc) cc.innerHTML=colls.map(function(s,i){
+    var isPast=s.date<todayS, isToday=s.date===todayS;
+    var dp=s.date.split('-'); var dl=dp[2]+'/'+dp[1];
+    var hasData=DB.some(function(r){return r.date===s.date;});
+    return '<div style="display:flex;align-items:center;gap:.45rem;'+(isToday?'color:var(--fire);font-weight:700;':'')+'">'+
+      '<span>'+(hasData?'✅':isPast?'⬜':'📅')+'</span>'+
+      '<span>'+dl+' — Semana '+(i+1)+'</span>'+
+      (isToday?'<span style="background:var(--fire);color:#fff;font-size:.6rem;padding:.05rem .3rem;border-radius:4px;">HOJE</span>':'')+
+    '</div>';
+  }).join('');
+
+  var cm=document.getElementById('crono-milestones');
+  if(cm){
+    var upcoming=SCHEDULE.filter(function(s){return s.date>=todayS;}).slice(0,5);
+    cm.innerHTML=upcoming.map(function(s){
+      var dDiff=Math.round((new Date(s.date)-today)/86400000);
+      var sty=dDiff===0?'background:rgba(232,52,10,.07);border-left:3px solid var(--fire);':dDiff<=3?'background:rgba(245,158,11,.06);border-left:3px solid var(--amber);':'background:var(--bg);border-left:3px solid var(--border);';
+      return '<div style="padding:.45rem .65rem;border-radius:0 8px 8px 0;'+sty+'">'+
+        '<div style="font-family:\'JetBrains Mono\',monospace;font-size:.6rem;font-weight:700;color:var(--ink);">'+
+          (dDiff===0?'🚨 HOJE':dDiff===1?'⚠️ AMANHÃ':'📅 Em '+dDiff+' dias')+
+        '</div>'+
+        '<div style="font-size:.8rem;color:var(--ink2);margin-top:.15rem;">'+s.label+'</div>'+
+      '</div>';
+    }).join('');
+  }
+}
+
+// ════════════════════════════════════════════
+// ANALYSES + CHARTS (Canvas 2D)
 var T_COLORS_A= {T0:'rgba(22,163,74,.15)',T1:'rgba(217,119,6,.15)',T2:'rgba(234,88,12,.15)',T3:'rgba(220,38,38,.15)'};
 var MESO_COLORS={
   CR1:'#16a34a',CR2:'#22c55e',CR3:'#4ade80',
@@ -1805,18 +2026,20 @@ function buildAnalises(){
 // ── CHART HELPERS ────────────────────────────
 function getCanvasSize(id) {
   var el = document.getElementById(id);
-  // Walk up to find a visible ancestor with real width
-  var W = 0;
-  var p = el.parentElement;
-  while (p && W < 10) { W = p.clientWidth; p = p.parentElement; }
-  if (W < 10) W = window.innerWidth || 600;
-  W = W - 40; // padding
+  var container = el.parentElement; // the position:relative div
+  var W = container.clientWidth || 400;
+  var H_CSS = container.clientHeight || 200;
+  // If container has no size yet, walk up
+  if (W < 10) {
+    var p = container.parentElement;
+    while (p && W < 10) { W = p.clientWidth - 40; p = p.parentElement; }
+  }
+  if (W < 10) W = window.innerWidth - 80 || 400;
   var dpr = window.devicePixelRatio || 1;
-  var H_CSS = parseInt(el.getAttribute('height')) || 220;
   el.width  = Math.round(W * dpr);
   el.height = Math.round(H_CSS * dpr);
-  el.style.width  = W + 'px';
-  el.style.height = H_CSS + 'px';
+  el.style.width  = '100%';
+  el.style.height = '100%';
   return { ctx: el.getContext('2d'), W: el.width, H: el.height, dpr: dpr };
 }
 
@@ -2092,6 +2315,12 @@ function drawJitter(id, v, tStats, vLabel) {
   ctx.fillStyle = '#374151'; ctx.fillText('Média do tratamento', lx + 158*dpr, ly + 3*dpr);
 }
 
+function clearTsDates() {
+  document.getElementById('ts-from').value = '';
+  document.getElementById('ts-to').value = '';
+  buildAnalises();
+}
+
 function drawTimeSeries(id, v, vLabel) {
   var cs = getCanvasSize(id);
   var ctx = cs.ctx, W = cs.W, H = cs.H, dpr = cs.dpr;
@@ -2099,22 +2328,36 @@ function drawTimeSeries(id, v, vLabel) {
   var PAD = { l: 56*dpr, r: 16*dpr, t: 24*dpr, b: 40*dpr };
   var cW = W - PAD.l - PAD.r, cH = H - PAD.t - PAD.b;
 
+  // Date filter
+  var fromEl = document.getElementById('ts-from');
+  var toEl   = document.getElementById('ts-to');
+  var fromD  = fromEl ? fromEl.value : '';
+  var toD    = toEl   ? toEl.value   : '';
+
   var datesArr = [];
-  DB.forEach(function(r) { if (r.date && datesArr.indexOf(r.date) === -1) datesArr.push(r.date); });
+  DB.forEach(function(r) {
+    if (!r.date) return;
+    if (fromD && r.date < fromD) return;
+    if (toD   && r.date > toD)   return;
+    if (datesArr.indexOf(r.date) === -1) datesArr.push(r.date);
+  });
   datesArr.sort();
 
   if (!datesArr.length) {
     ctx.fillStyle = '#9ca3af'; ctx.font = (13*dpr) + 'px Inter'; ctx.textAlign = 'center';
-    ctx.fillText('Sem dados temporais', W/2, H/2); return;
+    var msg = (fromD || toD) ? 'Sem dados no período selecionado' : 'Sem dados temporais';
+    ctx.fillText(msg, W/2, H/2); return;
   }
 
-  // Build series
+  // Build series — only dates with at least one valid value for ANY treatment
   var series = {};
   ['T0','T1','T2','T3'].forEach(function(t) {
     series[t] = datesArr.map(function(d) {
       var mesos = MESOS.filter(function(m) { return TM[m] === t; });
-      var vals  = DB.filter(function(r) { return mesos.indexOf(r.meso) >= 0 && r.date === d; })
-                    .map(function(r) { return nn(r[v]); }).filter(function(x) { return x !== null; });
+      var vals  = DB.filter(function(r) {
+        return mesos.indexOf(r.meso) >= 0 && r.date === d &&
+               (!fromD || r.date >= fromD) && (!toD || r.date <= toD);
+      }).map(function(r) { return nn(r[v]); }).filter(function(x) { return x !== null; });
       var st = stats(vals);
       return st ? st.mean : null;
     });
@@ -2140,7 +2383,6 @@ function drawTimeSeries(id, v, vLabel) {
 
   var scY = function(val) { return PAD.t + cH - (val - minV) / (maxV - minV) * cH; };
   var N   = datesArr.length;
-  // For single date: center the point; for multiple: spread across full width
   var scX = function(i) {
     if (N === 1) return PAD.l + cW / 2;
     return PAD.l + i / (N - 1) * cW;
@@ -2162,7 +2404,9 @@ function drawTimeSeries(id, v, vLabel) {
   ctx.fillText(vLabel, 0, 0); ctx.restore();
 
   // X labels
+  var step = Math.max(1, Math.ceil(N / 8));
   datesArr.forEach(function(d, i) {
+    if (i % step !== 0 && i !== N - 1) return;
     var parts = d.split('-');
     var label = parts.length === 3 ? parts[2] + '/' + parts[1] : d;
     ctx.fillStyle = '#6b7280'; ctx.font = (8*dpr) + 'px JetBrains Mono,monospace'; ctx.textAlign = 'center';
@@ -2173,8 +2417,6 @@ function drawTimeSeries(id, v, vLabel) {
   ['T0','T1','T2','T3'].forEach(function(t) {
     var pts = series[t];
     var col = T_COLORS[t];
-
-    // Line
     ctx.strokeStyle = col; ctx.lineWidth = 2.5*dpr; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     ctx.beginPath();
     var started = false;
@@ -2184,15 +2426,12 @@ function drawTimeSeries(id, v, vLabel) {
       if (!started) { ctx.moveTo(x, y); started = true; } else { ctx.lineTo(x, y); }
     });
     ctx.stroke();
-
-    // Dots + value labels
     pts.forEach(function(val, i) {
       if (val === null) return;
       var x = scX(i), y = scY(val);
       ctx.beginPath(); ctx.arc(x, y, 5*dpr, 0, Math.PI*2);
       ctx.fillStyle = col; ctx.fill();
       ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 2*dpr; ctx.stroke();
-      // Value on dot
       ctx.fillStyle = col; ctx.font = 'bold ' + (8*dpr) + 'px JetBrains Mono,monospace'; ctx.textAlign = 'center';
       ctx.fillText(fmtV(val), x, y - 9*dpr);
     });
@@ -2246,10 +2485,17 @@ function exportExcel(){
   renderTeam();
   setLang('pt');
   dtab('form',document.getElementById('dtab-form'));
+  buildDashAlerts();
 })();
 
 // Redraw charts on resize
-var _resizeT; window.addEventListener('resize',()=>{clearTimeout(_resizeT);_resizeT=setTimeout(()=>{if(document.getElementById('analises').classList.contains('on')) buildAnalises();},200);});
+var _resizeT;
+window.addEventListener('resize', function() {
+  clearTimeout(_resizeT);
+  _resizeT = setTimeout(function() {
+    if(document.getElementById('analises').classList.contains('on')) buildAnalises();
+  }, 200);
+});
 </script>
 </body>
 </html>
