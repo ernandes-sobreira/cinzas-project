@@ -3,16 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BRASA — Biota Response to Ash in South American wetlands</title>
+<title>BRASA — Pantanal 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
 <!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, query, orderBy, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
-
 const firebaseConfig = {
   apiKey: "AIzaSyBWcGAa3CWurSiDs5udEtESGwCGGnYTX5Y",
   authDomain: "brasa-pantanal.firebaseapp.com",
@@ -21,665 +20,684 @@ const firebaseConfig = {
   messagingSenderId: "876718329822",
   appId: "1:876718329822:web:e0e0254ee909a933dad74f"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
-
-// ── Expose to window for non-module scripts
-window.db = db;
-window.storage = storage;
-window.fbFns = { collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, query, orderBy, serverTimestamp, ref, uploadBytes, getDownloadURL, deleteObject };
+window.db = db; window.storage = storage;
+window.fbFns = { collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, query, orderBy, serverTimestamp, writeBatch, ref, uploadBytes, getDownloadURL, deleteObject };
 window.firebaseReady = true;
 document.dispatchEvent(new Event('firebase-ready'));
 </script>
 
 <style>
+/* ═══════════════ DESIGN TOKENS ═══════════════ */
 :root {
-  --bg:       #0a0b0e;
-  --bg2:      #111318;
-  --bg3:      #181c24;
-  --border:   rgba(255,255,255,0.08);
-  --border2:  rgba(255,255,255,0.14);
-  --tx:       #f0f2f7;
-  --tx2:      #9aa3b8;
-  --tx3:      #5a6580;
+  --white:   #ffffff;
+  --bg:      #f5f6fa;
+  --bg2:     #eceef5;
+  --border:  #d0d5e8;
+  --border2: #b8bfd6;
 
-  /* Brasil */
-  --br-green: #009c3b;
-  --br-yellow:#ffdf00;
-  --br-blue:  #002776;
+  --ink:     #0d1117;   /* texto primário — máximo contraste */
+  --ink2:    #374151;   /* texto secundário */
+  --ink3:    #6b7280;   /* texto terciário */
 
-  /* Holanda */
-  --nl-red:   #ae1c28;
-  --nl-white: #ffffff;
-  --nl-blue:  #21468b;
+  --fire:    #e8340a;   /* laranja-vermelho BRASA */
+  --fire2:   #ff5722;
+  --amber:   #f59e0b;
+  --teal:    #0891b2;
+  --green:   #16a34a;
 
-  /* Bolívia */
-  --bo-red:   #d52b1e;
-  --bo-yellow:#f4e400;
-  --bo-green: #007a3d;
+  --t0:      #16a34a;   /* Controle verde */
+  --t1:      #d97706;   /* 2 g/L âmbar */
+  --t2:      #ea580c;   /* 5 g/L laranja */
+  --t3:      #dc2626;   /* 10 g/L vermelho */
 
-  /* BRASA accent */
-  --fire:     #ff5e1a;
-  --fire2:    #ff9344;
-  --ember:    #ffbd59;
-  --teal:     #00d4aa;
-  --blue:     #3d8bff;
-
-  --r: 8px;
+  --r:  8px;
   --r2: 12px;
+  --shadow: 0 1px 4px rgba(0,0,0,.10), 0 4px 16px rgba(0,0,0,.06);
+  --shadow2: 0 2px 8px rgba(0,0,0,.14), 0 8px 32px rgba(0,0,0,.08);
 }
 
+/* ═══════════════ RESET ═══════════════ */
 * { margin:0; padding:0; box-sizing:border-box; }
 html { height:100%; font-size:15px; }
+body { min-height:100%; background:var(--bg); color:var(--ink); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
 
-body {
-  min-height:100%;
-  background: var(--bg);
-  color: var(--tx);
-  font-family: 'Rajdhani', sans-serif;
-  overflow-x: hidden;
-}
-
-/* ── PARTICLES CANVAS ── */
-#particles { position:fixed; inset:0; pointer-events:none; z-index:0; opacity:0.5; }
-
-/* ── LAYOUT ── */
-#app { position:relative; z-index:1; display:flex; flex-direction:column; min-height:100vh; }
-
-/* ── TOP BAR (logo + flags + lang) ── */
+/* ═══════════════ HEADER ═══════════════ */
 header {
-  position: sticky; top:0; z-index:200;
-  background: rgba(10,11,14,0.95);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border);
-  padding: 0 1rem;
-  display: flex; align-items:center; gap:.7rem;
-  height: 52px;
+  position:sticky; top:0; z-index:300;
+  background:var(--white);
+  border-bottom: 3px solid var(--fire);
+  box-shadow: 0 2px 12px rgba(0,0,0,.10);
+  padding:0 1.25rem;
+  display:flex; align-items:center; gap:.75rem; height:54px;
 }
+.logo-block { display:flex; align-items:center; gap:.55rem; flex-shrink:0; }
+.logo-flame {
+  width:36px; height:36px; border-radius:10px;
+  background:linear-gradient(135deg,var(--fire),var(--amber));
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.15rem; box-shadow:0 2px 8px rgba(232,52,10,.35); flex-shrink:0;
+}
+.logo-name {
+  font-size:1.25rem; font-weight:900; letter-spacing:.04em;
+  color:var(--ink); line-height:1;
+}
+.logo-name span { color:var(--fire); }
+.logo-tag { font-family:'JetBrains Mono',monospace; font-size:.52rem; color:var(--ink3); letter-spacing:.08em; }
 
-/* ── BOTTOM NAV (mobile) ── */
-#bottom-nav {
-  position: fixed; bottom:0; left:0; right:0; z-index:9999;
-  background: rgba(10,11,14,0.98);
-  border-top: 2px solid rgba(255,94,26,0.3);
-  display: none;
-  backdrop-filter: blur(20px);
-  padding-bottom: env(safe-area-inset-bottom);
-  box-shadow: 0 -4px 24px rgba(0,0,0,0.5);
+/* desktop top nav */
+nav.top-nav { display:flex; gap:.15rem; flex:1; overflow-x:auto; margin-left:.25rem; }
+nav.top-nav::-webkit-scrollbar { display:none; }
+.tnb {
+  background:none; border:none; cursor:pointer;
+  color:var(--ink2); font-family:'Inter',sans-serif; font-size:.8rem; font-weight:600;
+  letter-spacing:.02em; padding:.4rem .75rem; border-radius:7px;
+  white-space:nowrap; transition:.15s; border-bottom:2px solid transparent;
+}
+.tnb:hover { background:var(--bg); color:var(--ink); }
+.tnb.on { color:var(--fire); border-bottom-color:var(--fire); background:rgba(232,52,10,.06); }
+
+.header-right { display:flex; align-items:center; gap:.5rem; flex-shrink:0; margin-left:auto; }
+.lang-row { display:flex; gap:.2rem; }
+.lbtn { background:var(--bg2); border:1px solid var(--border); color:var(--ink2); border-radius:5px; padding:.2rem .5rem; font-family:'JetBrains Mono',monospace; font-size:.62rem; font-weight:600; cursor:pointer; transition:.12s; }
+.lbtn.on { background:var(--fire); border-color:var(--fire); color:#fff; }
+.flags { font-size:1.05rem; display:flex; align-items:center; gap:.15rem; }
+.conn-dot { width:8px; height:8px; border-radius:50%; background:#ccc; transition:.3s; flex-shrink:0; }
+.conn-dot.ok { background:var(--green); box-shadow:0 0 6px rgba(22,163,74,.5); }
+.conn-dot.err { background:var(--t3); }
+
+/* ═══════════════ BOTTOM NAV (mobile) ═══════════════ */
+#bnav {
+  position:fixed; bottom:0; left:0; right:0; z-index:9999;
+  background:var(--white); border-top:2px solid var(--fire);
+  display:none;
+  box-shadow:0 -4px 20px rgba(0,0,0,.12);
+  padding-bottom:env(safe-area-inset-bottom);
 }
 .bnb {
   flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
-  padding:.5rem .2rem .45rem;
-  background:none; border:none; color:var(--tx3);
-  font-family:'Rajdhani',sans-serif; font-size:.58rem; font-weight:600;
-  letter-spacing:.04em; text-transform:uppercase; cursor:pointer;
-  gap:.18rem; transition:.15s; min-width:0;
+  padding:.45rem .1rem .4rem; background:none; border:none; cursor:pointer;
+  color:var(--ink3); font-family:'Inter',sans-serif; font-size:.5rem; font-weight:700;
+  letter-spacing:.03em; text-transform:uppercase; gap:.12rem; transition:.12s; min-width:0;
 }
-.bnb .icon { font-size:1.15rem; line-height:1; }
-.bnb:hover { color:var(--tx2); }
+.bnb .bi { font-size:1.2rem; line-height:1; }
 .bnb.on { color:var(--fire); }
-.bnb.on .icon { filter: drop-shadow(0 0 6px rgba(255,94,26,.6)); }
+.bnb.on .bi { filter:drop-shadow(0 0 4px rgba(232,52,10,.5)); }
 
-/* desktop keeps top nav too */
 @media(min-width:769px) {
-  #bottom-nav { display:none !important; }
-  header { height:58px; padding:0 1.5rem; }
-  nav.desktop-nav { display:flex; gap:.2rem; flex:1; overflow-x:auto; }
-  nav.desktop-nav::-webkit-scrollbar { display:none; }
+  #bnav { display:none !important; }
+  nav.top-nav { display:flex; }
   main { padding-bottom:0; }
 }
 @media(max-width:768px) {
-  #bottom-nav { display:flex !important; }
-  nav.desktop-nav { display:none !important; }
-  main { padding-bottom: 70px; }
+  #bnav { display:flex !important; }
+  nav.top-nav { display:none !important; }
+  .logo-tag { display:none; }
+  main { padding-bottom:72px; }
+  header { padding:0 .9rem; gap:.5rem; }
 }
 
-.logo-wrap { display:flex; align-items:center; gap:.7rem; flex-shrink:0; }
-.logo-icon {
-  width:34px; height:34px;
-  background: linear-gradient(135deg, var(--fire), var(--ember));
-  border-radius:8px;
-  display:flex; align-items:center; justify-content:center;
-  font-size:1.1rem;
-  box-shadow: 0 0 20px rgba(255,94,26,0.4);
-}
-.logo-text {
-  font-family:'Bebas Neue', sans-serif;
-  font-size:1.6rem;
-  letter-spacing:.12em;
-  background: linear-gradient(90deg, var(--fire), var(--ember), var(--fire2));
-  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-  background-clip:text;
-}
-.logo-sub { font-family:'JetBrains Mono',monospace; font-size:.52rem; color:var(--tx3); letter-spacing:.1em; line-height:1.2; }
-
-nav.desktop-nav .nb {
-  background:none; border:none; color:var(--tx2);
-  font-family:'Rajdhani',sans-serif; font-size:.82rem; font-weight:500;
-  letter-spacing:.08em; text-transform:uppercase;
-  padding:.4rem .8rem; border-radius:6px; cursor:pointer;
-  white-space:nowrap; transition:.15s; border-bottom:2px solid transparent;
-}
-nav.desktop-nav .nb:hover { color:var(--tx); background:var(--bg3); }
-nav.desktop-nav .nb.on { color:var(--fire); border-bottom-color:var(--fire); }
-
-.header-flags { display:flex; gap:.3rem; align-items:center; font-size:1.2rem; flex-shrink:0; }
-.conn-dot { width:7px; height:7px; border-radius:50%; background:#666; flex-shrink:0; transition:.3s; }
-.conn-dot.ok { background:var(--teal); box-shadow:0 0 8px var(--teal); }
-.conn-dot.err { background:#ef4444; }
-
-/* ── MAIN CONTENT ── */
-main { flex:1; }
+/* ═══════════════ LAYOUT ═══════════════ */
+main { }
 .sec { display:none; }
-.sec.on { display:block; animation: fadeIn .25s ease; }
-@keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+.sec.on { display:block; animation:fadeIn .2s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:none} }
 
-/* ── PAGE HEADER ── */
-.page-head {
-  padding: 2rem 2rem 1rem;
-  border-bottom: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(255,94,26,.04) 0%, transparent 100%);
+/* ═══════════════ PAGE HEADER ═══════════════ */
+.ph {
+  background:var(--white); border-bottom:1px solid var(--border);
+  padding:1.25rem 1.5rem .9rem;
 }
-.page-title {
-  font-family:'Bebas Neue',sans-serif;
-  font-size:2.8rem; letter-spacing:.08em;
-  color:var(--tx);
+.ph-title {
+  font-size:1.6rem; font-weight:900; color:var(--ink); letter-spacing:-.02em;
+  display:flex; align-items:center; gap:.5rem;
 }
-.page-title span { color:var(--fire); }
-.page-sub { font-family:'JetBrains Mono',monospace; font-size:.65rem; color:var(--tx3); margin-top:.3rem; letter-spacing:.08em; }
+.ph-sub { font-family:'JetBrains Mono',monospace; font-size:.6rem; color:var(--ink3); margin-top:.25rem; letter-spacing:.06em; }
 
-/* ── GRID LAYOUTS ── */
-.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; padding:1.5rem 2rem; }
-.grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1.2rem; padding:1.5rem 2rem; }
-.grid4 { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; padding:1.5rem 2rem; }
-.pad { padding:1.5rem 2rem; }
+/* ═══════════════ STATUS BAR ═══════════════ */
+.status-bar {
+  background:var(--ink); color:#fff;
+  padding:.45rem 1.5rem; display:flex; gap:1.5rem; align-items:center; flex-wrap:wrap;
+  font-family:'JetBrains Mono',monospace; font-size:.62rem;
+}
+.sb-item { display:flex; align-items:center; gap:.35rem; opacity:.9; }
+.sb-dot { width:6px; height:6px; border-radius:50%; background:var(--amber); }
+.sb-dot.g { background:#4ade80; }
 
-/* ── CARDS ── */
+/* ═══════════════ PROGRESS ═══════════════ */
+.prog-wrap { padding:.9rem 1.5rem; background:var(--white); border-bottom:1px solid var(--border); }
+.prog-labels { display:flex; justify-content:space-between; font-family:'JetBrains Mono',monospace; font-size:.56rem; color:var(--ink3); margin-bottom:.35rem; }
+.prog-track { height:8px; background:var(--bg2); border-radius:4px; overflow:hidden; position:relative; border:1px solid var(--border); }
+.prog-fill { height:100%; background:linear-gradient(90deg,var(--fire),var(--amber)); border-radius:4px; transition:width 1s ease; }
+.prog-pct { font-weight:800; color:var(--fire); font-size:.75rem; font-family:'JetBrains Mono',monospace; }
+
+/* ═══════════════ GRID ═══════════════ */
+.g2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; padding:1rem 1.5rem; }
+.g3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; padding:1rem 1.5rem; }
+.g4 { display:grid; grid-template-columns:repeat(4,1fr); gap:.85rem; padding:1rem 1.5rem; }
+.pad { padding:1rem 1.5rem; }
+
+/* ═══════════════ CARDS ═══════════════ */
 .card {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--r2);
-  padding: 1.25rem;
-  transition: border-color .2s;
+  background:var(--white); border:1px solid var(--border); border-radius:var(--r2);
+  padding:1rem 1.1rem; box-shadow:var(--shadow); transition:.15s;
 }
-.card:hover { border-color: var(--border2); }
-.card-title {
-  font-family:'JetBrains Mono',monospace;
-  font-size:.6rem; letter-spacing:.18em; text-transform:uppercase;
-  color:var(--tx3); margin-bottom:.8rem; display:flex; align-items:center; gap:.4rem;
+.card:hover { box-shadow:var(--shadow2); }
+.card-label {
+  font-family:'JetBrains Mono',monospace; font-size:.57rem; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink3); margin-bottom:.5rem; font-weight:700;
+  display:flex; align-items:center; gap:.35rem;
 }
-.card-title::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--fire); flex-shrink:0; }
+.card-label::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; flex-shrink:0; }
+.stat-n { font-size:2.2rem; font-weight:900; line-height:1; letter-spacing:-.03em; }
+.stat-u { font-family:'JetBrains Mono',monospace; font-size:.6rem; color:var(--ink3); margin-top:.15rem; font-weight:500; }
 
-/* ── BIG STAT ── */
-.stat-big { font-family:'Bebas Neue',sans-serif; font-size:3.2rem; letter-spacing:.05em; line-height:1; }
-.stat-unit { font-family:'JetBrains Mono',monospace; font-size:.65rem; color:var(--tx2); margin-top:.2rem; }
+/* treatment color borders */
+.card.t0 { border-top:3px solid var(--t0); } .card.t0 .card-label { color:var(--t0); }
+.card.t1 { border-top:3px solid var(--t1); } .card.t1 .card-label { color:var(--t1); }
+.card.t2 { border-top:3px solid var(--t2); } .card.t2 .card-label { color:var(--t2); }
+.card.t3 { border-top:3px solid var(--t3); } .card.t3 .card-label { color:var(--t3); }
 
-/* ── PROGRESS BAR ── */
-.prog-wrap { margin:1rem 0; }
-.prog-label { display:flex; justify-content:space-between; font-family:'JetBrains Mono',monospace; font-size:.62rem; color:var(--tx2); margin-bottom:.4rem; }
-.prog-track { height:6px; background:var(--bg3); border-radius:3px; overflow:hidden; position:relative; }
-.prog-fill { height:100%; border-radius:3px; background:linear-gradient(90deg,var(--fire),var(--ember)); transition:width .8s ease; }
-.prog-milestones { position:absolute; inset:0; }
-.prog-ms { position:absolute; top:-3px; width:2px; height:12px; background:rgba(255,255,255,.25); }
-
-/* ── TREATMENT BADGES ── */
-.t0 { --tc:#22c55e; } .t1 { --tc:#eab308; } .t2 { --tc:#f97316; } .t3 { --tc:#ef4444; }
-.treat-badge {
-  display:inline-flex; align-items:center; gap:.3rem;
-  background:rgba(var(--tc-rgb),.12); border:1px solid rgba(var(--tc-rgb),.3);
-  color:var(--tc); border-radius:4px;
-  font-family:'JetBrains Mono',monospace; font-size:.62rem; padding:.15rem .5rem; font-weight:500;
-}
-
-/* ── FORM ── */
-.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; }
-.form-full { grid-column:1/-1; }
-.field label {
-  display:block; font-family:'JetBrains Mono',monospace;
-  font-size:.58rem; color:var(--tx3); letter-spacing:.1em; text-transform:uppercase; margin-bottom:.3rem;
-}
-.field input, .field select, .field textarea {
-  width:100%; background:var(--bg3); border:1px solid var(--border2);
-  color:var(--tx); border-radius:6px; padding:.55rem .75rem;
-  font-family:'JetBrains Mono',monospace; font-size:.8rem;
-  transition:.15s; outline:none;
-}
-.field input:focus, .field select:focus, .field textarea:focus {
-  border-color:var(--fire); box-shadow:0 0 0 3px rgba(255,94,26,.12);
-}
-.field select option { background:var(--bg2); }
-
-/* ── BUTTONS ── */
+/* ═══════════════ BUTTONS ═══════════════ */
 .btn {
   display:inline-flex; align-items:center; gap:.4rem;
-  border-radius:7px; padding:.6rem 1.2rem;
-  font-family:'Rajdhani',sans-serif; font-size:.88rem; font-weight:600;
-  letter-spacing:.06em; text-transform:uppercase;
-  cursor:pointer; border:none; transition:.15s; white-space:nowrap;
+  border-radius:8px; padding:.55rem 1.1rem;
+  font-family:'Inter',sans-serif; font-size:.82rem; font-weight:700;
+  cursor:pointer; border:none; transition:.15s; white-space:nowrap; text-decoration:none;
 }
 .btn-fire { background:var(--fire); color:#fff; }
-.btn-fire:hover { background:var(--fire2); box-shadow:0 4px 20px rgba(255,94,26,.35); }
-.btn-outline { background:transparent; border:1px solid var(--border2); color:var(--tx2); }
+.btn-fire:hover { background:#c2280a; box-shadow:0 4px 14px rgba(232,52,10,.35); }
+.btn-ink { background:var(--ink); color:#fff; }
+.btn-ink:hover { background:#1f2937; }
+.btn-outline { background:var(--white); border:2px solid var(--border2); color:var(--ink2); }
 .btn-outline:hover { border-color:var(--fire); color:var(--fire); }
-.btn-teal { background:rgba(0,212,170,.12); border:1px solid rgba(0,212,170,.3); color:var(--teal); }
-.btn-teal:hover { background:rgba(0,212,170,.2); }
-.btn-sm { padding:.35rem .75rem; font-size:.75rem; }
-.btn-danger { background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.3); color:#ef4444; }
-.btn-danger:hover { background:rgba(239,68,68,.2); }
+.btn-green { background:var(--green); color:#fff; }
+.btn-green:hover { background:#15803d; }
+.btn-amber { background:var(--amber); color:#fff; }
+.btn-sm { padding:.35rem .75rem; font-size:.74rem; border-radius:6px; }
+.btn-danger { background:#fee2e2; border:1px solid #fca5a5; color:var(--t3); }
+.btn-danger:hover { background:#fca5a5; }
 
-/* ── TABLE ── */
-.tbl-wrap { overflow-x:auto; }
-table { width:100%; border-collapse:collapse; font-size:.82rem; }
+/* ═══════════════ SECTION DIVIDER ═══════════════ */
+.sdiv {
+  font-family:'JetBrains Mono',monospace; font-size:.57rem; color:var(--ink3);
+  letter-spacing:.15em; text-transform:uppercase; font-weight:700;
+  padding:.55rem 1.5rem; border-bottom:1px solid var(--border);
+  background:var(--bg); display:flex; align-items:center; justify-content:space-between;
+}
+
+/* ═══════════════ FORM ═══════════════ */
+.fg { display:grid; grid-template-columns:1fr 1fr; gap:.65rem; }
+.fg3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:.65rem; }
+.fc { grid-column:1/-1; }
+.field label {
+  display:block; font-family:'JetBrains Mono',monospace;
+  font-size:.57rem; color:var(--ink2); letter-spacing:.1em; text-transform:uppercase;
+  margin-bottom:.28rem; font-weight:700;
+}
+.field input, .field select, .field textarea {
+  width:100%; background:var(--white); border:2px solid var(--border);
+  color:var(--ink); border-radius:7px; padding:.55rem .75rem;
+  font-family:'Inter',sans-serif; font-size:.9rem; font-weight:500;
+  transition:.15s; outline:none; -webkit-appearance:none;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color:var(--fire); box-shadow:0 0 0 3px rgba(232,52,10,.12);
+}
+.field input::placeholder { color:var(--ink3); font-weight:400; }
+.field select option { background:var(--white); color:var(--ink); }
+
+/* ═══════════════ TABLE ═══════════════ */
+.tbl-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+table { width:100%; border-collapse:collapse; font-size:.82rem; min-width:600px; }
 th {
-  font-family:'JetBrains Mono',monospace; font-size:.58rem; letter-spacing:.12em;
-  text-transform:uppercase; color:var(--tx3); padding:.6rem .8rem;
-  border-bottom:1px solid var(--border); text-align:left; white-space:nowrap;
+  font-family:'JetBrains Mono',monospace; font-size:.57rem; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink2); padding:.6rem .75rem;
+  border-bottom:2px solid var(--border2); text-align:left; white-space:nowrap;
+  background:var(--bg); font-weight:700; position:sticky; top:0;
 }
-td { padding:.65rem .8rem; border-bottom:1px solid var(--border); color:var(--tx); vertical-align:middle; }
-tr:hover td { background:rgba(255,255,255,.02); }
-.val { font-family:'JetBrains Mono',monospace; font-weight:500; }
+td { padding:.6rem .75rem; border-bottom:1px solid var(--border); color:var(--ink); vertical-align:middle; }
+tr:hover td { background:rgba(232,52,10,.03); }
+.mono { font-family:'JetBrains Mono',monospace; font-weight:600; }
+.t0c { color:var(--t0); font-weight:700; } .t1c { color:var(--t1); font-weight:700; }
+.t2c { color:var(--t2); font-weight:700; } .t3c { color:var(--t3); font-weight:700; }
 
-/* ── MESO GRID ── */
-.meso-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:.8rem; padding:1.5rem 2rem; }
-.meso-card {
-  background:var(--bg2); border:1px solid var(--border); border-radius:var(--r2);
-  overflow:hidden; cursor:pointer; transition:.2s;
+/* ═══════════════ UPLOAD ZONE ═══════════════ */
+.upload-zone {
+  border:3px dashed var(--border2); border-radius:12px;
+  padding:2rem 1.5rem; text-align:center; cursor:pointer;
+  background:var(--bg); transition:.2s; position:relative;
 }
-.meso-card:hover { border-color:var(--fire); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.3); }
-.meso-head { padding:.75rem 1rem; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
-.meso-name { font-family:'Bebas Neue',sans-serif; font-size:1.4rem; letter-spacing:.1em; }
-.meso-treat { font-family:'JetBrains Mono',monospace; font-size:.58rem; padding:.15rem .45rem; border-radius:4px; }
-.meso-body { padding:.75rem 1rem; }
-.meso-stat { display:flex; justify-content:space-between; align-items:center; padding:.25rem 0; border-bottom:1px solid var(--border); }
-.meso-stat:last-child { border-bottom:none; }
-.meso-stat-lbl { font-family:'JetBrains Mono',monospace; font-size:.6rem; color:var(--tx3); }
-.meso-stat-val { font-family:'JetBrains Mono',monospace; font-size:.75rem; font-weight:600; }
+.upload-zone:hover, .upload-zone.drag { border-color:var(--fire); background:rgba(232,52,10,.03); }
+.upload-zone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; }
+.uz-icon { font-size:2.5rem; margin-bottom:.6rem; }
+.uz-title { font-size:1rem; font-weight:800; color:var(--ink); margin-bottom:.3rem; }
+.uz-sub { font-family:'JetBrains Mono',monospace; font-size:.62rem; color:var(--ink3); }
 
-/* ── ASHZAP CHAT ── */
-.chat-wrap { display:flex; flex-direction:column; height:calc(100vh - 180px); }
-.chat-feed { flex:1; overflow-y:auto; padding:1.5rem 2rem; display:flex; flex-direction:column; gap:.7rem; }
-.chat-msg { display:flex; gap:.75rem; align-items:flex-start; }
-.chat-avatar {
-  width:34px; height:34px; border-radius:50%; flex-shrink:0;
-  display:flex; align-items:center; justify-content:center;
-  font-family:'Bebas Neue',sans-serif; font-size:1rem; color:#fff;
+/* ═══════════════ IMPORT PREVIEW ═══════════════ */
+.import-preview {
+  background:var(--white); border:1px solid var(--border); border-radius:var(--r2);
+  overflow:hidden; box-shadow:var(--shadow);
 }
-.chat-bubble { flex:1; }
-.chat-meta { font-family:'JetBrains Mono',monospace; font-size:.58rem; color:var(--tx3); margin-bottom:.25rem; }
-.chat-meta strong { color:var(--tx2); margin-right:.4rem; }
-.chat-text {
-  background:var(--bg2); border:1px solid var(--border); border-radius:0 10px 10px 10px;
-  padding:.6rem .9rem; font-size:.88rem; line-height:1.5;
+.ip-head {
+  background:var(--ink); color:#fff; padding:.7rem 1rem;
+  display:flex; align-items:center; justify-content:space-between;
+  font-family:'JetBrains Mono',monospace; font-size:.65rem; font-weight:700;
 }
-.chat-text.system { background:rgba(255,94,26,.06); border-color:rgba(255,94,26,.2); color:var(--tx2); font-family:'JetBrains Mono',monospace; font-size:.72rem; }
-.chat-input-wrap {
-  padding:1rem 2rem; border-top:1px solid var(--border);
-  background:rgba(10,11,14,.95); display:flex; gap:.7rem; align-items:flex-end;
-}
-.chat-input-wrap textarea {
-  flex:1; background:var(--bg3); border:1px solid var(--border2);
-  color:var(--tx); border-radius:8px; padding:.65rem .9rem;
-  font-family:'Rajdhani',sans-serif; font-size:.95rem; resize:none; outline:none;
-  max-height:100px; transition:.15s;
-}
-.chat-input-wrap textarea:focus { border-color:var(--fire); box-shadow:0 0 0 3px rgba(255,94,26,.1); }
 
-/* ── PHOTO FEED ── */
-.photo-feed { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:1rem; padding:1.5rem 2rem; }
-.photo-card {
-  background:var(--bg2); border:1px solid var(--border); border-radius:var(--r2);
-  overflow:hidden; transition:.2s;
+/* ═══════════════ BADGE ═══════════════ */
+.badge {
+  display:inline-flex; align-items:center; gap:.25rem;
+  border-radius:5px; padding:.15rem .55rem;
+  font-family:'JetBrains Mono',monospace; font-size:.6rem; font-weight:700;
 }
-.photo-card:hover { transform:translateY(-3px); box-shadow:0 12px 32px rgba(0,0,0,.4); }
-.photo-card img { width:100%; height:200px; object-fit:cover; display:block; }
-.photo-info { padding:.75rem; }
-.photo-meta { font-family:'JetBrains Mono',monospace; font-size:.58rem; color:var(--tx3); margin-top:.3rem; }
+.badge-t0 { background:rgba(22,163,74,.12); color:var(--t0); border:1px solid rgba(22,163,74,.25); }
+.badge-t1 { background:rgba(217,119,6,.12); color:var(--t1); border:1px solid rgba(217,119,6,.25); }
+.badge-t2 { background:rgba(234,88,12,.12); color:var(--t2); border:1px solid rgba(234,88,12,.25); }
+.badge-t3 { background:rgba(220,38,38,.12); color:var(--t3); border:1px solid rgba(220,38,38,.25); }
+.badge-r { background:rgba(8,145,178,.1); color:var(--teal); border:1px solid rgba(8,145,178,.25); }
 
-/* ── DIARIO ── */
-.diario-feed { display:flex; flex-direction:column; gap:1rem; padding:1.5rem 2rem; }
-.diario-entry {
-  background:var(--bg2); border-left:3px solid var(--fire); border-radius:0 var(--r2) var(--r2) 0;
-  padding:1rem 1.25rem; border:1px solid var(--border); border-left:3px solid var(--fire);
-}
-.diario-date { font-family:'Bebas Neue',sans-serif; font-size:1.3rem; color:var(--fire); letter-spacing:.08em; }
-.diario-author { font-family:'JetBrains Mono',monospace; font-size:.6rem; color:var(--tx3); margin-bottom:.5rem; }
-.diario-text { font-size:.9rem; line-height:1.65; color:var(--tx); }
-
-/* ── TOAST ── */
+/* ═══════════════ TOAST ═══════════════ */
 #toast {
-  position:fixed; bottom:1.5rem; right:1.5rem;
-  background:var(--bg2); border:1px solid var(--border2);
-  color:var(--tx); padding:.7rem 1.2rem; border-radius:8px;
-  font-family:'JetBrains Mono',monospace; font-size:.75rem;
-  z-index:999; transform:translateY(80px) scale(.95); opacity:0;
-  transition:.3s cubic-bezier(.34,1.56,.64,1); pointer-events:none;
+  position:fixed; bottom:80px; right:1rem; z-index:9999;
+  background:var(--ink); color:#fff; padding:.65rem 1.1rem;
+  border-radius:8px; font-family:'JetBrains Mono',monospace; font-size:.72rem;
+  transform:translateY(20px) scale(.95); opacity:0; pointer-events:none;
+  transition:.25s cubic-bezier(.34,1.56,.64,1);
+  box-shadow:0 8px 32px rgba(0,0,0,.25); max-width:320px;
 }
 #toast.show { transform:none; opacity:1; }
-#toast.ok { border-color:var(--teal); color:var(--teal); }
-#toast.err { border-color:#ef4444; color:#ef4444; }
+#toast.ok { background:var(--green); }
+#toast.err { background:var(--t3); }
+#toast.warn { background:var(--amber); color:var(--ink); }
 
-/* ── MODAL ── */
-.modal-overlay {
-  position:fixed; inset:0; background:rgba(0,0,0,.8); z-index:500;
+/* ═══════════════ MODAL ═══════════════ */
+.mo {
+  position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:600;
   display:none; align-items:center; justify-content:center; padding:1rem;
-  backdrop-filter:blur(4px);
+  backdrop-filter:blur(3px);
 }
-.modal-overlay.open { display:flex; animation:fadeIn .2s ease; }
+.mo.open { display:flex; animation:fadeIn .18s ease; }
 .modal {
-  background:var(--bg2); border:1px solid var(--border2); border-radius:16px;
-  width:100%; max-width:680px; max-height:90vh; overflow-y:auto;
-  padding:1.75rem;
+  background:var(--white); border:1px solid var(--border); border-radius:16px;
+  width:100%; max-width:700px; max-height:92vh; overflow-y:auto; padding:1.5rem;
+  box-shadow:0 24px 64px rgba(0,0,0,.25);
 }
-.modal-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem; }
-.modal-title { font-family:'Bebas Neue',sans-serif; font-size:1.8rem; letter-spacing:.08em; color:var(--fire); }
-.modal-close { background:none; border:1px solid var(--border2); color:var(--tx2); border-radius:6px; padding:.3rem .65rem; cursor:pointer; font-size:.9rem; }
-.modal-close:hover { border-color:#ef4444; color:#ef4444; }
+.mh { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.2rem; }
+.mt { font-size:1.3rem; font-weight:900; color:var(--ink); }
+.mc { background:none; border:2px solid var(--border); color:var(--ink2); border-radius:6px; padding:.3rem .65rem; cursor:pointer; font-size:.9rem; }
+.mc:hover { border-color:var(--t3); color:var(--t3); }
 
-/* ── SECTION DIVIDER ── */
-.sdiv {
-  font-family:'JetBrains Mono',monospace; font-size:.58rem; color:var(--tx3);
-  letter-spacing:.18em; text-transform:uppercase;
-  padding:.6rem 2rem; border-bottom:1px solid var(--border);
-  display:flex; align-items:center; gap:.6rem;
-  background:rgba(255,255,255,.01);
+/* ═══════════════ CHAT ═══════════════ */
+.chat-wrap { display:flex; flex-direction:column; height:calc(100vh - 200px); min-height:400px; }
+.chat-feed { flex:1; overflow-y:auto; padding:1rem 1.5rem; display:flex; flex-direction:column; gap:.65rem; background:var(--bg); }
+.chat-msg { display:flex; gap:.65rem; align-items:flex-start; }
+.chat-av {
+  width:32px; height:32px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.85rem; font-weight:800; color:#fff; text-transform:uppercase;
 }
-.sdiv::after { content:''; flex:1; height:1px; background:var(--border); }
+.chat-bubble { flex:1; min-width:0; }
+.chat-meta { font-family:'JetBrains Mono',monospace; font-size:.57rem; color:var(--ink3); margin-bottom:.2rem; }
+.chat-meta strong { color:var(--ink2); }
+.chat-text { background:var(--white); border:1px solid var(--border); border-radius:0 10px 10px 10px; padding:.55rem .85rem; font-size:.88rem; line-height:1.55; box-shadow:var(--shadow); color:var(--ink); }
+.chat-bar { padding:.85rem 1.5rem; border-top:2px solid var(--border); background:var(--white); display:flex; gap:.65rem; align-items:flex-end; }
+.chat-bar textarea { flex:1; border:2px solid var(--border); background:var(--bg); color:var(--ink); border-radius:8px; padding:.6rem .85rem; font-family:'Inter',sans-serif; font-size:.9rem; resize:none; outline:none; max-height:100px; }
+.chat-bar textarea:focus { border-color:var(--fire); }
 
-/* ── FLAGS FOOTER ── */
-footer {
-  border-top:1px solid var(--border); padding:.7rem 2rem;
-  display:flex; align-items:center; justify-content:space-between;
-  font-family:'JetBrains Mono',monospace; font-size:.6rem; color:var(--tx3);
-  background:rgba(10,11,14,.95);
+/* ═══════════════ PHOTO FEED ═══════════════ */
+.photo-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:.85rem; padding:1rem 1.5rem; }
+.photo-card { background:var(--white); border:1px solid var(--border); border-radius:var(--r2); overflow:hidden; box-shadow:var(--shadow); transition:.15s; }
+.photo-card:hover { box-shadow:var(--shadow2); transform:translateY(-2px); }
+.photo-card img { width:100%; height:190px; object-fit:cover; display:block; cursor:zoom-in; }
+.photo-info { padding:.65rem .75rem; }
+.photo-meta { font-family:'JetBrains Mono',monospace; font-size:.57rem; color:var(--ink3); margin-top:.25rem; }
+
+/* ═══════════════ DIARY ═══════════════ */
+.diary-entry {
+  background:var(--white); border:1px solid var(--border); border-radius:var(--r2);
+  padding:1rem 1.1rem; box-shadow:var(--shadow); border-left:4px solid var(--fire);
 }
-.flag-strip { display:flex; gap:.3rem; align-items:center; font-size:1.1rem; }
-.flag-strip .sep { color:var(--tx3); font-size:.7rem; }
+.de-date { font-size:1.1rem; font-weight:900; color:var(--fire); letter-spacing:-.01em; }
+.de-author { font-family:'JetBrains Mono',monospace; font-size:.58rem; color:var(--ink3); margin-bottom:.5rem; }
+.de-text { font-size:.9rem; line-height:1.7; color:var(--ink); }
 
-/* ── LANG TABS ── */
-.lang-row { display:flex; gap:.3rem; }
-.lbtn { background:var(--bg3); border:1px solid var(--border); color:var(--tx3); border-radius:5px; padding:.2rem .55rem; font-family:'JetBrains Mono',monospace; font-size:.65rem; cursor:pointer; }
-.lbtn.on { border-color:var(--fire); color:var(--fire); }
+/* ═══════════════ LOADING ═══════════════ */
+.loading { display:flex; align-items:center; gap:.5rem; font-family:'JetBrains Mono',monospace; font-size:.7rem; color:var(--ink3); }
+.spin { width:14px; height:14px; border:2px solid var(--border); border-top-color:var(--fire); border-radius:50%; animation:sp .6s linear infinite; flex-shrink:0; }
+@keyframes sp { to{transform:rotate(360deg)} }
 
-/* ── SPARKLINE ── */
-.sparkline { display:flex; align-items:flex-end; gap:2px; height:36px; }
-.spark-bar { flex:1; background:var(--fire); border-radius:2px 2px 0 0; opacity:.7; min-height:3px; transition:.3s; }
+/* ═══════════════ TEAM ═══════════════ */
+.team-card { display:flex; align-items:center; gap:.7rem; padding:.6rem; border-radius:9px; background:var(--bg); border:1px solid var(--border); }
+.team-av { width:36px; height:36px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:.95rem; }
+.team-name { font-size:.88rem; font-weight:700; color:var(--ink); }
+.team-role { font-family:'JetBrains Mono',monospace; font-size:.57rem; color:var(--ink3); }
 
-/* ── STATUS STRIP ── */
-.status-strip {
-  padding:.5rem 2rem; background:rgba(255,94,26,.04); border-bottom:1px solid rgba(255,94,26,.1);
-  display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
-}
-.status-item { font-family:'JetBrains Mono',monospace; font-size:.62rem; color:var(--tx2); display:flex; align-items:center; gap:.35rem; }
+/* ═══════════════ ANALYSIS ═══════════════ */
+.an-ok { color:var(--green); font-weight:700; }
+.an-warn { color:var(--t2); font-weight:700; }
+.an-err { color:var(--t3); font-weight:700; }
 
-/* ── EDIT INLINE ── */
-.edit-row { display:flex; gap:.4rem; align-items:center; }
-.edit-input { background:var(--bg3); border:1px solid var(--fire); color:var(--tx); border-radius:4px; padding:.2rem .5rem; font-family:'JetBrains Mono',monospace; font-size:.75rem; width:80px; outline:none; }
-
-/* ── RESPONSIVE ── */
-@media(max-width:768px) {
-  .grid2,.grid3 { grid-template-columns:1fr; }
-  .grid4 { grid-template-columns:1fr 1fr; }
-  .meso-grid { grid-template-columns:1fr 1fr; }
-  .form-grid { grid-template-columns:1fr 1fr; }
-  .page-head { padding:1.2rem 1rem .8rem; }
-  .pad { padding:1rem; }
-  .grid2,.grid3,.grid4,.meso-grid,.chat-feed,.chat-input-wrap,.photo-feed,.diario-feed { padding-left:1rem; padding-right:1rem; }
-  header { padding:0 .8rem; gap:.4rem; }
-  .logo-sub { display:none; }
-  .logo-text { font-size:1.3rem; }
-  .page-title { font-size:1.75rem; }
-  .stat-big { font-size:2.2rem; }
-  .lang-row .lbtn { padding:.15rem .4rem; font-size:.58rem; }
-  .header-flags { font-size:.9rem; }
-}
-
-/* ── LOADING ── */
-.loading { display:flex; align-items:center; gap:.5rem; font-family:'JetBrains Mono',monospace; font-size:.72rem; color:var(--tx3); }
-.spin { width:14px; height:14px; border:2px solid var(--border2); border-top-color:var(--fire); border-radius:50%; animation:spin .6s linear infinite; }
-@keyframes spin { to { transform:rotate(360deg); } }
-
-/* ── REPLICA BADGE ── */
-.rep-badge {
-  background:rgba(61,139,255,.1); border:1px solid rgba(61,139,255,.25);
-  color:var(--blue); border-radius:4px;
-  font-family:'JetBrains Mono',monospace; font-size:.6rem; padding:.1rem .4rem;
-}
-
-/* scrollbar */
+/* ═══════════════ SCROLLBAR ═══════════════ */
 ::-webkit-scrollbar { width:4px; height:4px; }
-::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-track { background:var(--bg2); }
 ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
 
-/* ── TABS inside section ── */
-.tab-bar { display:flex; gap:.3rem; padding:.8rem 2rem; border-bottom:1px solid var(--border); background:var(--bg); flex-wrap:wrap; }
-.tab-btn { background:none; border:none; color:var(--tx3); font-family:'Rajdhani',sans-serif; font-size:.82rem; font-weight:500; letter-spacing:.06em; text-transform:uppercase; padding:.35rem .8rem; border-radius:6px; cursor:pointer; transition:.15s; }
-.tab-btn:hover { color:var(--tx); background:var(--bg3); }
-.tab-btn.on { background:rgba(255,94,26,.12); color:var(--fire); }
-.tab-pane { display:none; } .tab-pane.on { display:block; }
+/* ═══════════════ RESPONSIVE ═══════════════ */
+@media(max-width:768px) {
+  .g2,.g3,.g4 { grid-template-columns:1fr 1fr; padding:.85rem; gap:.7rem; }
+  .g4.force1 { grid-template-columns:1fr; }
+  .fg,.fg3 { grid-template-columns:1fr 1fr; }
+  .ph { padding:.9rem 1rem .7rem; }
+  .ph-title { font-size:1.3rem; }
+  .pad { padding:.85rem 1rem; }
+  .sdiv { padding:.5rem 1rem; }
+  .status-bar { padding:.4rem 1rem; gap:.85rem; }
+  .chat-bar { padding:.6rem 1rem; }
+  .photo-grid { padding:.85rem; gap:.7rem; }
+  .prog-wrap { padding:.7rem 1rem; }
+  header { gap:.4rem; }
+}
+@media(max-width:480px) {
+  .g2,.g3,.g4 { grid-template-columns:1fr 1fr; }
+  .fg { grid-template-columns:1fr; }
+  .ph-title { font-size:1.1rem; }
+}
+
+/* ═══════════════ FOOTER ═══════════════ */
+footer {
+  background:var(--ink); color:rgba(255,255,255,.7); padding:.6rem 1.5rem;
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.5rem;
+  font-family:'JetBrains Mono',monospace; font-size:.58rem;
+}
+footer strong { color:#fff; }
 </style>
 </head>
 <body>
 
-<canvas id="particles"></canvas>
-
-<div id="app">
+<!-- ═══════════ HEADER ═══════════ -->
 <header>
-  <div class="logo-wrap">
-    <div class="logo-icon">🔥</div>
+  <div class="logo-block">
+    <div class="logo-flame">🔥</div>
     <div>
-      <div class="logo-text">BRASA</div>
-      <div class="logo-sub" id="ls">BIOTA RESPONSE TO ASH · PANTANAL 2026</div>
+      <div class="logo-name">BRA<span>SA</span></div>
+      <div class="logo-tag">BIOTA RESPONSE TO ASH · PANTANAL 2026</div>
     </div>
   </div>
 
-  <nav class="desktop-nav">
-    <button class="nb on" onclick="go('dash',this,'nb-dash')" id="nb-dash">🏠 <span data-i="nav_dash">Dashboard</span></button>
-    <button class="nb" onclick="go('dados',this,'nb-dados')" id="nb-dados">📊 <span data-i="nav_data">Dados</span></button>
-    <button class="nb" onclick="go('galeria',this,'nb-galeria')" id="nb-galeria">📸 <span data-i="nav_gallery">Galeria</span></button>
-    <button class="nb" onclick="go('diario',this,'nb-diario')" id="nb-diario">📓 <span data-i="nav_diary">Diário</span></button>
-    <button class="nb" onclick="go('ashzap',this,'nb-ashzap')" id="nb-ashzap">💬 AshZap</button>
-    <button class="nb" onclick="go('analises',this,'nb-analises')" id="nb-analises">🔬 <span data-i="nav_analysis">Análises</span></button>
-    <button class="nb" onclick="go('sobre',this,'nb-sobre')" id="nb-sobre">ℹ️ <span data-i="nav_about">Sobre</span></button>
+  <nav class="top-nav">
+    <button class="tnb on" onclick="go('dash',this,'d')">🏠 Dashboard</button>
+    <button class="tnb" onclick="go('dados',this,'da')">📊 <span data-i="nav_data">Dados</span></button>
+    <button class="tnb" onclick="go('galeria',this,'g')">📸 <span data-i="nav_gallery">Galeria</span></button>
+    <button class="tnb" onclick="go('diario',this,'di')">📓 <span data-i="nav_diary">Diário</span></button>
+    <button class="tnb" onclick="go('ashzap',this,'az')">💬 AshZap</button>
+    <button class="tnb" onclick="go('analises',this,'an')">🔬 <span data-i="nav_analysis">Análises</span></button>
+    <button class="tnb" onclick="go('sobre',this,'s')">👥 <span data-i="nav_about">Sobre</span></button>
   </nav>
 
-  <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0;margin-left:auto;">
+  <div class="header-right">
     <div class="lang-row">
       <button class="lbtn on" onclick="setLang('pt',this)">PT</button>
       <button class="lbtn" onclick="setLang('en',this)">EN</button>
       <button class="lbtn" onclick="setLang('es',this)">ES</button>
     </div>
-    <div class="header-flags">🇧🇷<span style="font-size:.5rem;color:var(--tx3)">×</span>🇳🇱<span style="font-size:.5rem;color:var(--tx3)">×</span>🇧🇴</div>
+    <div class="flags">🇧🇷 🇳🇱 🇧🇴</div>
     <div class="conn-dot" id="conn-dot" title="Firebase"></div>
   </div>
 </header>
 
-<!-- BOTTOM NAV lives outside #app to avoid flex interference -->
-
+<!-- ═══════════ BOTTOM NAV ═══════════ -->
+<nav id="bnav">
+  <button class="bnb on" onclick="go('dash',this,'d')"><span class="bi">🏠</span>Home</button>
+  <button class="bnb" onclick="go('dados',this,'da')"><span class="bi">📊</span><span data-i="nav_data">Dados</span></button>
+  <button class="bnb" onclick="go('galeria',this,'g')"><span class="bi">📸</span><span data-i="nav_gallery">Fotos</span></button>
+  <button class="bnb" onclick="go('diario',this,'di')"><span class="bi">📓</span><span data-i="nav_diary">Diário</span></button>
+  <button class="bnb" onclick="go('ashzap',this,'az')"><span class="bi">💬</span>AshZap</button>
+  <button class="bnb" onclick="go('analises',this,'an')"><span class="bi">🔬</span><span data-i="nav_analysis">Análise</span></button>
+  <button class="bnb" onclick="go('sobre',this,'s')"><span class="bi">👥</span><span data-i="nav_about">Sobre</span></button>
+</nav>
 
 <div id="toast"></div>
 
-<!-- ══════════════ DASHBOARD ══════════════ -->
+<!-- ════════════════════════════════════════════
+     DASHBOARD
+════════════════════════════════════════════ -->
 <div class="sec on" id="dash">
-  <div class="page-head">
-    <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+  <div class="ph">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
       <div>
-        <div class="page-title">🔥 <span data-i="dash_title">Cinzas</span> &amp; <span style="color:var(--teal)" data-i="dash_title2">Decoada</span></div>
-        <div class="page-sub" id="dash-phase-lbl">CELBE-LIPAN/LEFA · UNEMAT · Cáceres, MT · Mar–Jun 2026</div>
+        <div class="ph-title">🔥 Cinzas &amp; <span style="color:var(--teal)">Decoada</span></div>
+        <div class="ph-sub" id="dash-phase">CELBE-LIPAN/LEFA · UNEMAT · Cáceres-MT · Fev–Jun 2026</div>
       </div>
-      <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-        <button class="btn btn-teal btn-sm" onclick="exportCSV()">⬇ CSV</button>
-        <button class="btn btn-outline btn-sm" onclick="exportExcel()">⬇ Excel</button>
-      </div>
-    </div>
-
-    <div style="margin-top:1.25rem;">
-      <div class="prog-label">
-        <span data-i="prog_label">Progresso do experimento</span>
-        <span id="dash-pct" style="color:var(--fire);font-weight:700;">0%</span>
-      </div>
-      <div class="prog-track">
-        <div class="prog-fill" id="dash-fill" style="width:0%"></div>
-        <div class="prog-milestones">
-          <div class="prog-ms" style="left:7%" title="Peixes"></div>
-          <div class="prog-ms" style="left:17%" title="Cinzas"></div>
-        </div>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:.55rem;color:var(--tx3);margin-top:.3rem;">
-        <span>24/02 Setup</span><span>06/03 🐟</span><span>13/03 🔥</span><span>12/06 Final</span>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+        <button class="btn btn-outline btn-sm" onclick="exportCSV()">⬇ CSV</button>
+        <button class="btn btn-ink btn-sm" onclick="exportExcel()">⬇ Excel</button>
       </div>
     </div>
   </div>
 
-  <!-- Status strip -->
-  <div class="status-strip">
-    <div class="status-item">🔥 <span id="ss-records">0</span> <span data-i="ss_records">registros</span></div>
-    <div class="status-item">📸 <span id="ss-photos">0</span> <span data-i="ss_photos">fotos</span></div>
-    <div class="status-item">💬 <span id="ss-msgs">0</span> msgs AshZap</div>
-    <div class="status-item">📓 <span id="ss-diary">0</span> <span data-i="ss_diary">notas</span></div>
-    <div class="status-item" id="ss-time">⏱ --:--:--</div>
+  <div class="prog-wrap">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.35rem;">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:700;color:var(--ink2);" data-i="prog_label">Progresso do experimento</span>
+      <span class="prog-pct" id="dash-pct">0%</span>
+    </div>
+    <div class="prog-track"><div class="prog-fill" id="dash-fill" style="width:0%"></div></div>
+    <div class="prog-labels">
+      <span>24/02 Setup</span><span>06/03 🐟 Peixes</span><span>13/03 🔥 Cinzas</span><span>12/06 Final</span>
+    </div>
   </div>
 
-  <div class="grid4">
+  <div class="status-bar">
+    <div class="sb-item"><span class="sb-dot g"></span><span id="ss-r">0</span> <span data-i="ss_records">registros</span></div>
+    <div class="sb-item"><span class="sb-dot"></span><span id="ss-p">0</span> <span data-i="ss_photos">fotos</span></div>
+    <div class="sb-item"><span class="sb-dot"></span><span id="ss-c">0</span> msgs AshZap</div>
+    <div class="sb-item"><span class="sb-dot"></span><span id="ss-d">0</span> <span data-i="ss_diary">notas</span></div>
+    <div class="sb-item" id="ss-t">⏱ --:--:--</div>
+  </div>
+
+  <div class="g4">
     <div class="card t0">
-      <div class="card-title">T0 — Controle</div>
-      <div class="stat-big" style="color:#22c55e" id="dash-t0-ph">—</div>
-      <div class="stat-unit">pH · último</div>
+      <div class="card-label">T0 — Controle</div>
+      <div class="stat-n t0c" id="d-t0-ph">—</div>
+      <div class="stat-u">pH · último</div>
     </div>
     <div class="card t1">
-      <div class="card-title">T1 — 2 g/L</div>
-      <div class="stat-big" style="color:#eab308" id="dash-t1-ph">—</div>
-      <div class="stat-unit">pH · último</div>
+      <div class="card-label">T1 — 2 g/L</div>
+      <div class="stat-n t1c" id="d-t1-ph">—</div>
+      <div class="stat-u">pH · último</div>
     </div>
     <div class="card t2">
-      <div class="card-title">T2 — 5 g/L</div>
-      <div class="stat-big" style="color:#f97316" id="dash-t2-ph">—</div>
-      <div class="stat-unit">pH · último</div>
+      <div class="card-label">T2 — 5 g/L</div>
+      <div class="stat-n t2c" id="d-t2-ph">—</div>
+      <div class="stat-u">pH · último</div>
     </div>
     <div class="card t3">
-      <div class="card-title">T3 — 10 g/L</div>
-      <div class="stat-big" style="color:#ef4444" id="dash-t3-ph">—</div>
-      <div class="stat-unit">pH · último</div>
+      <div class="card-label">T3 — 10 g/L</div>
+      <div class="stat-n t3c" id="d-t3-ph">—</div>
+      <div class="stat-u">pH · último</div>
     </div>
   </div>
 
-  <div class="grid2" style="padding-top:0;">
+  <div class="g2" style="padding-top:0;">
     <div class="card">
-      <div class="card-title" data-i="card_today">Tarefas de Hoje</div>
-      <div id="today-tasks" style="font-size:.88rem;line-height:1.9;color:var(--tx2);">
-        <div>● Coletar dados limnológicos (todas as sondas)</div>
-        <div>● Medir evaporação e repor água</div>
-        <div>● Registrar comportamento dos peixes</div>
+      <div class="card-label" data-i="card_today">Tarefas de Hoje</div>
+      <div style="font-size:.88rem;line-height:2;color:var(--ink2);">
+        <div>● Dados limnológicos (todas as sondas)</div>
+        <div>● Evaporação e reposição de água</div>
+        <div>● Comportamento dos peixes</div>
         <div>● Dados climáticos (T°, UR, vento)</div>
       </div>
     </div>
     <div class="card">
-      <div class="card-title" data-i="card_lastdata">Últimas medições</div>
-      <div id="dash-recent" style="font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--tx2);">
-        <div class="loading"><div class="spin"></div> Conectando ao Firebase…</div>
-      </div>
+      <div class="card-label" data-i="card_lastdata">Últimas medições</div>
+      <div id="dash-recent"><div class="loading"><div class="spin"></div> Conectando…</div></div>
     </div>
   </div>
 </div>
 
-<!-- ══════════════ DADOS ══════════════ -->
+<!-- ════════════════════════════════════════════
+     DADOS
+════════════════════════════════════════════ -->
 <div class="sec" id="dados">
-  <div class="page-head">
-    <div class="page-title">📊 <span data-i="data_title">Inserir Dados</span></div>
-    <div class="page-sub" data-i="data_sub">Limnologia · CO₂ · CH₄ · Réplicas por mesocosmo</div>
+  <div class="ph">
+    <div class="ph-title">📊 <span data-i="data_title">Dados do Campo</span></div>
+    <div class="ph-sub">Inserção manual · Upload de Excel · CO₂ · CH₄ · Réplicas</div>
   </div>
 
-  <div class="grid2" style="align-items:start;">
-    <!-- FORM -->
-    <div>
-      <div class="sdiv" data-i="form_title">Novo Registro</div>
-      <div style="padding:1.25rem;">
-        <div class="form-grid">
-          <div class="field"><label data-i="f_date">Data</label><input type="date" id="f-date"></div>
-          <div class="field"><label data-i="f_time">Hora início</label><input type="time" id="f-time"></div>
-          <div class="field">
-            <label data-i="f_meso">Mesocosmo</label>
-            <select id="f-meso">
-              <optgroup label="T0 — Controle (0 g/L)"><option>CR1</option><option>CR2</option><option>CR3</option></optgroup>
-              <optgroup label="T1 — 2 g/L"><option>2GR1</option><option>2GR2</option><option>2GR3</option></optgroup>
-              <optgroup label="T2 — 5 g/L"><option>5GR1</option><option>5GR2</option><option>5GR3</option></optgroup>
-              <optgroup label="T3 — 10 g/L"><option>10GR1</option><option>10GR2</option><option>10GR3</option></optgroup>
-            </select>
-          </div>
-          <div class="field">
-            <label data-i="f_replica">Réplica</label>
-            <select id="f-rep">
-              <option value="R1">R1 — Primeira</option>
-              <option value="R2">R2 — Segunda</option>
-            </select>
-          </div>
-          <div class="field"><label data-i="f_op">Operador</label><select id="f-op"></select></div>
-          <div class="field"><label>pH</label><input type="number" id="f-ph" step="0.01" placeholder="6.5–9.0"></div>
-          <div class="field"><label>ORP (mV)</label><input type="number" id="f-orp" step="1" placeholder="±mV"></div>
-          <div class="field"><label>OD (%)</label><input type="number" id="f-odp" step="0.1" placeholder="0–200"></div>
-          <div class="field"><label>OD (mg/L)</label><input type="number" id="f-odm" step="0.01" placeholder="0–20"></div>
-          <div class="field"><label>Cond (μS/cm)</label><input type="number" id="f-cond" step="0.1"></div>
-          <div class="field"><label>TDS (ppm)</label><input type="number" id="f-tds" step="0.1"></div>
-          <div class="field"><label>Temp (°C)</label><input type="number" id="f-temp" step="0.1"></div>
-          <div class="field"><label>Turbidez (NTU)</label><input type="number" id="f-turb" step="0.1"></div>
-          <div class="field"><label>CO₂ (μmol/m²/s)</label><input type="number" id="f-co2" step="0.01" placeholder="fluxo"></div>
-          <div class="field"><label>CH₄ (nmol/m²/s)</label><input type="number" id="f-ch4" step="0.01" placeholder="fluxo"></div>
-          <div class="field"><label>KΩ·cm</label><input type="number" id="f-kohm" step="0.01"></div>
-          <div class="field"><label>KPA</label><input type="number" id="f-kpa" step="0.1"></div>
-          <div class="field form-full">
-            <label data-i="f_obs">Observações de campo</label>
-            <textarea id="f-obs" rows="2" placeholder="Notas, anomalias, condições…"></textarea>
-          </div>
+  <!-- TAB BAR inside dados -->
+  <div style="background:var(--white);border-bottom:1px solid var(--border);padding:.5rem 1.5rem;display:flex;gap:.4rem;">
+    <button class="btn btn-fire btn-sm" id="dtab-form" onclick="dtab('form',this)">✏️ <span data-i="tab_manual">Inserção manual</span></button>
+    <button class="btn btn-outline btn-sm" id="dtab-xls" onclick="dtab('xls',this)">📂 <span data-i="tab_excel">Subir Excel</span></button>
+    <button class="btn btn-outline btn-sm" id="dtab-list" onclick="dtab('list',this)">📋 <span data-i="tab_records">Registros</span> (<span id="rec-count-tab">0</span>)</button>
+  </div>
+
+  <!-- MANUAL FORM -->
+  <div id="dp-form" style="padding:1rem 1.5rem;">
+    <div class="card" style="max-width:900px;">
+      <div class="card-label" data-i="form_title">Novo Registro</div>
+      <div class="fg" style="margin-top:.5rem;">
+        <div class="field"><label data-i="f_date">Data</label><input type="date" id="f-date"></div>
+        <div class="field"><label data-i="f_time">Hora início</label><input type="time" id="f-time"></div>
+        <div class="field">
+          <label data-i="f_meso">Mesocosmo</label>
+          <select id="f-meso">
+            <optgroup label="T0 — Controle (0 g/L)"><option>CR1</option><option>CR2</option><option>CR3</option></optgroup>
+            <optgroup label="T1 — 2 g/L"><option>2GR1</option><option>2GR2</option><option>2GR3</option></optgroup>
+            <optgroup label="T2 — 5 g/L"><option>5GR1</option><option>5GR2</option><option>5GR3</option></optgroup>
+            <optgroup label="T3 — 10 g/L"><option>10GR1</option><option>10GR2</option><option>10GR3</option></optgroup>
+          </select>
         </div>
-        <div style="display:flex;gap:.6rem;margin-top:1rem;flex-wrap:wrap;">
-          <button class="btn btn-fire" onclick="saveRecord()">🔥 <span data-i="btn_save">Salvar</span></button>
-          <button class="btn btn-outline btn-sm" onclick="clearForm()" data-i="btn_clear">Limpar</button>
+        <div class="field">
+          <label data-i="f_replica">Réplica</label>
+          <select id="f-rep"><option value="R1">R1 — Primeira</option><option value="R2">R2 — Segunda</option></select>
         </div>
-        <div id="saving-indicator" style="display:none;margin-top:.6rem;" class="loading"><div class="spin"></div> <span data-i="saving">Salvando no Firebase…</span></div>
+        <div class="field"><label data-i="f_op">Operador</label><select id="f-op"></select></div>
+        <div class="field"><label>pH</label><input type="number" id="f-ph" step="0.01" placeholder="6.5–10.0"></div>
+        <div class="field"><label>ORP (mV)</label><input type="number" id="f-orp" step="1" placeholder="±mV"></div>
+        <div class="field"><label>OD (%)</label><input type="number" id="f-odp" step="0.1" placeholder="0–200"></div>
+        <div class="field"><label>OD (mg/L)</label><input type="number" id="f-odm" step="0.01" placeholder="0–20"></div>
+        <div class="field"><label>Cond (μS/cm)</label><input type="number" id="f-cond" step="0.1"></div>
+        <div class="field"><label>CondA (μS/cm)</label><input type="number" id="f-conda" step="0.1"></div>
+        <div class="field"><label>Resist (MΩ·cm)</label><input type="number" id="f-resist" step="0.0001"></div>
+        <div class="field"><label>TDS (ppm)</label><input type="number" id="f-tds" step="0.1"></div>
+        <div class="field"><label>PSU</label><input type="number" id="f-psu" step="0.001"></div>
+        <div class="field"><label>FNU (Turbidez)</label><input type="number" id="f-fnu" step="0.1"></div>
+        <div class="field"><label>Temp (°C)</label><input type="number" id="f-temp" step="0.1"></div>
+        <div class="field"><label>Pressão (psi)</label><input type="number" id="f-psi" step="0.001"></div>
+        <div class="field"><label>CO₂ (μmol/m²/s)</label><input type="number" id="f-co2" step="0.01" placeholder="fluxo"></div>
+        <div class="field"><label>CH₄ (nmol/m²/s)</label><input type="number" id="f-ch4" step="0.01" placeholder="fluxo"></div>
+        <div class="field fc"><label data-i="f_obs">Observações de campo</label><textarea id="f-obs" rows="2" placeholder="Notas, anomalias, condições meteo…"></textarea></div>
+      </div>
+      <div style="display:flex;gap:.6rem;margin-top:1rem;flex-wrap:wrap;align-items:center;">
+        <button class="btn btn-fire" onclick="saveRecord()">🔥 <span data-i="btn_save">Salvar no Firebase</span></button>
+        <button class="btn btn-outline btn-sm" onclick="clearForm()" data-i="btn_clear">Limpar</button>
+        <div id="saving-ind" style="display:none;" class="loading"><div class="spin"></div> <span data-i="saving">Salvando…</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXCEL UPLOAD -->
+  <div id="dp-xls" style="display:none;padding:1rem 1.5rem;">
+    <div class="card" style="max-width:900px;margin-bottom:1rem;">
+      <div class="card-label">📂 <span data-i="xls_title">Upload de planilha Excel</span></div>
+      <p style="font-size:.85rem;color:var(--ink2);margin:.5rem 0 1rem;line-height:1.65;" data-i="xls_desc">
+        Envie um arquivo <strong>.xlsx</strong> com colunas: <code style="background:var(--bg2);padding:.1rem .35rem;border-radius:4px;font-size:.78rem;">Mesocosmo, Data, ORP_mV, pH, OD_%, OD_mg_L, Cond_uScm, CondA_uScm, Resist_MOhm_cm, TDS_ppm, PSU, FNU, Temp_C, Pressao_psi</code><br>
+        CO₂ e CH₄ podem ser adicionados nas colunas adicionais. Os dados serão importados para todos os mesocosmos de uma vez.
+      </p>
+      <div class="upload-zone" id="xls-zone" ondragover="this.classList.add('drag');event.preventDefault();" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
+        <input type="file" accept=".xlsx,.xls" onchange="readExcel(this.files[0])">
+        <div class="uz-icon">📊</div>
+        <div class="uz-title" data-i="xls_drop">Arraste o Excel aqui ou clique para escolher</div>
+        <div class="uz-sub">.xlsx · .xls · até 10 MB</div>
+      </div>
+
+      <div id="xls-field-map" style="display:none;margin-top:1rem;">
+        <div class="sdiv" style="margin:0 -1.1rem;padding:.5rem 1.1rem;">
+          <span data-i="xls_map">Mapeamento de colunas detectado</span>
+          <span id="xls-map-count" style="font-size:.65rem;color:var(--green);font-weight:700;"></span>
+        </div>
+        <div id="xls-map-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.4rem;margin-top:.7rem;"></div>
       </div>
     </div>
 
-    <!-- RECORDS TABLE -->
-    <div>
-      <div class="sdiv" style="justify-content:space-between;">
-        <span data-i="records_title">Registros</span>
-        <span id="rec-count" style="color:var(--fire);font-weight:700;">0</span>
-      </div>
-      <div style="padding:1rem;">
-        <div class="tbl-wrap">
+    <!-- PREVIEW TABLE -->
+    <div id="xls-preview-wrap" style="display:none;">
+      <div class="import-preview">
+        <div class="ip-head">
+          <span id="xls-preview-title">Prévia — 0 linhas</span>
+          <div style="display:flex;gap:.5rem;">
+            <span id="xls-op-wrap">
+              <select id="xls-op" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:5px;padding:.25rem .5rem;font-family:'JetBrains Mono',monospace;font-size:.65rem;outline:none;"></select>
+            </span>
+            <button class="btn btn-green btn-sm" id="xls-import-btn" onclick="importExcel()">✅ <span data-i="btn_import">Importar todos</span></button>
+          </div>
+        </div>
+        <div class="tbl-wrap" style="max-height:340px;overflow-y:auto;">
           <table>
-            <thead>
-              <tr>
-                <th data-i="th_date">Data/Hora</th>
-                <th data-i="th_meso">Mesocosmo</th>
-                <th>Rep.</th>
-                <th>pH</th>
-                <th>OD mg/L</th>
-                <th>Temp</th>
-                <th>CO₂</th>
-                <th>CH₄</th>
-                <th data-i="th_op">Op.</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="rec-tbody">
-              <tr><td colspan="10" style="text-align:center;color:var(--tx3);font-family:'JetBrains Mono',monospace;font-size:.72rem;padding:2rem;">Aguardando dados…</td></tr>
-            </tbody>
+            <thead><tr id="xls-thead"></tr></thead>
+            <tbody id="xls-tbody"></tbody>
           </table>
         </div>
       </div>
+      <div id="xls-import-progress" style="display:none;padding:1rem;text-align:center;" class="loading">
+        <div class="spin"></div>
+        <span id="xls-prog-txt" data-i="importing">Importando registros…</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECORDS LIST -->
+  <div id="dp-list" style="display:none;">
+    <div class="sdiv">
+      <span data-i="records_title">Registros no Firebase</span>
+      <div style="display:flex;gap:.5rem;align-items:center;">
+        <span id="rec-count" style="font-family:'JetBrains Mono',monospace;font-size:.65rem;font-weight:700;color:var(--fire);">0</span>
+        <button class="btn btn-outline btn-sm" onclick="exportCSV()">⬇ CSV</button>
+        <button class="btn btn-ink btn-sm" onclick="exportExcel()">⬇ Excel</button>
+      </div>
+    </div>
+    <div style="padding:.85rem 1.5rem;" class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th data-i="th_date">Data</th>
+            <th>Hora</th>
+            <th data-i="th_meso">Mesocosmo</th>
+            <th>Trat.</th>
+            <th>Rep.</th>
+            <th>pH</th>
+            <th>ORP</th>
+            <th>OD%</th>
+            <th>OD mg/L</th>
+            <th>Cond</th>
+            <th>TDS</th>
+            <th>Temp</th>
+            <th>FNU</th>
+            <th>CO₂</th>
+            <th>CH₄</th>
+            <th data-i="th_op">Op.</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="rec-tbody">
+          <tr><td colspan="17" style="text-align:center;padding:2rem;color:var(--ink3);font-family:'JetBrains Mono',monospace;font-size:.7rem;">Aguardando dados…</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </div>
 
-<!-- ══════════════ GALERIA ══════════════ -->
+<!-- ════════════════════════════════════════════
+     GALERIA
+════════════════════════════════════════════ -->
 <div class="sec" id="galeria">
-  <div class="page-head">
-    <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+  <div class="ph">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:.75rem;">
       <div>
-        <div class="page-title">📸 <span data-i="gallery_title">Galeria do Campo</span></div>
-        <div class="page-sub" data-i="gallery_sub">Fotos em tempo real · visíveis para toda a equipe</div>
+        <div class="ph-title">📸 <span data-i="gallery_title">Galeria do Campo</span></div>
+        <div class="ph-sub" data-i="gallery_sub">Fotos em tempo real · visíveis para toda a equipe</div>
       </div>
       <label class="btn btn-fire" style="cursor:pointer;">
         📷 <span data-i="btn_upload">Enviar foto</span>
@@ -687,94 +705,93 @@ footer {
       </label>
     </div>
   </div>
-  <div class="photo-feed" id="photo-feed">
-    <div class="loading" style="grid-column:1/-1;padding:2rem;"><div class="spin"></div> Carregando fotos…</div>
+  <div class="photo-grid" id="photo-feed">
+    <div class="loading" style="grid-column:1/-1;padding:2rem;"><div class="spin"></div> Carregando…</div>
   </div>
 </div>
 
-<!-- ══════════════ DIÁRIO ══════════════ -->
+<!-- ════════════════════════════════════════════
+     DIÁRIO
+════════════════════════════════════════════ -->
 <div class="sec" id="diario">
-  <div class="page-head">
-    <div class="page-title">📓 <span data-i="diary_title">Diário de Campo</span></div>
-    <div class="page-sub" data-i="diary_sub">Notas diárias da equipe · observações e eventos</div>
+  <div class="ph">
+    <div class="ph-title">📓 <span data-i="diary_title">Diário de Campo</span></div>
+    <div class="ph-sub" data-i="diary_sub">Notas diárias da equipe · observações e eventos</div>
   </div>
-
   <div class="pad">
-    <div class="card" style="margin-bottom:1.5rem;">
-      <div class="card-title" data-i="diary_new">Nova entrada</div>
-      <div class="form-grid" style="gap:.6rem;">
-        <div class="field">
-          <label data-i="f_author">Autor</label>
-          <select id="diary-author"></select>
-        </div>
-        <div class="field">
-          <label data-i="f_date">Data</label>
-          <input type="date" id="diary-date">
-        </div>
-        <div class="field form-full">
-          <label data-i="diary_note">Nota</label>
-          <textarea id="diary-text" rows="4" placeholder="O que aconteceu hoje no campo?…"></textarea>
-        </div>
+    <div class="card" style="max-width:700px;margin-bottom:1.25rem;">
+      <div class="card-label" data-i="diary_new">Nova entrada</div>
+      <div class="fg" style="margin-top:.5rem;">
+        <div class="field"><label data-i="f_author">Autor</label><select id="diary-author"></select></div>
+        <div class="field"><label data-i="f_date">Data</label><input type="date" id="diary-date"></div>
+        <div class="field fc"><label data-i="diary_note">Nota de campo</label><textarea id="diary-text" rows="4" placeholder="O que aconteceu hoje no campo?…"></textarea></div>
       </div>
       <button class="btn btn-fire" style="margin-top:.8rem;" onclick="saveDiaryEntry()">📓 <span data-i="btn_publish">Publicar</span></button>
     </div>
   </div>
-
-  <div class="diario-feed" id="diario-feed">
+  <div id="diario-feed" style="padding:0 1.5rem 1.5rem;display:flex;flex-direction:column;gap:.75rem;">
     <div class="loading"><div class="spin"></div> Carregando diário…</div>
   </div>
 </div>
 
-<!-- ══════════════ ASHZAP ══════════════ -->
+<!-- ════════════════════════════════════════════
+     ASHZAP
+════════════════════════════════════════════ -->
 <div class="sec" id="ashzap">
-  <div class="page-head">
-    <div class="page-title">💬 Ash<span style="color:var(--teal)">Zap</span></div>
-    <div class="page-sub">Chat em tempo real da equipe BRASA</div>
+  <div class="ph">
+    <div class="ph-title">💬 Ash<span style="color:var(--teal)">Zap</span></div>
+    <div class="ph-sub">Chat em tempo real da equipe BRASA · sincronizado</div>
   </div>
   <div class="chat-wrap">
     <div class="chat-feed" id="chat-feed">
-      <div class="loading"><div class="spin"></div> Conectando ao chat…</div>
+      <div class="loading"><div class="spin"></div> Conectando…</div>
     </div>
-    <div class="chat-input-wrap">
-      <select id="chat-sender" style="background:var(--bg3);border:1px solid var(--border2);color:var(--tx);border-radius:8px;padding:.55rem .75rem;font-family:'Rajdhani',sans-serif;font-size:.85rem;outline:none;flex-shrink:0;"></select>
-      <textarea id="chat-input" rows="1" placeholder="Mensagem para a equipe… (Enter envia)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}"></textarea>
-      <button class="btn btn-fire btn-sm" onclick="sendMsg()">🔥 Zap</button>
+    <div class="chat-bar">
+      <select id="chat-sender" style="background:var(--bg);border:2px solid var(--border);color:var(--ink);border-radius:8px;padding:.55rem .75rem;font-family:'Inter',sans-serif;font-size:.85rem;outline:none;flex-shrink:0;font-weight:600;"></select>
+      <textarea id="chat-input" rows="1" placeholder="Mensagem… (Enter envia)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}"></textarea>
+      <button class="btn btn-fire btn-sm" onclick="sendMsg()">🔥 Enviar</button>
     </div>
   </div>
 </div>
 
-<!-- ══════════════ ANÁLISES ══════════════ -->
+<!-- ════════════════════════════════════════════
+     ANÁLISES
+════════════════════════════════════════════ -->
 <div class="sec" id="analises">
-  <div class="page-head">
-    <div class="page-title">🔬 <span data-i="analysis_title">Análises</span></div>
-    <div class="page-sub" data-i="analysis_sub">Comparação por tratamento · médias · desvios</div>
+  <div class="ph">
+    <div class="ph-title">🔬 <span data-i="analysis_title">Análises</span></div>
+    <div class="ph-sub" data-i="analysis_sub">Comparação por tratamento · médias · desvio padrão · outliers</div>
   </div>
   <div class="pad">
-    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap;">
-      <div class="field" style="flex:0 0 auto;">
+    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;flex-wrap:wrap;">
+      <div class="field" style="flex:0 0 200px;margin:0;">
         <label data-i="f_var">Variável</label>
         <select id="an-var" onchange="buildAnalises()">
           <option value="ph">pH</option>
           <option value="odm">OD (mg/L)</option>
           <option value="odp">OD (%)</option>
           <option value="temp">Temperatura (°C)</option>
-          <option value="cond">Condutividade</option>
-          <option value="tds">TDS</option>
-          <option value="turb">Turbidez</option>
+          <option value="cond">Condutividade (μS/cm)</option>
+          <option value="conda">Cond. A (μS/cm)</option>
+          <option value="tds">TDS (ppm)</option>
+          <option value="fnu">FNU (Turbidez)</option>
           <option value="orp">ORP (mV)</option>
+          <option value="resist">Resist. (MΩ·cm)</option>
+          <option value="psu">PSU</option>
+          <option value="psi">Pressão (psi)</option>
           <option value="co2">CO₂</option>
           <option value="ch4">CH₄</option>
         </select>
       </div>
     </div>
-    <div class="grid4" style="padding:0;margin-bottom:1.5rem;">
-      <div class="card t0" id="an-t0"><div class="card-title">T0</div><div class="stat-big" style="color:#22c55e">—</div></div>
-      <div class="card t1" id="an-t1"><div class="card-title">T1</div><div class="stat-big" style="color:#eab308">—</div></div>
-      <div class="card t2" id="an-t2"><div class="card-title">T2</div><div class="stat-big" style="color:#f97316">—</div></div>
-      <div class="card t3" id="an-t3"><div class="card-title">T3</div><div class="stat-big" style="color:#ef4444">—</div></div>
+    <div class="g4" style="padding:0;margin-bottom:1rem;">
+      <div class="card t0" id="an-t0"><div class="card-label">T0 — Controle</div><div class="stat-n t0c">—</div><div class="stat-u">n=0</div></div>
+      <div class="card t1" id="an-t1"><div class="card-label">T1 — 2 g/L</div><div class="stat-n t1c">—</div><div class="stat-u">n=0</div></div>
+      <div class="card t2" id="an-t2"><div class="card-label">T2 — 5 g/L</div><div class="stat-n t2c">—</div><div class="stat-u">n=0</div></div>
+      <div class="card t3" id="an-t3"><div class="card-label">T3 — 10 g/L</div><div class="stat-n t3c">—</div><div class="stat-u">n=0</div></div>
     </div>
     <div class="card">
-      <div class="card-title" data-i="replica_table">Réplicas — desvio e outliers</div>
+      <div class="card-label" data-i="replica_table">Detalhe por réplica</div>
       <div class="tbl-wrap">
         <table>
           <thead><tr><th data-i="th_treat">Trat.</th><th data-i="th_meso">Meso</th><th>Rep.</th><th>N</th><th data-i="th_mean">Média</th><th>DP</th><th>CV%</th><th>Status</th></tr></thead>
@@ -785,36 +802,53 @@ footer {
   </div>
 </div>
 
-<!-- ══════════════ SOBRE ══════════════ -->
+<!-- ════════════════════════════════════════════
+     SOBRE
+════════════════════════════════════════════ -->
 <div class="sec" id="sobre">
-  <div class="page-head">
-    <div class="page-title">🌿 <span data-i="about_title">Sobre o BRASA</span></div>
-    <div class="page-sub">Biota Response to Ash in South American wetlands</div>
+  <div class="ph">
+    <div class="ph-title">👥 <span data-i="about_title">Sobre o BRASA</span></div>
+    <div class="ph-sub">Biota Response to Ash in South American wetlands · 🇧🇷 🇳🇱 🇧🇴</div>
   </div>
-  <div class="grid2" style="align-items:start;">
-    <div class="card">
-      <div class="card-title" data-i="about_question">Questão Científica</div>
-      <p style="line-height:1.75;color:var(--tx2);font-size:.92rem;" data-i="about_q_text">
-        A intensificação da <strong style="color:var(--fire)">"decoada"</strong> — queda de oxigênio causada por cinzas pós-incêndio —
-        altera a estrutura do plâncton e a transferência de mercúrio para peixes
-        (<em>Hoplosternum littorale</em>) em mesocosmos controlados?
-      </p>
-      <div style="margin-top:1rem;padding:.75rem;background:rgba(255,94,26,.05);border-left:3px solid var(--fire);border-radius:0 8px 8px 0;">
-        <p style="font-size:.82rem;color:var(--tx2);line-height:1.7;" data-i="about_design">
-          12 mesocosmos · 300 L · 4 tratamentos × 3 réplicas · 2 medições/mesocosmo<br>
-          10 <em>H. littorale</em> por mesocosmo · Fev–Jun 2026 · LIPAN/UNEMAT · Cáceres-MT
+  <div class="g2" style="align-items:start;">
+    <div>
+      <div class="card" style="margin-bottom:1rem;">
+        <div class="card-label" data-i="about_question">Questão Científica</div>
+        <p style="font-size:.9rem;line-height:1.75;color:var(--ink2);margin-top:.4rem;" data-i="about_q_text">
+          A intensificação da <strong style="color:var(--fire)">"decoada"</strong> — queda de oxigênio dissolvido causada por cinzas de incêndio —
+          altera a estrutura do plâncton e a transferência de mercúrio para peixes
+          (<em>Hoplosternum littorale</em>) em mesocosmos controlados?
         </p>
+        <div style="margin-top:.9rem;background:var(--bg);border-left:4px solid var(--fire);border-radius:0 8px 8px 0;padding:.75rem 1rem;">
+          <p style="font-size:.82rem;color:var(--ink2);line-height:1.75;" data-i="about_design">
+            <strong>12 mesocosmos · 300 L · 4 tratamentos × 3 réplicas</strong><br>
+            10 <em>H. littorale</em>/mesocosmo · Fev–Jun 2026 · LIPAN-CELBE/UNEMAT · Cáceres-MT
+          </p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">Cronograma</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:.72rem;line-height:2.1;color:var(--ink2);">
+          <div>📌 24/02 — Setup dos mesocosmos</div>
+          <div>🐟 06/03 — Adição de 120 <em>H. littorale</em></div>
+          <div style="color:var(--fire);font-weight:700;">🔥 13/03 — DIA ZERO — Adição das cinzas</div>
+          <div>📊 Semanal — Coleta limnológica</div>
+          <div>📦 12/06 — Coleta final</div>
+          <div>🧹 19/06 — Desmontagem</div>
+        </div>
       </div>
     </div>
-    <div class="card">
-      <div class="card-title" data-i="about_team">Equipe</div>
-      <div id="team-list" style="display:flex;flex-direction:column;gap:.6rem;"></div>
-      <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">
-        <div class="card-title" style="margin-bottom:.6rem;" data-i="about_add">Adicionar membro</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:.4rem;">
-          <input id="tm-name" type="text" placeholder="Nome" style="background:var(--bg3);border:1px solid var(--border2);color:var(--tx);border-radius:6px;padding:.4rem .65rem;font-family:'Rajdhani',sans-serif;font-size:.85rem;outline:none;">
-          <input id="tm-role" type="text" placeholder="Função" style="background:var(--bg3);border:1px solid var(--border2);color:var(--tx);border-radius:6px;padding:.4rem .65rem;font-family:'Rajdhani',sans-serif;font-size:.85rem;outline:none;">
-          <button class="btn btn-fire btn-sm" onclick="addMember()">+</button>
+    <div>
+      <div class="card">
+        <div class="card-label" data-i="about_team">Equipe BRASA</div>
+        <div id="team-list" style="display:flex;flex-direction:column;gap:.5rem;margin-top:.4rem;"></div>
+        <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">
+          <div class="card-label" style="margin-bottom:.5rem;" data-i="about_add">Adicionar membro</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:.4rem;">
+            <input id="tm-name" type="text" placeholder="Nome" style="background:var(--bg);border:2px solid var(--border);color:var(--ink);border-radius:7px;padding:.45rem .65rem;font-family:'Inter',sans-serif;font-size:.85rem;outline:none;">
+            <input id="tm-role" type="text" placeholder="Função" style="background:var(--bg);border:2px solid var(--border);color:var(--ink);border-radius:7px;padding:.45rem .65rem;font-family:'Inter',sans-serif;font-size:.85rem;outline:none;">
+            <button class="btn btn-fire btn-sm" onclick="addMember()">+</button>
+          </div>
         </div>
       </div>
     </div>
@@ -822,14 +856,14 @@ footer {
 </div>
 
 <!-- EDIT MODAL -->
-<div class="modal-overlay" id="edit-modal">
+<div class="mo" id="edit-modal">
   <div class="modal">
-    <div class="modal-head">
-      <div class="modal-title" data-i="edit_title">Editar Registro</div>
-      <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="mh">
+      <div class="mt" data-i="edit_title">✏️ Editar Registro</div>
+      <button class="mc" onclick="closeModal()">✕</button>
     </div>
     <div id="edit-form-content"></div>
-    <div style="display:flex;gap:.6rem;margin-top:1.25rem;">
+    <div style="display:flex;gap:.6rem;margin-top:1.2rem;">
       <button class="btn btn-fire" onclick="saveEdit()" data-i="btn_save_edit">Salvar alterações</button>
       <button class="btn btn-outline btn-sm" onclick="closeModal()" data-i="btn_cancel">Cancelar</button>
     </div>
@@ -837,478 +871,389 @@ footer {
 </div>
 
 <footer>
-  <div class="flag-strip">
-    🇧🇷 <span class="sep">×</span> 🇳🇱 <span class="sep">×</span> 🇧🇴
-    <span style="margin-left:.6rem;color:var(--tx2)">CELBE-LIPAN/LEFA · UNEMAT · Cáceres, MT</span>
-  </div>
-  <div style="display:flex;align-items:center;gap:.8rem;">
-    <span id="footer-clock" style="font-size:.6rem;color:var(--tx3);"></span>
-    <button class="btn btn-teal btn-sm" onclick="exportCSV()">⬇ CSV</button>
-    <button class="btn btn-outline btn-sm" onclick="exportExcel()">⬇ Excel</button>
+  <div><strong>BRASA</strong> · CELBE-LIPAN/LEFA · UNEMAT · Cáceres-MT · 🇧🇷×🇳🇱×🇧🇴</div>
+  <div style="display:flex;gap:.75rem;align-items:center;">
+    <span id="footer-clock"></span>
+    <button class="btn btn-outline btn-sm" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.8);" onclick="exportCSV()">⬇ CSV</button>
+    <button class="btn btn-outline btn-sm" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.8);" onclick="exportExcel()">⬇ Excel</button>
   </div>
 </footer>
-</div><!-- #app -->
-
-<!-- BOTTOM NAV (mobile) — fixed, outside #app -->
-<nav id="bottom-nav">
-  <button class="bnb on" onclick="go('dash',this,'nb-dash')" id="bnb-dash"><span class="icon">🏠</span><span data-i="nav_dash">Home</span></button>
-  <button class="bnb" onclick="go('dados',this,'nb-dados')" id="bnb-dados"><span class="icon">📊</span><span data-i="nav_data">Dados</span></button>
-  <button class="bnb" onclick="go('galeria',this,'nb-galeria')" id="bnb-galeria"><span class="icon">📸</span><span data-i="nav_gallery">Fotos</span></button>
-  <button class="bnb" onclick="go('diario',this,'nb-diario')" id="bnb-diario"><span class="icon">📓</span><span data-i="nav_diary">Diário</span></button>
-  <button class="bnb" onclick="go('ashzap',this,'nb-ashzap')" id="bnb-ashzap"><span class="icon">💬</span>AshZap</button>
-  <button class="bnb" onclick="go('analises',this,'nb-analises')" id="bnb-analises"><span class="icon">🔬</span><span data-i="nav_analysis">Análise</span></button>
-  <button class="bnb" onclick="go('sobre',this,'nb-sobre')" id="bnb-sobre"><span class="icon">ℹ️</span><span data-i="nav_about">Sobre</span></button>
-</nav>
 
 <!-- SheetJS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
-// ═══════════════════════════════════════
+// ════════════════════════════════════════════
 // CONSTANTS
-// ═══════════════════════════════════════
+// ════════════════════════════════════════════
 var MESOS = ['CR1','CR2','CR3','2GR1','2GR2','2GR3','5GR1','5GR2','5GR3','10GR1','10GR2','10GR3'];
-var TREAT_MAP = {CR1:'T0',CR2:'T0',CR3:'T0','2GR1':'T1','2GR2':'T1','2GR3':'T1','5GR1':'T2','5GR2':'T2','5GR3':'T2','10GR1':'T3','10GR2':'T3','10GR3':'T3'};
-var TREAT_COLS = {T0:'#22c55e',T1:'#eab308',T2:'#f97316',T3:'#ef4444'};
-var TREAT_LABELS = {T0:'T0 — Controle (0 g/L)',T1:'T1 — 2 g/L',T2:'T2 — 5 g/L',T3:'T3 — 10 g/L'};
+var TM = {CR1:'T0',CR2:'T0',CR3:'T0','2GR1':'T1','2GR2':'T1','2GR3':'T1','5GR1':'T2','5GR2':'T2','5GR3':'T2','10GR1':'T3','10GR2':'T3','10GR3':'T3'};
+var TC = {T0:'var(--t0)',T1:'var(--t1)',T2:'var(--t2)',T3:'var(--t3)'};
+var TCH = {T0:'t0c',T1:'t1c',T2:'t2c',T3:'t3c'};
+
+// Column mapping from Excel → internal field names
+var COL_MAP = {
+  'mesocosmo':'meso','meso':'meso',
+  'data':'date',
+  'orp_mv':'orp','orp':'orp',
+  'ph':'ph',
+  'od_%':'odp','od_pct':'odp','od%':'odp',
+  'od_mg_l':'odm','od_mgl':'odm','od_mg/l':'odm',
+  'cond_uscm':'cond','cond':'cond','condutividade':'cond',
+  'conda_uscm':'conda','conda':'conda',
+  'resist_mohm_cm':'resist','resist':'resist','resistividade':'resist',
+  'tds_ppm':'tds','tds':'tds',
+  'psu':'psu',
+  'fnu':'fnu','turbidez':'fnu','turb':'fnu',
+  'temp_c':'temp','temperatura':'temp','temp':'temp',
+  'pressao_psi':'psi','pressao':'psi','psi':'psi',
+  'co2':'co2','co₂':'co2',
+  'ch4':'ch4','ch₄':'ch4',
+  'replica':'rep','rep':'rep',
+  'operador':'op','op':'op',
+  'obs':'obs','observacoes':'obs','observações':'obs'
+};
 
 var TEAM = [
-  {name:'Ernandes Sobreira', role:'Coord. Geral · CO₂ · Gases', color:'#ff5e1a'},
-  {name:'Kiwi',              role:'Coord. Mercúrio', color:'#00d4aa'},
-  {name:'Claumir',           role:'Coord. Peixes · Comportamento', color:'#3d8bff'},
-  {name:'Leandro',           role:'Coord. Fisiologia · Histologia', color:'#a855f7'},
-  {name:'Lisa',              role:'Campo · Limnologia · Holanda', color:'#8b5cf6'},
-  {name:'Niels',             role:'Campo · Monitoramento · Holanda', color:'#22c55e'},
-  {name:'Gustavo',           role:'Fitoplâncton · Sedimentação', color:'#f59e0b'},
-  {name:'Mirtha',            role:'Campo · Coleta Hg', color:'#06b6d4'},
-  {name:'Vitória',           role:'Graduação · Coleta & Análises', color:'#ec4899'},
+  {name:'Ernandes Sobreira', role:'Coord. Geral · CO₂ · Gases', color:'#e8340a'},
+  {name:'Kiwi',              role:'Coord. Mercúrio', color:'#0891b2'},
+  {name:'Claumir',           role:'Coord. Peixes · Comportamento', color:'#7c3aed'},
+  {name:'Leandro',           role:'Coord. Fisiologia · Histologia', color:'#0e7490'},
+  {name:'Lisa',              role:'Campo · Limnologia · Holanda 🇳🇱', color:'#1d4ed8'},
+  {name:'Niels',             role:'Campo · Monitoramento · Holanda 🇳🇱', color:'#059669'},
+  {name:'Gustavo',           role:'Fitoplâncton · Sedimentação', color:'#d97706'},
+  {name:'Mirtha',            role:'Campo · Coleta Hg · Bolívia 🇧🇴', color:'#be185d'},
+  {name:'Vitória',           role:'Graduação · Coleta & Análises', color:'#7c3aed'},
 ];
 
-var DB = []; // local mirror from Firebase
+var DB = [];
 var editingId = null;
+var xlsRows = []; // pending excel rows
 
+// ════════════════════════════════════════════
 // i18n
+// ════════════════════════════════════════════
 var lang = 'pt';
-var I18N = {
-  pt: {
-    nav_dash:'Dashboard', nav_data:'Dados', nav_gallery:'Galeria', nav_diary:'Diário',
-    nav_analysis:'Análises', nav_about:'Sobre',
-    dash_title:'Cinzas', dash_title2:'Decoada',
-    prog_label:'Progresso do experimento',
-    ss_records:'registros', ss_photos:'fotos', ss_diary:'notas',
-    card_today:'Tarefas de Hoje', card_lastdata:'Últimas medições',
-    data_title:'Inserir Dados', data_sub:'Limnologia · CO₂ · CH₄ · Réplicas por mesocosmo',
-    form_title:'Novo Registro', f_date:'Data', f_time:'Hora início', f_meso:'Mesocosmo',
-    f_replica:'Réplica', f_op:'Operador', f_obs:'Observações', f_author:'Autor',
-    btn_save:'Salvar', btn_clear:'Limpar', btn_upload:'Enviar foto', btn_publish:'Publicar',
-    saving:'Salvando no Firebase…',
-    gallery_title:'Galeria do Campo', gallery_sub:'Fotos em tempo real · visíveis para toda a equipe',
-    diary_title:'Diário de Campo', diary_sub:'Notas diárias da equipe', diary_new:'Nova entrada', diary_note:'Nota',
-    analysis_title:'Análises', analysis_sub:'Comparação por tratamento',
-    f_var:'Variável', replica_table:'Réplicas — desvio e outliers',
-    th_date:'Data/Hora', th_meso:'Mesocosmo', th_treat:'Trat.', th_op:'Op.', th_mean:'Média',
-    about_title:'Sobre o BRASA', about_question:'Questão Científica',
-    about_q_text:'A intensificação da <strong style="color:var(--fire)">decoada</strong> — queda de oxigênio causada por cinzas pós-incêndio — altera a estrutura do plâncton e a transferência de mercúrio para peixes (<em>Hoplosternum littorale</em>) em mesocosmos?',
-    about_design:'12 mesocosmos · 300 L · 4 tratamentos × 3 réplicas · 2 medições/mesocosmo<br>10 <em>H. littorale</em> por mesocosmo · Fev–Jun 2026',
-    about_team:'Equipe', about_add:'Adicionar membro',
-    edit_title:'Editar Registro', btn_save_edit:'Salvar alterações', btn_cancel:'Cancelar',
+var I = {
+  pt:{
+    nav_data:'Dados',nav_gallery:'Galeria',nav_diary:'Diário',nav_analysis:'Análises',nav_about:'Sobre',
+    prog_label:'Progresso do experimento',ss_records:'registros',ss_photos:'fotos',ss_diary:'notas',
+    card_today:'Tarefas de Hoje',card_lastdata:'Últimas medições',
+    data_title:'Dados do Campo',form_title:'Novo Registro',
+    tab_manual:'Inserção manual',tab_excel:'Subir Excel',tab_records:'Registros',
+    xls_title:'Upload de planilha Excel',xls_desc:'Envie um .xlsx com colunas padrão BRASA.',
+    xls_drop:'Arraste o Excel aqui ou clique para escolher',xls_map:'Colunas detectadas',
+    btn_import:'Importar todos',importing:'Importando registros…',
+    f_date:'Data',f_time:'Hora início',f_meso:'Mesocosmo',f_replica:'Réplica',
+    f_op:'Operador',f_obs:'Observações',f_author:'Autor',
+    btn_save:'Salvar no Firebase',btn_clear:'Limpar',btn_upload:'Enviar foto',btn_publish:'Publicar',
+    saving:'Salvando…',
+    gallery_title:'Galeria do Campo',gallery_sub:'Fotos em tempo real',
+    diary_title:'Diário de Campo',diary_sub:'Notas diárias',diary_new:'Nova entrada',diary_note:'Nota',
+    analysis_title:'Análises',analysis_sub:'Comparação por tratamento',
+    f_var:'Variável',replica_table:'Detalhe por réplica',
+    th_date:'Data',th_meso:'Mesocosmo',th_treat:'Trat.',th_op:'Op.',th_mean:'Média',
     records_title:'Registros',
+    about_title:'Sobre o BRASA',about_question:'Questão Científica',
+    about_team:'Equipe BRASA',about_add:'Adicionar membro',
+    edit_title:'Editar Registro',btn_save_edit:'Salvar alterações',btn_cancel:'Cancelar',
   },
-  en: {
-    nav_dash:'Dashboard', nav_data:'Data', nav_gallery:'Gallery', nav_diary:'Diary',
-    nav_analysis:'Analysis', nav_about:'About',
-    dash_title:'Ashes', dash_title2:'Decoada',
-    prog_label:'Experiment progress',
-    ss_records:'records', ss_photos:'photos', ss_diary:'notes',
-    card_today:"Today's Tasks", card_lastdata:'Latest readings',
-    data_title:'Insert Data', data_sub:'Limnology · CO₂ · CH₄ · Replicas per mesocosm',
-    form_title:'New Record', f_date:'Date', f_time:'Start time', f_meso:'Mesocosm',
-    f_replica:'Replica', f_op:'Operator', f_obs:'Field observations', f_author:'Author',
-    btn_save:'Save', btn_clear:'Clear', btn_upload:'Upload photo', btn_publish:'Publish',
-    saving:'Saving to Firebase…',
-    gallery_title:'Field Gallery', gallery_sub:'Real-time photos · visible to all team members',
-    diary_title:'Field Diary', diary_sub:'Daily team notes', diary_new:'New entry', diary_note:'Note',
-    analysis_title:'Analysis', analysis_sub:'Treatment comparison',
-    f_var:'Variable', replica_table:'Replicas — deviation & outliers',
-    th_date:'Date/Time', th_meso:'Mesocosm', th_treat:'Treat.', th_op:'Op.', th_mean:'Mean',
-    about_title:'About BRASA', about_question:'Scientific Question',
-    about_q_text:'Does the intensification of <strong style="color:var(--fire)">decoada</strong> — oxygen drop from post-fire ash — alter plankton structure and mercury transfer to fish (<em>Hoplosternum littorale</em>) in controlled mesocosms?',
-    about_design:'12 mesocosms · 300 L · 4 treatments × 3 replicates · 2 measurements/mesocosm<br>10 <em>H. littorale</em> per mesocosm · Feb–Jun 2026',
-    about_team:'Team', about_add:'Add member',
-    edit_title:'Edit Record', btn_save_edit:'Save changes', btn_cancel:'Cancel',
+  en:{
+    nav_data:'Data',nav_gallery:'Gallery',nav_diary:'Diary',nav_analysis:'Analysis',nav_about:'About',
+    prog_label:'Experiment progress',ss_records:'records',ss_photos:'photos',ss_diary:'notes',
+    card_today:"Today's Tasks",card_lastdata:'Latest readings',
+    data_title:'Field Data',form_title:'New Record',
+    tab_manual:'Manual entry',tab_excel:'Upload Excel',tab_records:'Records',
+    xls_title:'Upload Excel spreadsheet',xls_desc:'Upload a .xlsx with standard BRASA columns.',
+    xls_drop:'Drop Excel here or click to choose',xls_map:'Detected columns',
+    btn_import:'Import all',importing:'Importing records…',
+    f_date:'Date',f_time:'Start time',f_meso:'Mesocosm',f_replica:'Replica',
+    f_op:'Operator',f_obs:'Field notes',f_author:'Author',
+    btn_save:'Save to Firebase',btn_clear:'Clear',btn_upload:'Upload photo',btn_publish:'Publish',
+    saving:'Saving…',
+    gallery_title:'Field Gallery',gallery_sub:'Real-time photos',
+    diary_title:'Field Diary',diary_sub:'Daily notes',diary_new:'New entry',diary_note:'Note',
+    analysis_title:'Analysis',analysis_sub:'Treatment comparison',
+    f_var:'Variable',replica_table:'Replica detail',
+    th_date:'Date',th_meso:'Mesocosm',th_treat:'Treat.',th_op:'Op.',th_mean:'Mean',
     records_title:'Records',
+    about_title:'About BRASA',about_question:'Scientific Question',
+    about_team:'BRASA Team',about_add:'Add member',
+    edit_title:'Edit Record',btn_save_edit:'Save changes',btn_cancel:'Cancel',
   },
-  es: {
-    nav_dash:'Panel', nav_data:'Datos', nav_gallery:'Galería', nav_diary:'Diario',
-    nav_analysis:'Análisis', nav_about:'Sobre',
-    dash_title:'Cenizas', dash_title2:'Decoada',
-    prog_label:'Progreso del experimento',
-    ss_records:'registros', ss_photos:'fotos', ss_diary:'notas',
-    card_today:'Tareas de Hoy', card_lastdata:'Últimas mediciones',
-    data_title:'Insertar Datos', data_sub:'Limnología · CO₂ · CH₄ · Réplicas por mesocosmos',
-    form_title:'Nuevo Registro', f_date:'Fecha', f_time:'Hora inicio', f_meso:'Mesocosmos',
-    f_replica:'Réplica', f_op:'Operador', f_obs:'Observaciones de campo', f_author:'Autor',
-    btn_save:'Guardar', btn_clear:'Limpiar', btn_upload:'Subir foto', btn_publish:'Publicar',
-    saving:'Guardando en Firebase…',
-    gallery_title:'Galería de Campo', gallery_sub:'Fotos en tiempo real · visibles para todo el equipo',
-    diary_title:'Diario de Campo', diary_sub:'Notas diarias del equipo', diary_new:'Nueva entrada', diary_note:'Nota',
-    analysis_title:'Análisis', analysis_sub:'Comparación por tratamiento',
-    f_var:'Variable', replica_table:'Réplicas — desviación y outliers',
-    th_date:'Fecha/Hora', th_meso:'Mesocosmos', th_treat:'Trat.', th_op:'Op.', th_mean:'Media',
-    about_title:'Sobre BRASA', about_question:'Pregunta Científica',
-    about_q_text:'¿La intensificación de la <strong style="color:var(--fire)">decoada</strong> — caída de oxígeno por cenizas post-incendio — altera la estructura del plancton y la transferencia de mercurio a peces (<em>Hoplosternum littorale</em>) en mesocosmos?',
-    about_design:'12 mesocosmos · 300 L · 4 tratamientos × 3 réplicas · 2 mediciones/mesocosmo<br>10 <em>H. littorale</em> por mesocosmo · Feb–Jun 2026',
-    about_team:'Equipo', about_add:'Agregar miembro',
-    edit_title:'Editar Registro', btn_save_edit:'Guardar cambios', btn_cancel:'Cancelar',
+  es:{
+    nav_data:'Datos',nav_gallery:'Galería',nav_diary:'Diario',nav_analysis:'Análisis',nav_about:'Sobre',
+    prog_label:'Progreso del experimento',ss_records:'registros',ss_photos:'fotos',ss_diary:'notas',
+    card_today:'Tareas de Hoy',card_lastdata:'Últimas mediciones',
+    data_title:'Datos de Campo',form_title:'Nuevo Registro',
+    tab_manual:'Entrada manual',tab_excel:'Subir Excel',tab_records:'Registros',
+    xls_title:'Subir planilla Excel',xls_desc:'Suba un .xlsx con columnas BRASA estándar.',
+    xls_drop:'Arrastre el Excel aquí o haga clic',xls_map:'Columnas detectadas',
+    btn_import:'Importar todo',importing:'Importando registros…',
+    f_date:'Fecha',f_time:'Hora inicio',f_meso:'Mesocosmos',f_replica:'Réplica',
+    f_op:'Operador',f_obs:'Observaciones',f_author:'Autor',
+    btn_save:'Guardar en Firebase',btn_clear:'Limpiar',btn_upload:'Subir foto',btn_publish:'Publicar',
+    saving:'Guardando…',
+    gallery_title:'Galería de Campo',gallery_sub:'Fotos en tiempo real',
+    diary_title:'Diario de Campo',diary_sub:'Notas diarias',diary_new:'Nueva entrada',diary_note:'Nota',
+    analysis_title:'Análisis',analysis_sub:'Comparación por tratamiento',
+    f_var:'Variable',replica_table:'Detalle por réplica',
+    th_date:'Fecha',th_meso:'Mesocosmos',th_treat:'Trat.',th_op:'Op.',th_mean:'Media',
     records_title:'Registros',
+    about_title:'Sobre BRASA',about_question:'Pregunta Científica',
+    about_team:'Equipo BRASA',about_add:'Agregar miembro',
+    edit_title:'Editar Registro',btn_save_edit:'Guardar cambios',btn_cancel:'Cancelar',
   }
 };
 
-function setLang(l, btn) {
-  lang = l;
-  document.querySelectorAll('.lbtn').forEach(b => b.classList.remove('on'));
+function setLang(l,btn) {
+  lang=l;
+  document.querySelectorAll('.lbtn').forEach(b=>b.classList.remove('on'));
   if(btn) btn.classList.add('on');
-  document.querySelectorAll('[data-i]').forEach(el => {
-    var k = el.getAttribute('data-i');
-    if(I18N[l][k] !== undefined) el.innerHTML = I18N[l][k];
+  document.querySelectorAll('[data-i]').forEach(el=>{
+    var k=el.getAttribute('data-i');
+    if(I[l]&&I[l][k]!==undefined) el.innerHTML=I[l][k];
   });
-  document.documentElement.lang = l === 'en' ? 'en' : l === 'es' ? 'es' : 'pt';
 }
 
-// ═══════════════════════════════════════
+// ════════════════════════════════════════════
 // NAVIGATION
-// ═══════════════════════════════════════
-function go(id, btn, baseId) {
-  document.querySelectorAll('.sec').forEach(s => s.classList.remove('on'));
-  // sync all nav buttons (desktop + mobile) for this section
-  document.querySelectorAll('.nb, .bnb').forEach(b => b.classList.remove('on'));
+// ════════════════════════════════════════════
+function go(id, btn) {
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('.tnb,.bnb').forEach(b=>b.classList.remove('on'));
   document.getElementById(id).classList.add('on');
   if(btn) btn.classList.add('on');
-  // also highlight the sibling nav button
-  if(baseId) {
-    var paired = document.getElementById('b' + baseId) || document.getElementById(baseId.replace('nb-','bnb-'));
-    if(paired) paired.classList.add('on');
-    var desktop = document.getElementById(baseId);
-    if(desktop) desktop.classList.add('on');
-  }
-  if(id === 'analises') buildAnalises();
-  // scroll to top
+  if(id==='analises') buildAnalises();
   window.scrollTo(0,0);
 }
 
-// ═══════════════════════════════════════
-// TOAST
-// ═══════════════════════════════════════
-function toast(msg, type) {
-  var t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'show' + (type ? ' ' + type : '');
-  clearTimeout(t._t);
-  t._t = setTimeout(() => t.className = '', 3000);
+function dtab(id, btn) {
+  ['dp-form','dp-xls','dp-list'].forEach(x => {
+    var el=document.getElementById(x);
+    if(el) el.style.display = (x==='dp-'+id) ? 'block' : 'none';
+  });
+  document.querySelectorAll('[id^="dtab-"]').forEach(b=>{
+    b.className = b.id==='dtab-'+id ? 'btn btn-fire btn-sm' : 'btn btn-outline btn-sm';
+  });
 }
 
-// ═══════════════════════════════════════
-// PARTICLES
-// ═══════════════════════════════════════
-(function initParticles() {
-  var canvas = document.getElementById('particles');
-  var ctx = canvas.getContext('2d');
-  var W, H, particles = [];
+// ════════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════════
+function toast(msg, type) {
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.className='show'+(type?' '+type:'');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.className='',3500);
+}
 
-  function resize() {
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-  }
-  resize();
-  window.addEventListener('resize', resize);
-
-  for (var i = 0; i < 55; i++) {
-    particles.push({
-      x: Math.random() * window.innerWidth,
-      y: Math.random() * window.innerHeight,
-      r: Math.random() * 2.5 + 0.5,
-      vx: (Math.random() - 0.5) * 0.25,
-      vy: -Math.random() * 0.35 - 0.1,
-      o: Math.random() * 0.4 + 0.1,
-      col: ['#ff5e1a','#ff9344','#ffbd59','#ffffff','#00d4aa'][Math.floor(Math.random()*5)]
-    });
-  }
-
-  function draw() {
-    ctx.clearRect(0, 0, W, H);
-    particles.forEach(p => {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = p.col;
-      ctx.globalAlpha = p.o;
-      ctx.fill();
-      p.x += p.vx; p.y += p.vy;
-      p.o -= 0.0008;
-      if (p.y < -10 || p.o <= 0) {
-        p.x = Math.random() * W;
-        p.y = H + 5;
-        p.o = Math.random() * 0.4 + 0.1;
-      }
-    });
-    ctx.globalAlpha = 1;
-    requestAnimationFrame(draw);
-  }
-  draw();
-})();
-
-// ═══════════════════════════════════════
+// ════════════════════════════════════════════
 // CLOCK + PROGRESS
-// ═══════════════════════════════════════
-setInterval(() => {
-  var el = document.getElementById('footer-clock');
-  var ss = document.getElementById('ss-time');
-  var now = new Date();
-  var ts = now.toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  if(el) el.textContent = ts;
-  if(ss) ss.textContent = '⏱ ' + ts.split(' ')[1];
-}, 1000);
+// ════════════════════════════════════════════
+setInterval(()=>{
+  var now=new Date();
+  var ts=now.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  var fc=document.getElementById('footer-clock');
+  var ss=document.getElementById('ss-t');
+  if(fc) fc.textContent=ts;
+  if(ss) ss.textContent='⏱ '+ts.split(' ')[1];
+},1000);
 
 function initProgress() {
-  var START = new Date('2026-02-24'), END = new Date('2026-06-19');
-  var now = new Date(); now.setHours(0,0,0,0);
-  var total = (END - START) / 86400000;
-  var elapsed = Math.max(0, Math.min(total, (now - START) / 86400000));
-  var pct = Math.round(elapsed / total * 100);
-  var fill = document.getElementById('dash-fill');
-  var pctEl = document.getElementById('dash-pct');
-  if(fill) setTimeout(() => fill.style.width = pct + '%', 200);
-  if(pctEl) pctEl.textContent = pct + '%';
-
-  var phase = '';
-  var PEIXES = new Date('2026-03-06'), CINZAS = new Date('2026-03-13');
-  if(now < START) phase = 'Pré-experimento';
-  else if(now < PEIXES) phase = 'Preparação';
-  else if(now < CINZAS) phase = '🐟 Aclimatação dos peixes';
-  else if(now <= END) phase = '🔥 Experimento ativo — ' + Math.round((now-CINZAS)/86400000) + 'd desde as cinzas';
-  else phase = '✓ Experimento concluído';
-  var pl = document.getElementById('dash-phase-lbl');
-  if(pl) pl.textContent = phase + ' · CELBE-LIPAN/LEFA · UNEMAT';
+  var S=new Date('2026-02-24'), E=new Date('2026-06-19');
+  var now=new Date(); now.setHours(0,0,0,0);
+  var pct=Math.round(Math.max(0,Math.min(1,(now-S)/(E-S)))*100);
+  var fill=document.getElementById('dash-fill');
+  var pctEl=document.getElementById('dash-pct');
+  if(fill) setTimeout(()=>fill.style.width=pct+'%',300);
+  if(pctEl) pctEl.textContent=pct+'%';
+  var ph=document.getElementById('dash-phase');
+  if(ph) {
+    var CINZAS=new Date('2026-03-13');
+    var d=Math.max(0,Math.round((now-CINZAS)/86400000));
+    var fase=now<S?'Pré-experimento':now<new Date('2026-03-06')?'Preparação':now<CINZAS?'🐟 Aclimatação':now<=E?'🔥 Experimento ativo — D+'+d+' desde as cinzas':'✓ Concluído';
+    ph.textContent=fase+' · CELBE-LIPAN/LEFA · UNEMAT · Cáceres-MT';
+  }
 }
 initProgress();
 
-// ═══════════════════════════════════════
+// ════════════════════════════════════════════
 // TEAM
-// ═══════════════════════════════════════
+// ════════════════════════════════════════════
 function renderTeam() {
-  var tl = document.getElementById('team-list');
-  if(tl) tl.innerHTML = TEAM.map((m,i) =>
-    `<div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;">
-      <div style="display:flex;align-items:center;gap:.6rem;">
-        <div style="width:30px;height:30px;border-radius:50%;background:${m.color};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:.9rem;color:#fff;flex-shrink:0;">${m.name[0]}</div>
-        <div><div style="font-weight:600;font-size:.88rem;">${m.name}</div><div style="font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--tx3);">${m.role}</div></div>
+  var tl=document.getElementById('team-list');
+  if(tl) tl.innerHTML=TEAM.map((m,i)=>
+    `<div class="team-card">
+      <div class="team-av" style="background:${m.color}">${m.name[0]}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="team-name">${m.name}</div>
+        <div class="team-role">${m.role}</div>
       </div>
-      <button class="btn btn-danger btn-sm" onclick="removeMember(${i})" style="padding:.15rem .45rem;font-size:.62rem;">✕</button>
+      <button class="btn btn-danger btn-sm" onclick="removeMember(${i})" style="padding:.2rem .45rem;font-size:.65rem;">✕</button>
     </div>`
   ).join('');
-
-  // populate operator dropdowns
-  var opts = TEAM.map(m => `<option>${m.name}</option>`).join('');
-  ['f-op','chat-sender','diary-author'].forEach(id => {
-    var el = document.getElementById(id);
-    if(el) el.innerHTML = opts;
+  var opts=TEAM.map(m=>`<option>${m.name}</option>`).join('');
+  ['f-op','chat-sender','diary-author','xls-op'].forEach(id=>{
+    var el=document.getElementById(id); if(el) el.innerHTML=opts;
   });
 }
 
 function addMember() {
-  var name = document.getElementById('tm-name').value.trim();
-  var role = document.getElementById('tm-role').value.trim();
-  if(!name) { toast('⚠ Informe o nome', 'err'); return; }
-  TEAM.push({name, role: role || 'Equipe BRASA', color: ['#ff5e1a','#00d4aa','#3d8bff','#a855f7','#22c55e','#f59e0b'][TEAM.length % 6]});
-  document.getElementById('tm-name').value = '';
-  document.getElementById('tm-role').value = '';
-  renderTeam();
-  toast('✓ ' + name + ' adicionado(a)', 'ok');
+  var n=document.getElementById('tm-name').value.trim();
+  var r=document.getElementById('tm-role').value.trim();
+  if(!n){toast('⚠ Informe o nome','err');return;}
+  TEAM.push({name:n,role:r||'Equipe BRASA',color:['#e8340a','#0891b2','#7c3aed','#059669','#d97706','#be185d'][TEAM.length%6]});
+  document.getElementById('tm-name').value='';
+  document.getElementById('tm-role').value='';
+  renderTeam(); toast('✓ '+n+' adicionado(a)','ok');
 }
-
 function removeMember(i) {
-  if(!confirm('Remover ' + TEAM[i].name + '?')) return;
-  TEAM.splice(i, 1);
-  renderTeam();
+  if(!confirm('Remover '+TEAM[i].name+'?')) return;
+  TEAM.splice(i,1); renderTeam();
 }
 
-// ═══════════════════════════════════════
-// FIREBASE INTEGRATION
-// ═══════════════════════════════════════
+// ════════════════════════════════════════════
+// FIREBASE LISTENERS
+// ════════════════════════════════════════════
 document.addEventListener('firebase-ready', function() {
-  var dot = document.getElementById('conn-dot');
-  if(dot) { dot.classList.add('ok'); dot.title = 'Firebase conectado'; }
-  toast('🔥 Firebase conectado!', 'ok');
-  initFirebaseListeners();
-});
+  var dot=document.getElementById('conn-dot');
+  if(dot){dot.classList.add('ok');dot.title='Firebase conectado';}
+  toast('🔥 Firebase conectado!','ok');
+  var {collection,onSnapshot,query,orderBy}=window.fbFns, db=window.db;
 
-function initFirebaseListeners() {
-  var { collection, onSnapshot, query, orderBy } = window.fbFns;
-  var db = window.db;
-
-  // ── Records
-  var recQ = query(collection(db, 'records'), orderBy('timestamp', 'desc'));
-  onSnapshot(recQ, snap => {
-    DB = snap.docs.map(d => ({id: d.id, ...d.data()}));
-    renderTable();
-    updateDashboard();
+  // Records
+  onSnapshot(query(collection(db,'records'),orderBy('timestamp','desc')), snap=>{
+    DB=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderTable(); updateDashboard();
+    document.getElementById('rec-count').textContent=DB.length;
+    document.getElementById('rec-count-tab').textContent=DB.length;
+    document.getElementById('ss-r').textContent=DB.length;
     if(document.getElementById('analises').classList.contains('on')) buildAnalises();
   });
 
-  // ── Chat
-  var chatQ = query(collection(db, 'chat'), orderBy('timestamp', 'asc'));
-  onSnapshot(chatQ, snap => {
-    var msgs = snap.docs.map(d => ({id: d.id, ...d.data()}));
+  // Chat
+  onSnapshot(query(collection(db,'chat'),orderBy('timestamp','asc')), snap=>{
+    var msgs=snap.docs.map(d=>({id:d.id,...d.data()}));
     renderChat(msgs);
-    document.getElementById('ss-msgs').textContent = msgs.length;
+    document.getElementById('ss-c').textContent=msgs.length;
   });
 
-  // ── Photos
-  var photoQ = query(collection(db, 'photos'), orderBy('timestamp', 'desc'));
-  onSnapshot(photoQ, snap => {
-    var photos = snap.docs.map(d => ({id: d.id, ...d.data()}));
+  // Photos
+  onSnapshot(query(collection(db,'photos'),orderBy('timestamp','desc')), snap=>{
+    var photos=snap.docs.map(d=>({id:d.id,...d.data()}));
     renderPhotos(photos);
-    document.getElementById('ss-photos').textContent = photos.length;
+    document.getElementById('ss-p').textContent=photos.length;
   });
 
-  // ── Diary
-  var diaryQ = query(collection(db, 'diary'), orderBy('timestamp', 'desc'));
-  onSnapshot(diaryQ, snap => {
-    var entries = snap.docs.map(d => ({id: d.id, ...d.data()}));
+  // Diary
+  onSnapshot(query(collection(db,'diary'),orderBy('timestamp','desc')), snap=>{
+    var entries=snap.docs.map(d=>({id:d.id,...d.data()}));
     renderDiary(entries);
-    document.getElementById('ss-diary').textContent = entries.length;
+    document.getElementById('ss-d').textContent=entries.length;
   });
-}
+});
 
-// ═══════════════════════════════════════
-// RECORDS
-// ═══════════════════════════════════════
-function nv(id) {
-  var v = document.getElementById(id).value;
-  return v === '' ? null : parseFloat(v);
-}
+// ════════════════════════════════════════════
+// RECORDS — CRUD
+// ════════════════════════════════════════════
+function nv(id){ var v=document.getElementById(id).value; return v===''?null:parseFloat(v); }
 
 async function saveRecord() {
-  var { collection, addDoc, serverTimestamp } = window.fbFns;
-  var rec = {
-    date: document.getElementById('f-date').value,
-    time: document.getElementById('f-time').value,
-    meso: document.getElementById('f-meso').value,
-    rep:  document.getElementById('f-rep').value,
-    op:   document.getElementById('f-op').value,
-    ph: nv('f-ph'), orp: nv('f-orp'),
-    odp: nv('f-odp'), odm: nv('f-odm'),
-    cond: nv('f-cond'), tds: nv('f-tds'),
-    temp: nv('f-temp'), turb: nv('f-turb'),
-    co2: nv('f-co2'), ch4: nv('f-ch4'),
-    kohm: nv('f-kohm'), kpa: nv('f-kpa'),
-    obs: document.getElementById('f-obs').value,
-    timestamp: serverTimestamp()
+  var {collection,addDoc,serverTimestamp}=window.fbFns;
+  var rec={
+    date:document.getElementById('f-date').value,
+    time:document.getElementById('f-time').value,
+    meso:document.getElementById('f-meso').value,
+    rep:document.getElementById('f-rep').value,
+    op:document.getElementById('f-op').value,
+    ph:nv('f-ph'),orp:nv('f-orp'),odp:nv('f-odp'),odm:nv('f-odm'),
+    cond:nv('f-cond'),conda:nv('f-conda'),resist:nv('f-resist'),
+    tds:nv('f-tds'),psu:nv('f-psu'),fnu:nv('f-fnu'),
+    temp:nv('f-temp'),psi:nv('f-psi'),
+    co2:nv('f-co2'),ch4:nv('f-ch4'),
+    obs:document.getElementById('f-obs').value,
+    timestamp:serverTimestamp()
   };
-  if(!rec.date || !rec.meso) { toast('⚠ Preencha data e mesocosmo', 'err'); return; }
-
-  document.getElementById('saving-indicator').style.display = 'flex';
+  if(!rec.date||!rec.meso){toast('⚠ Preencha data e mesocosmo','err');return;}
+  document.getElementById('saving-ind').style.display='flex';
   try {
-    await addDoc(collection(window.db, 'records'), rec);
-    toast('🔥 Salvo! ' + rec.meso + ' ' + rec.rep, 'ok');
+    await addDoc(collection(window.db,'records'),rec);
+    toast('✓ Salvo! '+rec.meso+' '+rec.rep,'ok');
     clearForm();
-  } catch(e) {
-    toast('⚠ Erro: ' + e.message, 'err');
-  }
-  document.getElementById('saving-indicator').style.display = 'none';
+  } catch(e){toast('⚠ '+e.message,'err');}
+  document.getElementById('saving-ind').style.display='none';
 }
 
 function clearForm() {
-  ['f-ph','f-orp','f-odp','f-odm','f-cond','f-tds','f-temp','f-turb','f-co2','f-ch4','f-kohm','f-kpa','f-obs'].forEach(id => {
-    document.getElementById(id).value = '';
-  });
-  var now = new Date();
-  document.getElementById('f-date').value = now.toISOString().slice(0,10);
-  document.getElementById('f-time').value = now.toTimeString().slice(0,5);
+  ['f-ph','f-orp','f-odp','f-odm','f-cond','f-conda','f-resist','f-tds','f-psu','f-fnu','f-temp','f-psi','f-co2','f-ch4','f-obs'].forEach(id=>{ document.getElementById(id).value=''; });
+  var now=new Date();
+  document.getElementById('f-date').value=now.toISOString().slice(0,10);
+  document.getElementById('f-time').value=now.toTimeString().slice(0,5);
 }
 
 async function deleteRecord(id) {
   if(!confirm('Apagar este registro?')) return;
-  var { doc, deleteDoc } = window.fbFns;
-  try {
-    await deleteDoc(doc(window.db, 'records', id));
-    toast('✓ Registro apagado', 'ok');
-  } catch(e) {
-    toast('⚠ ' + e.message, 'err');
-  }
+  var {doc,deleteDoc}=window.fbFns;
+  try { await deleteDoc(doc(window.db,'records',id)); toast('✓ Apagado','ok'); }
+  catch(e){toast('⚠ '+e.message,'err');}
 }
 
 function openEdit(id) {
-  var r = DB.find(x => x.id === id);
-  if(!r) return;
-  editingId = id;
-  var fields = [
-    ['ph','pH'], ['orp','ORP (mV)'], ['odp','OD (%)'], ['odm','OD (mg/L)'],
-    ['cond','Cond'], ['tds','TDS'], ['temp','Temp'], ['turb','Turbidez'],
-    ['co2','CO₂'], ['ch4','CH₄'], ['kohm','KΩ'], ['kpa','KPA']
-  ];
-  document.getElementById('edit-form-content').innerHTML =
-    `<div style="margin-bottom:.8rem;font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--tx2);">${r.meso} · ${r.rep || ''} · ${r.date} ${r.time || ''}</div>
-     <div class="form-grid">` +
-    fields.map(([k,label]) =>
-      `<div class="field"><label>${label}</label><input type="number" id="edit-${k}" value="${r[k] ?? ''}" step="0.01"></div>`
-    ).join('') +
-    `<div class="field form-full"><label>Observações</label><textarea id="edit-obs" rows="2">${r.obs || ''}</textarea></div>
-     </div>`;
+  var r=DB.find(x=>x.id===id); if(!r) return;
+  editingId=id;
+  var flds=[['ph','pH'],['orp','ORP (mV)'],['odp','OD (%)'],['odm','OD (mg/L)'],['cond','Cond (μS/cm)'],['conda','CondA (μS/cm)'],['resist','Resist (MΩ·cm)'],['tds','TDS (ppm)'],['psu','PSU'],['fnu','FNU'],['temp','Temp (°C)'],['psi','Pressão (psi)'],['co2','CO₂'],['ch4','CH₄']];
+  document.getElementById('edit-form-content').innerHTML=
+    `<div style="font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--ink3);margin-bottom:.75rem;">${r.meso} · ${r.rep||''} · ${r.date} ${r.time||''}</div>
+     <div class="fg">` +
+    flds.map(([k,l])=>`<div class="field"><label>${l}</label><input type="number" id="edit-${k}" value="${r[k]??''}" step="0.0001"></div>`).join('')+
+    `<div class="field fc"><label>Obs</label><textarea id="edit-obs" rows="2">${r.obs||''}</textarea></div></div>`;
   document.getElementById('edit-modal').classList.add('open');
 }
 
 async function saveEdit() {
   if(!editingId) return;
-  var { doc, updateDoc } = window.fbFns;
-  var fields = ['ph','orp','odp','odm','cond','tds','temp','turb','co2','ch4','kohm','kpa'];
-  var updates = {};
-  fields.forEach(k => {
-    var el = document.getElementById('edit-' + k);
-    if(el) updates[k] = el.value === '' ? null : parseFloat(el.value);
-  });
-  var obsEl = document.getElementById('edit-obs');
-  if(obsEl) updates.obs = obsEl.value;
-  try {
-    await updateDoc(doc(window.db, 'records', editingId), updates);
-    toast('✓ Registro atualizado', 'ok');
-    closeModal();
-  } catch(e) {
-    toast('⚠ ' + e.message, 'err');
-  }
+  var {doc,updateDoc}=window.fbFns;
+  var flds=['ph','orp','odp','odm','cond','conda','resist','tds','psu','fnu','temp','psi','co2','ch4'];
+  var updates={};
+  flds.forEach(k=>{ var el=document.getElementById('edit-'+k); if(el) updates[k]=el.value===''?null:parseFloat(el.value); });
+  var obsEl=document.getElementById('edit-obs'); if(obsEl) updates.obs=obsEl.value;
+  try { await updateDoc(doc(window.db,'records',editingId),updates); toast('✓ Atualizado','ok'); closeModal(); }
+  catch(e){toast('⚠ '+e.message,'err');}
 }
 
-function closeModal() {
-  document.getElementById('edit-modal').classList.remove('open');
-  editingId = null;
-}
+function closeModal() { document.getElementById('edit-modal').classList.remove('open'); editingId=null; }
 
 function renderTable() {
-  var tbody = document.getElementById('rec-tbody');
-  var count = document.getElementById('rec-count');
-  if(!tbody) return;
-  count.textContent = DB.length;
-  document.getElementById('ss-records').textContent = DB.length;
-  if(!DB.length) {
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--tx3);font-family:\'JetBrains Mono\',monospace;font-size:.72rem;padding:2rem;">Nenhum dado ainda…</td></tr>';
+  var tbody=document.getElementById('rec-tbody'); if(!tbody) return;
+  if(!DB.length){
+    tbody.innerHTML='<tr><td colspan="17" style="text-align:center;padding:2rem;color:var(--ink3);font-family:\'JetBrains Mono\',monospace;font-size:.7rem;">Nenhum dado ainda…</td></tr>';
     return;
   }
-  var d = function(v) { return (v !== null && v !== undefined && v !== '') ? v : '<span style="color:var(--tx3)">—</span>'; };
-  tbody.innerHTML = DB.slice(0, 80).map(r => {
-    var tc = TREAT_COLS[TREAT_MAP[r.meso]] || '#666';
+  var d=v=>(v!==null&&v!==undefined&&v!=='')?'<span class="mono">'+v+'</span>':'<span style="color:var(--ink3)">—</span>';
+  var tcss={T0:'t0c',T1:'t1c',T2:'t2c',T3:'t3c'};
+  tbody.innerHTML=DB.slice(0,120).map(r=>{
+    var t=TM[r.meso]||'?';
     return `<tr>
-      <td class="val" style="font-size:.68rem;">${r.date || ''}<br><span style="color:var(--tx3)">${r.time || ''}</span></td>
-      <td><span class="val" style="color:${tc}">${r.meso}</span></td>
-      <td><span class="rep-badge">${r.rep || '—'}</span></td>
-      <td class="val">${d(r.ph)}</td>
-      <td class="val" style="color:var(--teal)">${d(r.odm)}</td>
-      <td class="val">${d(r.temp)}</td>
-      <td class="val" style="color:var(--fire2)">${d(r.co2)}</td>
-      <td class="val" style="color:var(--ember)">${d(r.ch4)}</td>
-      <td style="font-size:.72rem;color:var(--tx3)">${r.op || '—'}</td>
+      <td style="font-size:.72rem;white-space:nowrap;">${r.date||''}</td>
+      <td style="font-size:.68rem;color:var(--ink3);">${r.time||'—'}</td>
+      <td><strong class="${tcss[t]||''}">${r.meso}</strong></td>
+      <td><span class="badge badge-${t.toLowerCase()}">${t}</span></td>
+      <td><span class="badge badge-r">${r.rep||'—'}</span></td>
+      <td>${d(r.ph)}</td>
+      <td>${d(r.orp)}</td>
+      <td>${d(r.odp)}</td>
+      <td style="color:var(--teal)">${d(r.odm)}</td>
+      <td>${d(r.cond)}</td>
+      <td>${d(r.tds)}</td>
+      <td>${d(r.temp)}</td>
+      <td>${d(r.fnu)}</td>
+      <td style="color:var(--fire)">${d(r.co2)}</td>
+      <td style="color:var(--amber)">${d(r.ch4)}</td>
+      <td style="font-size:.7rem;color:var(--ink3);max-width:80px;overflow:hidden;text-overflow:ellipsis;">${r.op||'—'}</td>
       <td>
         <div style="display:flex;gap:.3rem;">
-          <button class="btn btn-outline btn-sm" style="padding:.2rem .45rem;font-size:.65rem;" onclick="openEdit('${r.id}')">✏️</button>
-          <button class="btn btn-danger btn-sm" style="padding:.2rem .45rem;font-size:.65rem;" onclick="deleteRecord('${r.id}')">🗑</button>
+          <button class="btn btn-outline btn-sm" style="padding:.2rem .4rem;font-size:.65rem;" onclick="openEdit('${r.id}')">✏️</button>
+          <button class="btn btn-danger btn-sm" style="padding:.2rem .4rem;font-size:.65rem;" onclick="deleteRecord('${r.id}')">🗑</button>
         </div>
       </td>
     </tr>`;
@@ -1316,280 +1261,399 @@ function renderTable() {
 }
 
 function updateDashboard() {
-  // Last pH per treatment
-  ['T0','T1','T2','T3'].forEach(t => {
-    var mesos = MESOS.filter(m => TREAT_MAP[m] === t);
-    var recs = DB.filter(r => mesos.includes(r.meso) && r.ph !== null && r.ph !== undefined);
-    var id = 'dash-' + t.toLowerCase() + '-ph';
-    var el = document.getElementById(id);
-    if(el) el.textContent = recs.length ? Number(recs[0].ph).toFixed(2) : '—';
+  ['T0','T1','T2','T3'].forEach(t=>{
+    var mesos=MESOS.filter(m=>TM[m]===t);
+    var recs=DB.filter(r=>mesos.includes(r.meso)&&r.ph!==null&&r.ph!==undefined);
+    var el=document.getElementById('d-'+t.toLowerCase()+'-ph');
+    if(el) el.textContent=recs.length?Number(recs[0].ph).toFixed(2):'—';
   });
-  // Recent
-  var dr = document.getElementById('dash-recent');
+  var dr=document.getElementById('dash-recent');
   if(dr) {
-    if(!DB.length) { dr.innerHTML = '<span style="color:var(--tx3)">Sem dados ainda…</span>'; return; }
-    dr.innerHTML = DB.slice(0,5).map(r =>
-      `<div style="display:flex;justify-content:space-between;padding:.25rem 0;border-bottom:1px solid var(--border);">
-        <span style="color:${TREAT_COLS[TREAT_MAP[r.meso]]};">${r.meso}</span>
-        <span>${r.rep||''}</span>
-        <span>pH ${r.ph ?? '—'}</span>
-        <span style="color:var(--teal)">OD ${r.odm ?? '—'}</span>
-        <span style="color:var(--tx3);font-size:.62rem;">${r.date||''}</span>
-      </div>`
-    ).join('');
+    if(!DB.length){dr.innerHTML='<span style="color:var(--ink3)">Sem dados ainda…</span>';return;}
+    dr.innerHTML=DB.slice(0,5).map(r=>{
+      var t=TM[r.meso]||'?';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:.3rem 0;border-bottom:1px solid var(--border);gap:.5rem;">
+        <span style="font-weight:700;" class="${TCH[t]||''}">${r.meso}</span>
+        <span class="badge badge-${t.toLowerCase()}">${t}</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:.72rem;">pH ${r.ph??'—'}</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--teal)">OD ${r.odm??'—'}</span>
+        <span style="font-size:.65rem;color:var(--ink3);">${r.date||''}</span>
+      </div>`;
+    }).join('');
   }
 }
 
-// ═══════════════════════════════════════
-// CHAT — AshZap
-// ═══════════════════════════════════════
-async function sendMsg() {
-  var input = document.getElementById('chat-input');
-  var sender = document.getElementById('chat-sender');
-  var txt = input.value.trim();
-  if(!txt) return;
-  var { collection, addDoc, serverTimestamp } = window.fbFns;
-  try {
-    await addDoc(collection(window.db, 'chat'), {
-      text: txt,
-      sender: sender.value || 'Equipe',
-      timestamp: serverTimestamp()
+// ════════════════════════════════════════════
+// EXCEL IMPORT
+// ════════════════════════════════════════════
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('xls-zone').classList.remove('drag');
+  var f=e.dataTransfer.files[0];
+  if(f) readExcel(f);
+}
+
+function normalizeKey(s) {
+  return (s||'').toString().toLowerCase()
+    .replace(/[áàã]/g,'a').replace(/[éê]/g,'e').replace(/[í]/g,'i')
+    .replace(/[óôõ]/g,'o').replace(/[ú]/g,'u').replace(/[ç]/g,'c')
+    .replace(/\s+/g,'_').replace(/[^a-z0-9_%\/\.]/g,'').trim();
+}
+
+function readExcel(file) {
+  if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try {
+      var wb=XLSX.read(e.target.result,{type:'array'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var raw=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!raw.length){toast('⚠ Planilha vazia','err');return;}
+
+      // Build column map
+      var headers=Object.keys(raw[0]);
+      var map={}; // header → internal field
+      var mapDisplay=[];
+      headers.forEach(h=>{
+        var key=normalizeKey(h);
+        var field=COL_MAP[key];
+        if(field){map[h]=field;mapDisplay.push({h,field});}
+      });
+
+      // Show mapping
+      var mg=document.getElementById('xls-map-grid');
+      var mf=document.getElementById('xls-field-map');
+      var mc=document.getElementById('xls-map-count');
+      mf.style.display='block';
+      mc.textContent=mapDisplay.length+' colunas mapeadas de '+headers.length;
+      mg.innerHTML=mapDisplay.map(x=>
+        `<div style="display:flex;align-items:center;gap:.3rem;font-family:'JetBrains Mono',monospace;font-size:.62rem;background:var(--bg);padding:.3rem .6rem;border-radius:6px;border:1px solid var(--border);">
+          <span style="color:var(--ink3);">${x.h}</span>
+          <span style="color:var(--ink3)">→</span>
+          <span style="color:var(--green);font-weight:700;">${x.field}</span>
+        </div>`
+      ).join('');
+
+      // Parse rows
+      xlsRows=raw.map((row,idx)=>{
+        var rec={rep:'R1',op:''};
+        Object.keys(row).forEach(h=>{
+          var field=map[h];
+          if(!field) return;
+          var val=row[h];
+          if(field==='meso') rec.meso=(val||'').toString().trim();
+          else if(field==='date') rec.date=parseDateBR(val);
+          else if(field==='rep') rec.rep=(val||'R1').toString().trim();
+          else if(field==='op') rec.op=(val||'').toString().trim();
+          else if(field==='obs') rec.obs=(val||'').toString().trim();
+          else rec[field]=(val===''||val===null||val===undefined)?null:parseFloat(val);
+        });
+        rec._idx=idx;
+        return rec;
+      }).filter(r=>r.meso&&MESOS.includes(r.meso));
+
+      if(!xlsRows.length){toast('⚠ Nenhuma linha válida encontrada (verifique coluna Mesocosmo)','err');return;}
+
+      // Show preview
+      var thead=document.getElementById('xls-thead');
+      var tbody=document.getElementById('xls-tbody');
+      var previewCols=['meso','date','ph','orp','odp','odm','cond','conda','resist','tds','psu','fnu','temp','psi'];
+      var usedCols=previewCols.filter(c=>xlsRows.some(r=>r[c]!==null&&r[c]!==undefined&&r[c]!==''));
+      thead.innerHTML=`<th>Trat.</th><th>Meso</th><th>Data</th>`+usedCols.filter(c=>c!=='meso'&&c!=='date').map(c=>`<th>${c}</th>`).join('');
+      tbody.innerHTML=xlsRows.map(r=>{
+        var t=TM[r.meso]||'?';
+        return `<tr>
+          <td><span class="badge badge-${t.toLowerCase()}">${t}</span></td>
+          <td><strong class="${TCH[t]}">${r.meso}</strong></td>
+          <td style="font-size:.72rem;">${r.date||'—'}</td>`+
+          usedCols.filter(c=>c!=='meso'&&c!=='date').map(c=>
+            `<td class="mono" style="font-size:.75rem;">${r[c]!==null&&r[c]!==undefined&&r[c]!==''?r[c]:'<span style="color:var(--ink3)">—</span>'}</td>`
+          ).join('')+
+          `</tr>`;
+      }).join('');
+
+      document.getElementById('xls-preview-title').textContent='Prévia — '+xlsRows.length+' linhas válidas de '+raw.length+' no Excel';
+      document.getElementById('xls-preview-wrap').style.display='block';
+      document.getElementById('xls-import-btn').textContent='✅ Importar '+xlsRows.length+' registros';
+      toast('✓ Excel lido: '+xlsRows.length+' linhas válidas','ok');
+    } catch(err) {
+      toast('⚠ Erro ao ler Excel: '+err.message,'err');
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseDateBR(val) {
+  if(!val) return '';
+  var s=val.toString().trim();
+  // DD/MM/YYYY
+  var m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(m) return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+  // YYYY-MM-DD already
+  if(s.match(/^\d{4}-\d{2}-\d{2}/)) return s.slice(0,10);
+  // Excel serial number
+  if(!isNaN(s)) {
+    var d=XLSX.SSF.parse_date_code(parseInt(s));
+    if(d) return d.y+'-'+String(d.m).padStart(2,'0')+'-'+String(d.d).padStart(2,'0');
+  }
+  return s;
+}
+
+async function importExcel() {
+  if(!xlsRows.length){toast('⚠ Nenhum dado para importar','err');return;}
+  if(!window.fbFns){toast('⚠ Firebase não conectado','err');return;}
+  var {collection,addDoc,serverTimestamp,writeBatch,doc}=window.fbFns;
+  var op=document.getElementById('xls-op').value||'Import';
+  var prog=document.getElementById('xls-import-progress');
+  var progTxt=document.getElementById('xls-prog-txt');
+  var btn=document.getElementById('xls-import-btn');
+  prog.style.display='flex'; btn.disabled=true;
+
+  var ok=0, fail=0;
+  // Batch in groups of 20 (Firestore writeBatch limit = 500, being conservative)
+  var batchSize=20;
+  for(var i=0;i<xlsRows.length;i+=batchSize) {
+    var chunk=xlsRows.slice(i,i+batchSize);
+    var batch=writeBatch(window.db);
+    chunk.forEach(r=>{
+      var newDoc=doc(collection(window.db,'records'));
+      batch.set(newDoc,{
+        date:r.date||'',time:r.time||'',meso:r.meso,rep:r.rep||'R1',op:op,
+        ph:r.ph??null,orp:r.orp??null,odp:r.odp??null,odm:r.odm??null,
+        cond:r.cond??null,conda:r.conda??null,resist:r.resist??null,
+        tds:r.tds??null,psu:r.psu??null,fnu:r.fnu??null,
+        temp:r.temp??null,psi:r.psi??null,
+        co2:r.co2??null,ch4:r.ch4??null,
+        obs:r.obs||'',timestamp:serverTimestamp()
+      });
     });
-    input.value = '';
-    input.style.height = 'auto';
-  } catch(e) { toast('⚠ ' + e.message, 'err'); }
+    try { await batch.commit(); ok+=chunk.length; }
+    catch(e) { fail+=chunk.length; console.error(e); }
+    progTxt.textContent='Importando… '+ok+'/'+xlsRows.length+' registros';
+  }
+
+  prog.style.display='none'; btn.disabled=false;
+  if(ok>0) toast('🔥 '+ok+' registros importados!','ok');
+  if(fail>0) toast('⚠ '+fail+' erros','err');
+  xlsRows=[];
+  document.getElementById('xls-preview-wrap').style.display='none';
+  document.getElementById('xls-field-map').style.display='none';
+  // auto-switch to records
+  setTimeout(()=>dtab('list',document.getElementById('dtab-list')),800);
+}
+
+// ════════════════════════════════════════════
+// CHAT
+// ════════════════════════════════════════════
+async function sendMsg() {
+  var input=document.getElementById('chat-input');
+  var sender=document.getElementById('chat-sender');
+  var txt=input.value.trim(); if(!txt) return;
+  var {collection,addDoc,serverTimestamp}=window.fbFns;
+  try {
+    await addDoc(collection(window.db,'chat'),{text:txt,sender:sender.value||'Equipe',timestamp:serverTimestamp()});
+    input.value='';
+  } catch(e){toast('⚠ '+e.message,'err');}
 }
 
 function renderChat(msgs) {
-  var feed = document.getElementById('chat-feed');
-  if(!feed) return;
-  if(!msgs.length) {
-    feed.innerHTML = '<div style="text-align:center;color:var(--tx3);font-family:\'JetBrains Mono\',monospace;font-size:.72rem;padding:3rem;">Ainda silêncio no campo… 🌿<br>Manda a primeira mensagem!</div>';
+  var feed=document.getElementById('chat-feed'); if(!feed) return;
+  if(!msgs.length){
+    feed.innerHTML='<div style="text-align:center;color:var(--ink3);font-family:\'JetBrains Mono\',monospace;font-size:.72rem;padding:3rem;">Ainda silêncio no campo… 🌿</div>';
     return;
   }
-  var colors = {};
-  TEAM.forEach(m => colors[m.name] = m.color);
-  feed.innerHTML = msgs.map(m => {
-    var col = colors[m.sender] || '#ff5e1a';
-    var ini = (m.sender||'?')[0].toUpperCase();
-    var ts = m.timestamp?.toDate ? m.timestamp.toDate().toLocaleString('pt-BR', {hour:'2-digit',minute:'2-digit'}) : '';
+  var colors={}; TEAM.forEach(m=>colors[m.name]=m.color);
+  var prev=feed.scrollHeight-feed.scrollTop===feed.clientHeight;
+  feed.innerHTML=msgs.map(m=>{
+    var col=colors[m.sender]||'#e8340a';
+    var ts=m.timestamp?.toDate?m.timestamp.toDate().toLocaleString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
     return `<div class="chat-msg">
-      <div class="chat-avatar" style="background:${col}">${ini}</div>
+      <div class="chat-av" style="background:${col}">${(m.sender||'?')[0]}</div>
       <div class="chat-bubble">
-        <div class="chat-meta"><strong>${m.sender}</strong>${ts}</div>
+        <div class="chat-meta"><strong>${m.sender}</strong> ${ts}</div>
         <div class="chat-text">${m.text.replace(/\n/g,'<br>')}</div>
       </div>
     </div>`;
   }).join('');
-  feed.scrollTop = feed.scrollHeight;
+  if(prev||feed.children.length<=5) feed.scrollTop=feed.scrollHeight;
 }
 
-// ═══════════════════════════════════════
+// ════════════════════════════════════════════
 // PHOTOS
-// ═══════════════════════════════════════
+// ════════════════════════════════════════════
 async function uploadPhotos(files) {
-  var { ref, uploadBytes, getDownloadURL, collection, addDoc, serverTimestamp } = window.fbFns;
-  toast('📸 Enviando ' + files.length + ' foto(s)…');
+  var {ref,uploadBytes,getDownloadURL,collection,addDoc,serverTimestamp}=window.fbFns;
+  toast('📸 Enviando '+files.length+' foto(s)…');
   for(var file of files) {
     try {
-      var storageRef = ref(window.storage, 'photos/' + Date.now() + '_' + file.name);
-      await uploadBytes(storageRef, file);
-      var url = await getDownloadURL(storageRef);
-      await addDoc(collection(window.db, 'photos'), {
-        url, name: file.name, path: storageRef.fullPath,
-        author: document.getElementById('f-op') ? document.getElementById('f-op').value : 'Equipe',
-        timestamp: serverTimestamp()
-      });
-      toast('✓ ' + file.name + ' enviado!', 'ok');
-    } catch(e) {
-      toast('⚠ Erro ao enviar ' + file.name + ': ' + e.message, 'err');
-    }
+      var sRef=ref(window.storage,'photos/'+Date.now()+'_'+file.name);
+      await uploadBytes(sRef,file);
+      var url=await getDownloadURL(sRef);
+      await addDoc(collection(window.db,'photos'),{url,name:file.name,path:sRef.fullPath,author:document.getElementById('f-op')?document.getElementById('f-op').value:'Equipe',timestamp:serverTimestamp()});
+      toast('✓ '+file.name,'ok');
+    } catch(e){toast('⚠ '+e.message,'err');}
   }
 }
 
-async function deletePhoto(id, path) {
+async function deletePhoto(id,path) {
   if(!confirm('Apagar esta foto?')) return;
-  var { doc, deleteDoc, ref, deleteObject } = window.fbFns;
-  try {
-    await deleteDoc(doc(window.db, 'photos', id));
-    await deleteObject(ref(window.storage, path)).catch(() => {});
-    toast('✓ Foto apagada', 'ok');
-  } catch(e) { toast('⚠ ' + e.message, 'err'); }
+  var {doc,deleteDoc,ref,deleteObject}=window.fbFns;
+  try { await deleteDoc(doc(window.db,'photos',id)); await deleteObject(ref(window.storage,path)).catch(()=>{}); toast('✓ Foto apagada','ok'); }
+  catch(e){toast('⚠ '+e.message,'err');}
 }
 
 function renderPhotos(photos) {
-  var feed = document.getElementById('photo-feed');
-  if(!feed) return;
-  if(!photos.length) {
-    feed.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:4rem;color:var(--tx3);">
-      <div style="font-size:3rem;margin-bottom:.8rem;">📸</div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:.75rem;">Nenhuma foto ainda.<br>Clique em "Enviar foto" e registre o campo!</div>
-    </div>`;
+  var feed=document.getElementById('photo-feed'); if(!feed) return;
+  if(!photos.length){
+    feed.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:4rem;color:var(--ink3);"><div style="font-size:3rem;margin-bottom:.75rem;">📸</div><div style="font-family:\'JetBrains Mono\',monospace;font-size:.75rem;">Nenhuma foto ainda.<br>Clique em "Enviar foto" para começar!</div></div>';
     return;
   }
-  feed.innerHTML = photos.map(p =>
+  feed.innerHTML=photos.map(p=>
     `<div class="photo-card">
       <img src="${p.url}" alt="${p.name}" loading="lazy" onclick="window.open('${p.url}','_blank')" style="cursor:zoom-in;">
       <div class="photo-info">
-        <div style="font-size:.82rem;font-weight:600;">${p.name}</div>
-        <div class="photo-meta">${p.author || '—'} · ${p.timestamp?.toDate ? p.timestamp.toDate().toLocaleDateString('pt-BR') : ''}</div>
+        <div style="font-size:.85rem;font-weight:700;color:var(--ink);">${p.name}</div>
+        <div class="photo-meta">${p.author||'—'} · ${p.timestamp?.toDate?p.timestamp.toDate().toLocaleDateString('pt-BR'):''}</div>
         <button class="btn btn-danger btn-sm" style="margin-top:.5rem;width:100%;" onclick="deletePhoto('${p.id}','${p.path}')">🗑 Apagar</button>
       </div>
     </div>`
   ).join('');
 }
 
-// ═══════════════════════════════════════
+// ════════════════════════════════════════════
 // DIARY
-// ═══════════════════════════════════════
+// ════════════════════════════════════════════
 async function saveDiaryEntry() {
-  var text = document.getElementById('diary-text').value.trim();
-  var author = document.getElementById('diary-author').value;
-  var date = document.getElementById('diary-date').value;
-  if(!text) { toast('⚠ Escreva algo!', 'err'); return; }
-  var { collection, addDoc, serverTimestamp } = window.fbFns;
-  try {
-    await addDoc(collection(window.db, 'diary'), { text, author, date, timestamp: serverTimestamp() });
-    document.getElementById('diary-text').value = '';
-    toast('📓 Nota publicada!', 'ok');
-  } catch(e) { toast('⚠ ' + e.message, 'err'); }
+  var text=document.getElementById('diary-text').value.trim();
+  var author=document.getElementById('diary-author').value;
+  var date=document.getElementById('diary-date').value;
+  if(!text){toast('⚠ Escreva algo!','err');return;}
+  var {collection,addDoc,serverTimestamp}=window.fbFns;
+  try { await addDoc(collection(window.db,'diary'),{text,author,date,timestamp:serverTimestamp()}); document.getElementById('diary-text').value=''; toast('📓 Publicado!','ok'); }
+  catch(e){toast('⚠ '+e.message,'err');}
 }
 
 async function deleteDiary(id) {
   if(!confirm('Apagar esta nota?')) return;
-  var { doc, deleteDoc } = window.fbFns;
-  try {
-    await deleteDoc(doc(window.db, 'diary', id));
-    toast('✓ Nota apagada', 'ok');
-  } catch(e) { toast('⚠ ' + e.message, 'err'); }
+  var {doc,deleteDoc}=window.fbFns;
+  try { await deleteDoc(doc(window.db,'diary',id)); toast('✓ Apagado','ok'); }
+  catch(e){toast('⚠ '+e.message,'err');}
 }
 
 function renderDiary(entries) {
-  var feed = document.getElementById('diario-feed');
-  if(!feed) return;
-  if(!entries.length) {
-    feed.innerHTML = '<div style="color:var(--tx3);font-family:\'JetBrains Mono\',monospace;font-size:.72rem;padding:2rem;text-align:center;">Diário vazio — escreva a primeira nota do campo!</div>';
-    return;
-  }
-  feed.innerHTML = entries.map(e =>
-    `<div class="diario-entry">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-        <div>
-          <div class="diario-date">${e.date || ''}</div>
-          <div class="diario-author">${e.author || '—'}</div>
-        </div>
-        <button class="btn btn-danger btn-sm" style="padding:.2rem .45rem;font-size:.62rem;" onclick="deleteDiary('${e.id}')">🗑</button>
+  var feed=document.getElementById('diario-feed'); if(!feed) return;
+  if(!entries.length){feed.innerHTML='<div style="color:var(--ink3);font-family:\'JetBrains Mono\',monospace;font-size:.72rem;text-align:center;padding:2rem;">Diário vazio — escreva a primeira nota!</div>';return;}
+  feed.innerHTML=entries.map(e=>
+    `<div class="diary-entry">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+        <div><div class="de-date">${e.date||''}</div><div class="de-author">${e.author||'—'}</div></div>
+        <button class="btn btn-danger btn-sm" onclick="deleteDiary('${e.id}')" style="padding:.2rem .4rem;font-size:.62rem;">🗑</button>
       </div>
-      <div class="diario-text">${e.text.replace(/\n/g,'<br>')}</div>
+      <div class="de-text">${e.text.replace(/\n/g,'<br>')}</div>
     </div>`
   ).join('');
 }
 
-// ═══════════════════════════════════════
+// ════════════════════════════════════════════
 // ANALYSES
-// ═══════════════════════════════════════
-function nnum(v) { if(v===null||v===undefined||v==='') return null; var n=+v; return isNaN(n)?null:n; }
-function stats(arr) {
-  var vals = arr.map(nnum).filter(x => x !== null);
+// ════════════════════════════════════════════
+function nn(v){if(v===null||v===undefined||v==='')return null;var n=+v;return isNaN(n)?null:n;}
+function stats(arr){
+  var vals=arr.map(nn).filter(x=>x!==null);
   if(!vals.length) return null;
-  var n = vals.length, mean = vals.reduce((a,b)=>a+b,0)/n;
-  var sd = n>1 ? Math.sqrt(vals.reduce((s,x)=>s+Math.pow(x-mean,2),0)/(n-1)) : 0;
-  var cv = mean !== 0 ? Math.abs(sd/mean*100) : 0;
-  return {n, mean: Math.round(mean*1000)/1000, sd: Math.round(sd*1000)/1000, cv: Math.round(cv*10)/10};
+  var n=vals.length,mean=vals.reduce((a,b)=>a+b,0)/n;
+  var sd=n>1?Math.sqrt(vals.reduce((s,x)=>s+Math.pow(x-mean,2),0)/(n-1)):0;
+  var cv=mean!==0?Math.abs(sd/mean*100):0;
+  return{n,mean:Math.round(mean*1000)/1000,sd:Math.round(sd*1000)/1000,cv:Math.round(cv*10)/10};
 }
 
-function buildAnalises() {
-  var v = document.getElementById('an-var').value;
-  var tcols = {T0:'#22c55e',T1:'#eab308',T2:'#f97316',T3:'#ef4444'};
-  ['T0','T1','T2','T3'].forEach(t => {
-    var mesos = MESOS.filter(m => TREAT_MAP[m] === t);
-    var vals = DB.filter(r => mesos.includes(r.meso)).map(r => nnum(r[v])).filter(x => x !== null);
-    var st = stats(vals);
-    var el = document.getElementById('an-' + t.toLowerCase());
-    if(!el) return;
-    el.querySelector('.stat-big').textContent = st ? st.mean : '—';
-    el.querySelector('.card-title').textContent = t + (st ? ' · n=' + st.n : '');
+function buildAnalises(){
+  var v=document.getElementById('an-var').value;
+  var labels={T0:'T0 — Controle',T1:'T1 — 2 g/L',T2:'T2 — 5 g/L',T3:'T3 — 10 g/L'};
+  ['T0','T1','T2','T3'].forEach(t=>{
+    var mesos=MESOS.filter(m=>TM[m]===t);
+    var vals=DB.filter(r=>mesos.includes(r.meso)).map(r=>nn(r[v])).filter(x=>x!==null);
+    var st=stats(vals);
+    var el=document.getElementById('an-'+t.toLowerCase()); if(!el) return;
+    el.querySelector('.stat-n').textContent=st?st.mean:'—';
+    el.querySelector('.stat-u').textContent=st?'n='+st.n+' · DP='+st.sd:'n=0';
+    el.querySelector('.card-label').textContent=labels[t]+(st?' · cv='+st.cv+'%':'');
   });
-
-  // Replica table
-  var tbody = document.getElementById('an-tbody');
-  if(!tbody) return;
-  var rows = [];
-  ['T0','T1','T2','T3'].forEach(t => {
-    var tVals = DB.filter(r => MESOS.filter(m=>TREAT_MAP[m]===t).includes(r.meso)).map(r=>nnum(r[v])).filter(x=>x!==null);
-    var tSt = stats(tVals);
-    MESOS.filter(m=>TREAT_MAP[m]===t).forEach(m => {
-      ['R1','R2'].forEach(rep => {
-        var vals = DB.filter(r=>r.meso===m&&(r.rep||'R1')===rep).map(r=>nnum(r[v])).filter(x=>x!==null);
-        var st = stats(vals);
-        var outlier = st && tSt && tSt.sd>0 && Math.abs((st.mean-tSt.mean)/tSt.sd)>1.5;
+  var tbody=document.getElementById('an-tbody'); if(!tbody) return;
+  var rows=[];
+  ['T0','T1','T2','T3'].forEach(t=>{
+    var tVals=DB.filter(r=>MESOS.filter(m=>TM[m]===t).includes(r.meso)).map(r=>nn(r[v])).filter(x=>x!==null);
+    var tSt=stats(tVals);
+    MESOS.filter(m=>TM[m]===t).forEach(m=>{
+      ['R1','R2'].forEach(rep=>{
+        var vals=DB.filter(r=>r.meso===m&&(r.rep||'R1')===rep).map(r=>nn(r[v])).filter(x=>x!==null);
+        var st=stats(vals);
+        var outlier=st&&tSt&&tSt.sd>0&&Math.abs((st.mean-tSt.mean)/tSt.sd)>1.5;
         if(st&&st.cv>30) outlier=true;
-        var tc = tcols[t];
         rows.push(`<tr>
-          <td style="color:${tc};font-family:'JetBrains Mono',monospace;">${t}</td>
-          <td style="font-family:'JetBrains Mono',monospace;">${m}</td>
-          <td><span class="rep-badge">${rep}</span></td>
+          <td><span class="badge badge-${t.toLowerCase()}">${t}</span></td>
+          <td style="font-weight:700;" class="${TCH[t]}">${m}</td>
+          <td><span class="badge badge-r">${rep}</span></td>
           <td>${st?st.n:0}</td>
-          <td class="val">${st?st.mean:'—'}</td>
-          <td>${st?st.sd:'—'}</td>
-          <td style="color:${st&&st.cv>30?'#ef4444':st&&st.cv>20?'#eab308':'var(--tx2)'}">${st?st.cv+'%':'—'}</td>
-          <td>${outlier?'<span style="color:#ef4444;font-weight:700;">⚠ VERIFICAR</span>':'<span style="color:var(--teal)">✓ ok</span>'}</td>
+          <td class="mono">${st?st.mean:'—'}</td>
+          <td class="mono">${st?st.sd:'—'}</td>
+          <td class="${st?st.cv>30?'an-err':st.cv>20?'an-warn':'an-ok':''}">${st?st.cv+'%':'—'}</td>
+          <td>${outlier?'<span class="an-err">⚠ VERIFICAR</span>':'<span class="an-ok">✓ ok</span>'}</td>
         </tr>`);
       });
     });
   });
-  tbody.innerHTML = rows.join('') || '<tr><td colspan="8" style="color:var(--tx3);text-align:center;padding:1.5rem;">Sem dados para análise</td></tr>';
+  tbody.innerHTML=rows.join('')||'<tr><td colspan="8" style="text-align:center;padding:1.5rem;color:var(--ink3);">Sem dados para análise</td></tr>';
 }
 
-// ═══════════════════════════════════════
+// ════════════════════════════════════════════
 // EXPORT
-// ═══════════════════════════════════════
-function exportCSV() {
-  var hdr = 'Data,Hora,Mesocosmo,Tratamento,Replica,Operador,pH,ORP_mV,OD_pct,OD_mgL,Cond_uS,TDS_ppm,Temp_C,Turbidez_NTU,CO2_umol,CH4_nmol,KOhm,KPA,Obs\n';
-  var rows = DB.map(r => {
-    var t = TREAT_MAP[r.meso]||'';
-    var s = v => (v!==null&&v!==undefined&&v!=='') ? v : '';
-    return [s(r.date),s(r.time),r.meso,t,r.rep||'',s(r.op),s(r.ph),s(r.orp),s(r.odp),s(r.odm),s(r.cond),s(r.tds),s(r.temp),s(r.turb),s(r.co2),s(r.ch4),s(r.kohm),s(r.kpa),'"'+(r.obs||'')+'"'].join(',');
+// ════════════════════════════════════════════
+function exportCSV(){
+  var hdr='Data,Hora,Mesocosmo,Tratamento,Replica,Operador,pH,ORP_mV,OD_pct,OD_mgL,Cond_uS,CondA_uS,Resist_MOhm,TDS_ppm,PSU,FNU,Temp_C,Pressao_psi,CO2,CH4,Obs\n';
+  var rows=DB.map(r=>{
+    var t=TM[r.meso]||'';
+    var s=v=>(v!==null&&v!==undefined&&v!=='')?v:'';
+    return [s(r.date),s(r.time),r.meso,t,r.rep||'',s(r.op),s(r.ph),s(r.orp),s(r.odp),s(r.odm),s(r.cond),s(r.conda),s(r.resist),s(r.tds),s(r.psu),s(r.fnu),s(r.temp),s(r.psi),s(r.co2),s(r.ch4),'"'+(r.obs||'')+'"'].join(',');
   }).join('\n');
-  var csv = '\uFEFF' + hdr + rows;
-  var fname = 'BRASA_' + new Date().toISOString().slice(0,10) + '.csv';
-  var b64 = btoa(unescape(encodeURIComponent(csv)));
-  var a = document.createElement('a');
-  a.href = 'data:text/csv;charset=utf-8;base64,' + b64;
-  a.download = fname; a.click();
-  toast('✓ CSV: ' + DB.length + ' registros', 'ok');
+  var csv='\uFEFF'+hdr+rows;
+  var fname='BRASA_'+new Date().toISOString().slice(0,10)+'.csv';
+  var b64=btoa(unescape(encodeURIComponent(csv)));
+  var a=document.createElement('a'); a.href='data:text/csv;charset=utf-8;base64,'+b64; a.download=fname; a.click();
+  toast('✓ CSV: '+DB.length+' registros','ok');
 }
 
-function exportExcel() {
-  if(typeof XLSX === 'undefined') { exportCSV(); return; }
-  var wb = XLSX.utils.book_new();
-  var hdr = ['Data','Hora','Mesocosmo','Tratamento','Replica','Operador','pH','ORP_mV','OD_pct','OD_mgL','Cond_uS','TDS_ppm','Temp_C','Turbidez','CO2','CH4','KOhm','KPA','Obs'];
-  var rows = DB.map(r => {
-    var t = TREAT_MAP[r.meso]||'';
-    var s = v => (v!==null&&v!==undefined&&v!=='') ? v : '';
-    return [s(r.date),s(r.time),r.meso,t,r.rep||'',s(r.op),s(r.ph),s(r.orp),s(r.odp),s(r.odm),s(r.cond),s(r.tds),s(r.temp),s(r.turb),s(r.co2),s(r.ch4),s(r.kohm),s(r.kpa),r.obs||''];
+function exportExcel(){
+  if(typeof XLSX==='undefined'){exportCSV();return;}
+  var wb=XLSX.utils.book_new();
+  var hdr=['Data','Hora','Mesocosmo','Tratamento','Replica','Operador','pH','ORP_mV','OD_%','OD_mgL','Cond_uS','CondA_uS','Resist_MOhm','TDS_ppm','PSU','FNU','Temp_C','Pressao_psi','CO2','CH4','Obs'];
+  var rows=DB.map(r=>{
+    var t=TM[r.meso]||'';
+    var s=v=>(v!==null&&v!==undefined&&v!=='')?v:'';
+    return [s(r.date),s(r.time),r.meso,t,r.rep||'',s(r.op),s(r.ph),s(r.orp),s(r.odp),s(r.odm),s(r.cond),s(r.conda),s(r.resist),s(r.tds),s(r.psu),s(r.fnu),s(r.temp),s(r.psi),s(r.co2),s(r.ch4),r.obs||''];
   });
-  var ws = XLSX.utils.aoa_to_sheet([hdr, ...rows]);
-  XLSX.utils.book_append_sheet(wb, ws, 'BRASA_Dados');
-  var out = XLSX.write(wb, {type:'array', bookType:'xlsx'});
-  var b64 = btoa(String.fromCharCode(...new Uint8Array(out)));
-  var a = document.createElement('a');
-  a.href = 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + b64;
-  a.download = 'BRASA_' + new Date().toISOString().slice(0,10) + '.xlsx';
-  a.click();
-  toast('✓ Excel: ' + DB.length + ' registros', 'ok');
+  var ws=XLSX.utils.aoa_to_sheet([hdr,...rows]);
+  XLSX.utils.book_append_sheet(wb,ws,'BRASA_Dados');
+  var out=XLSX.write(wb,{type:'array',bookType:'xlsx'});
+  var b64=btoa(String.fromCharCode(...new Uint8Array(out)));
+  var a=document.createElement('a');
+  a.href='data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,'+b64;
+  a.download='BRASA_'+new Date().toISOString().slice(0,10)+'.xlsx'; a.click();
+  toast('✓ Excel: '+DB.length+' registros','ok');
 }
 
-// ═══════════════════════════════════════
+// ════════════════════════════════════════════
 // INIT
-// ═══════════════════════════════════════
-(function init() {
-  var now = new Date();
-  document.getElementById('f-date').value = now.toISOString().slice(0,10);
-  document.getElementById('f-time').value = now.toTimeString().slice(0,5);
-  document.getElementById('diary-date').value = now.toISOString().slice(0,10);
+// ════════════════════════════════════════════
+(function init(){
+  var now=new Date();
+  document.getElementById('f-date').value=now.toISOString().slice(0,10);
+  document.getElementById('f-time').value=now.toTimeString().slice(0,5);
+  document.getElementById('diary-date').value=now.toISOString().slice(0,10);
   renderTeam();
   setLang('pt');
+  dtab('form',document.getElementById('dtab-form'));
 })();
 </script>
 </body>
