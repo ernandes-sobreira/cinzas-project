@@ -2590,21 +2590,13 @@ function drawJitter(divId, v, tStats, vLabel, DBsrc) {
     // Background band
     svg+=svgEl('rect',{x:PL+tGap*ti+2,y:PT,width:tGap-4,height:cH,fill:T_COLORS_A[t],rx:4},'');
 
-    // Treatment mean line (dashed)
+    // Treatment mean line (dashed) — spans full group width
     if(tSt&&tSt.mean!==null){
       var ym=scaleY(tSt.mean,ymin,ymax,PT,PT+cH);
       svg+=svgEl('line',{x1:PL+tGap*ti+8,y1:ym,x2:PL+tGap*(ti+1)-8,y2:ym,
         stroke:col,'stroke-width':1.5,'stroke-dasharray':'6,4',opacity:.8},'');
       // Mean value label on the right
       svg+=svgEl('text',{x:PL+tGap*(ti+1)-4,y:ym-3,'text-anchor':'end',fill:col,'font-size':8,'font-weight':'bold'},fmtV(tSt.mean));
-    }
-
-    // DP range box
-    if(tSt&&tSt.sd>0&&tSt.mean!==null){
-      var yUp=scaleY(tSt.mean+tSt.sd,ymin,ymax,PT,PT+cH);
-      var yDn=scaleY(tSt.mean-tSt.sd,ymin,ymax,PT,PT+cH);
-      svg+=svgEl('rect',{x:cx-tGap*0.18,y:yUp,width:tGap*0.36,height:yDn-yUp,
-        fill:col,'fill-opacity':0.08,stroke:col,'stroke-width':1,'stroke-opacity':0.3,rx:2},'');
     }
 
     // 3 replica points — spread evenly
