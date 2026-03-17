@@ -1611,8 +1611,8 @@ function updateDashboard() {
       return '<div style="display:flex;justify-content:space-between;align-items:center;padding:.3rem 0;border-bottom:1px solid var(--border);gap:.5rem;">'+
         '<span style="font-weight:700;" class="'+(TCH[t]||'')+'">'+r.meso+'</span>'+
         '<span class="badge badge-'+t.toLowerCase()+'">'+t+'</span>'+
-        '<span style="font-family:'JetBrains Mono',monospace;font-size:.72rem;">pH '+(r.ph!=null?r.ph:'—')+'</span>'+
-        '<span style="font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--teal)">OD '+(r.odm!=null?r.odm:'—')+'</span>'+
+        '<span style="font-family:monospace;font-size:.72rem;">pH '+(r.ph!=null?r.ph:'—')+'</span>'+
+        '<span style="font-family:monospace;font-size:.72rem;color:var(--teal)">OD '+(r.odm!=null?r.odm:'—')+'</span>'+
         '<span style="font-size:.65rem;color:var(--ink3);">'+(r.date||'')+'</span>'+
       '</div>';
     }).join('');
@@ -1761,7 +1761,7 @@ function readExcel(file) {
       mf.style.display='block';
       mc.textContent=mapDisplay.length+' colunas mapeadas de '+headers.length;
       mg.innerHTML=mapDisplay.map(function(x){
-        return '<div style="display:flex;align-items:center;gap:.3rem;font-family:'JetBrains Mono',monospace;font-size:.62rem;background:var(--bg);padding:.3rem .6rem;border-radius:6px;border:1px solid var(--border);">'+
+        return '<div style="display:flex;align-items:center;gap:.3rem;font-family:monospace;font-size:.62rem;background:var(--bg);padding:.3rem .6rem;border-radius:6px;border:1px solid var(--border);">'+
           '<span style="color:var(--ink3);">'+x.h+'</span>'+
           '<span style="color:var(--ink3)">&#8594;</span>'+
           '<span style="color:var(--green);font-weight:700;">'+x.field+'</span>'+
