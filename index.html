@@ -1729,6 +1729,9 @@ function readExcel(file) {
   reader.onerror = function() { toast('⚠ Erro ao ler o arquivo','err'); };
   reader.readAsArrayBuffer(file);
 }
+
+function normalizeKey(s) {
+  return (s||'').toString().toLowerCase()
     .replace(/[áàã]/g,'a').replace(/[éê]/g,'e').replace(/[í]/g,'i')
     .replace(/[óôõ]/g,'o').replace(/[ú]/g,'u').replace(/[ç]/g,'c')
     .replace(/\s+/g,'_').replace(/[^a-z0-9_%\/\.]/g,'').trim();
@@ -1784,7 +1787,7 @@ function readExcel(file) {
         });
         rec._idx=idx;
         return rec;
-      });});
+      });
       xlsRows=xlsRows.filter(function(r){return r.meso&&MESOS.indexOf(r.meso)>=0;});
 
       if(!xlsRows.length){toast('⚠ Nenhuma linha válida encontrada (verifique coluna Mesocosmo)','err');return;}
@@ -1929,8 +1932,7 @@ function renderChat(msgs) {
       '<div class="chat-av" style="background:'+col+'">'+(m.sender||'?')[0]+'</div>'+
       '<div class="chat-bubble">'+
         '<div class="chat-meta"><strong>'+m.sender+'</strong> '+ts+'</div>'+
-        '<div class="chat-text">'+m.text.replace(/
-/g,'<br>')+'</div>'+
+        '<div class="chat-text">'+m.text.replace(/\n/g,'<br>')+'</div>'+
       '</div>'+
     '</div>';
   }).join('');
@@ -1969,11 +1971,11 @@ function renderPhotos(photos) {
   }
   feed.innerHTML=photos.map(function(p){
     return '<div class="photo-card">'+
-      '<img src="'+p.url+'" alt="'+p.name+'" loading="lazy" onclick="window.open(''+p.url+'','_blank')" style="cursor:zoom-in;">'+
+      '<img src="'+p.url+'" alt="'+p.name+'" loading="lazy" onclick="window.open(\''+p.url+'\',\'_blank\')" style="cursor:zoom-in;">'+
       '<div class="photo-info">'+
         '<div style="font-size:.85rem;font-weight:700;color:var(--ink);">'+p.name+'</div>'+
         '<div class="photo-meta">'+(p.author||'—')+' · '+(p.timestamp&&p.timestamp.toDate?p.timestamp.toDate().toLocaleDateString('pt-BR'):'')+'</div>'+
-        '<button class="btn btn-danger btn-sm" style="margin-top:.5rem;width:100%;" onclick="deletePhoto(''+p.id+'',''+p.path+'')">🗑 Apagar</button>'+
+        '<button class="btn btn-danger btn-sm" style="margin-top:.5rem;width:100%;" onclick="deletePhoto(\''+p.id+'\',\''+p.path+'\')">🗑 Apagar</button>'+
       '</div>'+
     '</div>';
   }).join('');
@@ -2006,10 +2008,9 @@ function renderDiary(entries) {
     return '<div class="diary-entry">'+
       '<div style="display:flex;align-items:flex-start;justify-content:space-between;">'+
         '<div><div class="de-date">'+(e.date||'')+'</div><div class="de-author">'+(e.author||'—')+'</div></div>'+
-        '<button class="btn btn-danger btn-sm" onclick="deleteDiary(''+e.id+'')" style="padding:.2rem .4rem;font-size:.62rem;">🗑</button>'+
+        '<button class="btn btn-danger btn-sm" onclick="deleteDiary(\''+e.id+'\')" style="padding:.2rem .4rem;font-size:.62rem;">🗑</button>'+
       '</div>'+
-      '<div class="de-text">'+e.text.replace(/
-/g,'<br>')+'</div>'+
+      '<div class="de-text">'+e.text.replace(/\n/g,'<br>')+'</div>'+
     '</div>';
   }).join('');
 }
