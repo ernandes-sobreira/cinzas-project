@@ -602,23 +602,37 @@ footer strong { color:#fff; }
   <div id="dp-xls" style="display:none;padding:1rem 1.5rem;">
     <div class="card" style="max-width:900px;margin-bottom:1rem;">
       <div class="card-label">📂 <span data-i="xls_title">Upload de planilha Excel</span></div>
-      <p style="font-size:.85rem;color:var(--ink2);margin:.5rem 0 1rem;line-height:1.65;" data-i="xls_desc">
-        Envie um arquivo <strong>.xlsx</strong> com colunas: <code style="background:var(--bg2);padding:.1rem .35rem;border-radius:4px;font-size:.78rem;">Mesocosmo, Data, ORP_mV, pH, OD_%, OD_mg_L, Cond_uScm, CondA_uScm, Resist_MOhm_cm, TDS_ppm, PSU, FNU, Temp_C, Pressao_psi</code><br>
-        CO₂ e CH₄ podem ser adicionados nas colunas adicionais. Os dados serão importados para todos os mesocosmos de uma vez.
+      <p style="font-size:.85rem;color:var(--ink2);margin:.5rem 0 1rem;line-height:1.65;">
+        Envie um <strong>.xlsx</strong> com colunas padrão BRASA:<br>
+        <code style="background:var(--bg2);padding:.2rem .4rem;border-radius:4px;font-size:.75rem;display:inline-block;margin-top:.3rem;">Mesocosmo · Data · ORP_mV · pH · OD_% · OD_mg_L · Cond_uScm · CondA_uScm · Resist_MOhm_cm · TDS_ppm · PSU · FNU · Temp_C · Pressao_psi</code>
       </p>
-      <div class="upload-zone" id="xls-zone" ondragover="this.classList.add('drag');event.preventDefault();" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
-        <input type="file" accept=".xlsx,.xls" onchange="readExcel(this.files[0])">
-        <div class="uz-icon">📊</div>
-        <div class="uz-title" data-i="xls_drop">Arraste o Excel aqui ou clique para escolher</div>
-        <div class="uz-sub">.xlsx · .xls · até 10 MB</div>
+
+      <!-- SIMPLE BUTTON UPLOAD — always works -->
+      <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem;">
+        <label class="btn btn-fire" style="cursor:pointer;font-size:.9rem;">
+          📂 Escolher arquivo .xlsx
+          <input type="file" id="xls-file-input" accept=".xlsx,.xls" style="display:none;" onchange="readExcel(this.files[0])">
+        </label>
+        <span id="xls-filename" style="font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--ink3);">Nenhum arquivo escolhido</span>
+      </div>
+
+      <!-- OR drag zone as visual only -->
+      <div id="xls-zone" style="border:2px dashed var(--border2);border-radius:10px;padding:1.5rem;text-align:center;background:var(--bg);cursor:pointer;transition:.2s;"
+        ondragover="this.style.borderColor='var(--fire)';this.style.background='rgba(232,52,10,.03)';event.preventDefault();"
+        ondragleave="this.style.borderColor='';this.style.background='';"
+        ondrop="this.style.borderColor='';this.style.background='';handleDrop(event);"
+        onclick="document.getElementById('xls-file-input').click();">
+        <div style="font-size:2rem;margin-bottom:.4rem;">📊</div>
+        <div style="font-size:.9rem;font-weight:700;color:var(--ink);">Ou arraste o Excel aqui</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--ink3);margin-top:.2rem;">.xlsx · .xls · até 10 MB</div>
       </div>
 
       <div id="xls-field-map" style="display:none;margin-top:1rem;">
         <div class="sdiv" style="margin:0 -1.1rem;padding:.5rem 1.1rem;">
-          <span data-i="xls_map">Mapeamento de colunas detectado</span>
+          <span>Colunas detectadas</span>
           <span id="xls-map-count" style="font-size:.65rem;color:var(--green);font-weight:700;"></span>
         </div>
-        <div id="xls-map-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.4rem;margin-top:.7rem;"></div>
+        <div id="xls-map-grid" style="display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.6rem;"></div>
       </div>
     </div>
 
@@ -627,11 +641,9 @@ footer strong { color:#fff; }
       <div class="import-preview">
         <div class="ip-head">
           <span id="xls-preview-title">Prévia — 0 linhas</span>
-          <div style="display:flex;gap:.5rem;">
-            <span id="xls-op-wrap">
-              <select id="xls-op" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:5px;padding:.25rem .5rem;font-family:'JetBrains Mono',monospace;font-size:.65rem;outline:none;"></select>
-            </span>
-            <button class="btn btn-green btn-sm" id="xls-import-btn" onclick="importExcel()">✅ <span data-i="btn_import">Importar todos</span></button>
+          <div style="display:flex;gap:.5rem;align-items:center;">
+            <select id="xls-op" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:5px;padding:.25rem .5rem;font-family:'JetBrains Mono',monospace;font-size:.65rem;outline:none;"></select>
+            <button class="btn btn-green btn-sm" id="xls-import-btn" onclick="importExcel()">✅ Importar todos</button>
           </div>
         </div>
         <div class="tbl-wrap" style="max-height:340px;overflow-y:auto;">
@@ -643,7 +655,7 @@ footer strong { color:#fff; }
       </div>
       <div id="xls-import-progress" style="display:none;padding:1rem;text-align:center;" class="loading">
         <div class="spin"></div>
-        <span id="xls-prog-txt" data-i="importing">Importando registros…</span>
+        <span id="xls-prog-txt">Importando registros…</span>
       </div>
     </div>
   </div>
@@ -721,6 +733,26 @@ footer strong { color:#fff; }
           <tr><td colspan="17" style="text-align:center;padding:2rem;color:var(--ink3);font-family:'JetBrains Mono',monospace;font-size:.7rem;">Aguardando dados…</td></tr>
         </tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- UPLOAD HISTORY (inside dados section) -->
+  <div id="dp-hist" style="display:none;padding:1rem 1.5rem;">
+    <div class="card">
+      <div class="card-label" style="margin-bottom:.6rem;">📜 Histórico de Importações Excel</div>
+      <p style="font-size:.82rem;color:var(--ink2);margin:.4rem 0 1rem;line-height:1.6;">Cada linha = um lote importado via Excel. Rastreie quem fez upload e quando. Se importou em duplicidade, apague aqui e depois use os filtros em "Registros" para apagar os dados.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Data/Hora</th><th>Operador</th><th>Registros</th><th>Variáveis</th><th>Status</th><th>🗑</th>
+            </tr>
+          </thead>
+          <tbody id="hist-tbody">
+            <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--ink3);font-family:'JetBrains Mono',monospace;font-size:.7rem;">Nenhum upload registrado ainda…</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
@@ -1049,32 +1081,6 @@ footer strong { color:#fff; }
             <button class="btn btn-fire btn-sm" onclick="addMember()">+</button>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-  <!-- UPLOAD HISTORY -->
-  <div id="dp-hist" style="display:none;padding:1rem 1.5rem;">
-    <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">
-        <div class="card-label" style="margin:0;">📜 Histórico de Importações Excel</div>
-      </div>
-      <p style="font-size:.82rem;color:var(--ink2);margin:.4rem 0 1rem;line-height:1.6;">Cada linha = um lote importado via Excel. Rastreie quem fez upload e quando. Se importou em duplicidade, apague aqui.</p>
-      <div class="tbl-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Data/Hora</th>
-              <th>Operador</th>
-              <th>Registros</th>
-              <th>Variáveis importadas</th>
-              <th>Status</th>
-              <th>🗑</th>
-            </tr>
-          </thead>
-          <tbody id="hist-tbody">
-            <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--ink3);font-family:'JetBrains Mono',monospace;font-size:.7rem;">Nenhum upload registrado ainda…</td></tr>
-          </tbody>
-        </table>
       </div>
     </div>
   </div>
@@ -1618,13 +1624,111 @@ function updateDashboard() {
 // ════════════════════════════════════════════
 function handleDrop(e) {
   e.preventDefault();
-  document.getElementById('xls-zone').classList.remove('drag');
-  var f=e.dataTransfer.files[0];
-  if(f) readExcel(f);
+  var f = e.dataTransfer.files[0];
+  if (f) readExcel(f);
 }
 
-function normalizeKey(s) {
-  return (s||'').toString().toLowerCase()
+function readExcel(file) {
+  if (!file) return;
+  // Show filename
+  var fn = document.getElementById('xls-filename');
+  if (fn) fn.textContent = '📄 ' + file.name;
+
+  // Check SheetJS loaded
+  if (typeof XLSX === 'undefined') {
+    toast('⚠ Biblioteca XLSX não carregada. Aguarde e tente novamente.','err');
+    return;
+  }
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var wb  = XLSX.read(e.target.result, {type:'array'});
+      var ws  = wb.Sheets[wb.SheetNames[0]];
+      var raw = XLSX.utils.sheet_to_json(ws, {defval:''});
+      if (!raw.length) { toast('⚠ Planilha vazia','err'); return; }
+
+      // Build column map
+      var headers = Object.keys(raw[0]);
+      var map = {}, mapDisplay = [];
+      headers.forEach(function(h) {
+        var key   = normalizeKey(h);
+        var field = COL_MAP[key];
+        if (field) { map[h] = field; mapDisplay.push({h:h, field:field}); }
+      });
+
+      // Show mapping
+      var mf = document.getElementById('xls-field-map');
+      var mc = document.getElementById('xls-map-count');
+      var mg = document.getElementById('xls-map-grid');
+      if (mf) mf.style.display = 'block';
+      if (mc) mc.textContent = mapDisplay.length + ' colunas mapeadas de ' + headers.length;
+      if (mg) mg.innerHTML = mapDisplay.map(function(x) {
+        return '<div style="display:flex;align-items:center;gap:.25rem;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:.25rem .5rem;font-family:\'JetBrains Mono\',monospace;font-size:.62rem;">' +
+          '<span style="color:var(--ink3);">' + x.h + '</span>' +
+          '<span style="color:var(--ink3);">→</span>' +
+          '<span style="color:var(--green);font-weight:700;">' + x.field + '</span>' +
+        '</div>';
+      }).join('');
+
+      // Parse rows
+      xlsRows = raw.map(function(row) {
+        var rec = {rep:'R1', op:''};
+        Object.keys(row).forEach(function(h) {
+          var field = map[h];
+          if (!field) return;
+          var val = row[h];
+          if      (field === 'meso') rec.meso = (val||'').toString().trim();
+          else if (field === 'date') rec.date = parseDateBR(val);
+          else if (field === 'rep')  rec.rep  = (val||'R1').toString().trim();
+          else if (field === 'op')   rec.op   = (val||'').toString().trim();
+          else if (field === 'obs')  rec.obs  = (val||'').toString().trim();
+          else rec[field] = (val===''||val===null||val===undefined) ? null : parseFloat(val);
+        });
+        return rec;
+      }).filter(function(r) { return r.meso && MESOS.indexOf(r.meso) >= 0; });
+
+      if (!xlsRows.length) {
+        toast('⚠ Nenhuma linha válida (verifique coluna Mesocosmo: CR1, 2GR1, etc.)','err');
+        return;
+      }
+
+      // Preview table
+      var thead = document.getElementById('xls-thead');
+      var tbody = document.getElementById('xls-tbody');
+      var allCols = ['ph','orp','odp','odm','cond','conda','resist','tds','psu','fnu','temp','psi','co2','ch4'];
+      var usedCols = allCols.filter(function(c) {
+        return xlsRows.some(function(r) { return r[c]!==null && r[c]!==undefined && r[c]!==''; });
+      });
+      if (thead) thead.innerHTML = '<th>Trat.</th><th>Meso</th><th>Data</th>' + usedCols.map(function(c) { return '<th>'+c+'</th>'; }).join('');
+      if (tbody) tbody.innerHTML = xlsRows.map(function(r) {
+        var t = TM[r.meso] || '?';
+        return '<tr>' +
+          '<td><span class="badge badge-'+t.toLowerCase()+'">'+t+'</span></td>' +
+          '<td><strong class="'+( {T0:'t0c',T1:'t1c',T2:'t2c',T3:'t3c'}[t]||'' )+'">'+r.meso+'</strong></td>' +
+          '<td style="font-size:.72rem;">'+(r.date||'—')+'</td>' +
+          usedCols.map(function(c) {
+            return '<td class="mono" style="font-size:.75rem;">'+(r[c]!==null&&r[c]!==undefined&&r[c]!==''?r[c]:'<span style="color:var(--ink3)">—</span>')+'</td>';
+          }).join('') +
+        '</tr>';
+      }).join('');
+
+      var pw = document.getElementById('xls-preview-wrap');
+      var pt = document.getElementById('xls-preview-title');
+      var ib = document.getElementById('xls-import-btn');
+      if (pw) pw.style.display = 'block';
+      if (pt) pt.textContent = 'Prévia — ' + xlsRows.length + ' linhas válidas de ' + raw.length + ' no Excel';
+      if (ib) ib.textContent = '✅ Importar ' + xlsRows.length + ' registros';
+      toast('✓ Excel lido: ' + xlsRows.length + ' linhas válidas','ok');
+
+    } catch(err) {
+      toast('⚠ Erro ao ler Excel: ' + err.message, 'err');
+      console.error('readExcel error:', err);
+    }
+  };
+  reader.onerror = function() { toast('⚠ Erro ao ler o arquivo','err'); };
+  reader.readAsArrayBuffer(file);
+}
     .replace(/[áàã]/g,'a').replace(/[éê]/g,'e').replace(/[í]/g,'i')
     .replace(/[óôõ]/g,'o').replace(/[ú]/g,'u').replace(/[ç]/g,'c')
     .replace(/\s+/g,'_').replace(/[^a-z0-9_%\/\.]/g,'').trim();
