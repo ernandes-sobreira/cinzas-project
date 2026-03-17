@@ -652,12 +652,48 @@ footer strong { color:#fff; }
   <div id="dp-list" style="display:none;">
     <div class="sdiv">
       <span data-i="records_title">Registros no Firebase</span>
-      <div style="display:flex;gap:.5rem;align-items:center;">
+      <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
         <span id="rec-count" style="font-family:'JetBrains Mono',monospace;font-size:.65rem;font-weight:700;color:var(--fire);">0</span>
         <button class="btn btn-outline btn-sm" onclick="exportCSV()">⬇ CSV</button>
         <button class="btn btn-ink btn-sm" onclick="exportExcel()">⬇ Excel</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteAllRecords()" style="margin-left:.5rem;">🗑 Apagar TODOS</button>
       </div>
     </div>
+
+    <!-- FILTER BAR -->
+    <div style="padding:.6rem 1.5rem;background:var(--bg);border-bottom:1px solid var(--border);display:flex;gap:.6rem;flex-wrap:wrap;align-items:flex-end;">
+      <div class="field" style="margin:0;flex:0 0 140px;">
+        <label style="font-family:'JetBrains Mono',monospace;font-size:.55rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:.25rem;">Filtrar data</label>
+        <input type="date" id="filt-date" style="background:var(--white);border:1px solid var(--border);color:var(--ink);border-radius:6px;padding:.35rem .5rem;font-family:'JetBrains Mono',monospace;font-size:.75rem;outline:none;width:100%;" onchange="renderTable()">
+      </div>
+      <div class="field" style="margin:0;flex:0 0 110px;">
+        <label style="font-family:'JetBrains Mono',monospace;font-size:.55rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:.25rem;">Tratamento</label>
+        <select id="filt-treat" onchange="renderTable()" style="background:var(--white);border:1px solid var(--border);color:var(--ink);border-radius:6px;padding:.35rem .5rem;font-family:'JetBrains Mono',monospace;font-size:.75rem;outline:none;width:100%;">
+          <option value="">Todos</option>
+          <option>T0</option><option>T1</option><option>T2</option><option>T3</option>
+        </select>
+      </div>
+      <div class="field" style="margin:0;flex:0 0 110px;">
+        <label style="font-family:'JetBrains Mono',monospace;font-size:.55rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:.25rem;">Mesocosmo</label>
+        <select id="filt-meso" onchange="renderTable()" style="background:var(--white);border:1px solid var(--border);color:var(--ink);border-radius:6px;padding:.35rem .5rem;font-family:'JetBrains Mono',monospace;font-size:.75rem;outline:none;width:100%;">
+          <option value="">Todos</option>
+          <option>CR1</option><option>CR2</option><option>CR3</option>
+          <option>2GR1</option><option>2GR2</option><option>2GR3</option>
+          <option>5GR1</option><option>5GR2</option><option>5GR3</option>
+          <option>10GR1</option><option>10GR2</option><option>10GR3</option>
+        </select>
+      </div>
+      <div class="field" style="margin:0;flex:0 0 90px;">
+        <label style="font-family:'JetBrains Mono',monospace;font-size:.55rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:.25rem;">Réplica</label>
+        <select id="filt-rep" onchange="renderTable()" style="background:var(--white);border:1px solid var(--border);color:var(--ink);border-radius:6px;padding:.35rem .5rem;font-family:'JetBrains Mono',monospace;font-size:.75rem;outline:none;width:100%;">
+          <option value="">Todas</option><option>R1</option><option>R2</option>
+        </select>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="clearFilters()" style="margin-bottom:1px;">✕ Limpar filtros</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteFiltered()" style="margin-bottom:1px;" id="del-filtered-btn">🗑 Apagar filtrados</button>
+      <span id="filt-count" style="font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--ink3);align-self:center;"></span>
+    </div>
+
     <div style="padding:.85rem 1.5rem;" class="tbl-wrap">
       <table>
         <thead>
@@ -678,7 +714,7 @@ footer strong { color:#fff; }
             <th>CO₂</th>
             <th>CH₄</th>
             <th data-i="th_op">Op.</th>
-            <th></th>
+            <th>✏️🗑</th>
           </tr>
         </thead>
         <tbody id="rec-tbody">
@@ -891,11 +927,15 @@ footer strong { color:#fff; }
 ════════════════════════════════════════════ -->
 <div class="sec" id="crono">
   <div class="ph">
-    <div class="ph-title">📅 Cronograma BRASA</div>
-    <div class="ph-sub">Linha do tempo · fases · coletas · alertas</div>
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:.75rem;">
+      <div>
+        <div class="ph-title">📅 Cronograma BRASA</div>
+        <div class="ph-sub">Clique em qualquer evento para editar · arraste para reordenar</div>
+      </div>
+      <button class="btn btn-fire btn-sm" onclick="addCronoEvent()">+ Adicionar evento</button>
+    </div>
   </div>
 
-  <!-- Progress visual -->
   <div class="prog-wrap">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem;">
       <span style="font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:700;color:var(--ink2);">Progresso total do experimento</span>
@@ -904,23 +944,59 @@ footer strong { color:#fff; }
     <div class="prog-track"><div class="prog-fill" id="crono-fill" style="width:0%"></div></div>
   </div>
 
-  <div class="pad" style="padding-top:.5rem;">
-    <!-- Timeline -->
-    <div class="card" style="margin-bottom:1rem;">
-      <div class="card-label">📌 Linha do tempo</div>
-      <div id="crono-timeline" style="margin-top:.5rem;display:flex;flex-direction:column;gap:.15rem;"></div>
-    </div>
+  <div class="pad" style="padding-top:.75rem;">
+    <div class="g2" style="padding:0;gap:1rem;align-items:start;">
+      <!-- Timeline editável -->
+      <div class="card">
+        <div class="card-label">📌 Linha do tempo <span style="font-weight:400;color:var(--ink3);font-size:.55rem;margin-left:.35rem;">clique para editar · ✕ para apagar</span></div>
+        <div id="crono-timeline" style="margin-top:.5rem;display:flex;flex-direction:column;gap:.1rem;"></div>
+      </div>
 
-    <!-- Weekly collection schedule -->
-    <div class="g2" style="padding:0;gap:1rem;">
-      <div class="card">
-        <div class="card-label">🔬 Coletas limnológicas programadas</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:.72rem;line-height:2.2;color:var(--ink2);margin-top:.3rem;" id="crono-collections"></div>
+      <!-- Próximos marcos e coletas -->
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+        <div class="card">
+          <div class="card-label">⚠️ Próximos eventos</div>
+          <div id="crono-milestones" style="display:flex;flex-direction:column;gap:.5rem;margin-top:.3rem;"></div>
+        </div>
+        <div class="card">
+          <div class="card-label">✅ Coletas com dados</div>
+          <div id="crono-collections" style="font-family:'JetBrains Mono',monospace;font-size:.72rem;line-height:2.2;color:var(--ink2);margin-top:.3rem;"></div>
+        </div>
       </div>
-      <div class="card">
-        <div class="card-label">⚠️ Alertas & Marcos importantes</div>
-        <div id="crono-milestones" style="display:flex;flex-direction:column;gap:.5rem;margin-top:.3rem;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- CRONOGRAMA EDIT MODAL -->
+<div class="mo" id="crono-modal">
+  <div class="modal" style="max-width:480px;">
+    <div class="mh">
+      <div class="mt" id="crono-modal-title">✏️ Editar Evento</div>
+      <button class="mc" onclick="closeCronoModal()">✕</button>
+    </div>
+    <div class="fg" style="gap:.65rem;">
+      <div class="field fc"><label>Data</label><input type="date" id="ce-date"></div>
+      <div class="field fc"><label>Descrição</label><input type="text" id="ce-label" placeholder="Ex: 📊 Coleta limnológica — Semana 3"></div>
+      <div class="field">
+        <label>Tipo</label>
+        <select id="ce-type">
+          <option value="coleta">📊 Coleta</option>
+          <option value="marco">🎯 Marco</option>
+          <option value="outro">📌 Outro</option>
+        </select>
       </div>
+      <div class="field">
+        <label>Status</label>
+        <select id="ce-done">
+          <option value="false">⏳ Pendente</option>
+          <option value="true">✅ Concluído</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:.6rem;margin-top:1.2rem;">
+      <button class="btn btn-fire" onclick="saveCronoEvent()">💾 Salvar</button>
+      <button class="btn btn-outline btn-sm" onclick="closeCronoModal()">Cancelar</button>
+      <button class="btn btn-danger btn-sm" id="crono-delete-btn" onclick="deleteCronoEvent()" style="margin-left:auto;">🗑 Apagar evento</button>
     </div>
   </div>
 </div>
@@ -979,8 +1055,10 @@ footer strong { color:#fff; }
   <!-- UPLOAD HISTORY -->
   <div id="dp-hist" style="display:none;padding:1rem 1.5rem;">
     <div class="card">
-      <div class="card-label">📜 Histórico de Importações Excel</div>
-      <p style="font-size:.82rem;color:var(--ink2);margin:.4rem 0 1rem;line-height:1.6;">Cada linha = um lote de upload. Rastreie quem importou dados e quando.</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">
+        <div class="card-label" style="margin:0;">📜 Histórico de Importações Excel</div>
+      </div>
+      <p style="font-size:.82rem;color:var(--ink2);margin:.4rem 0 1rem;line-height:1.6;">Cada linha = um lote importado via Excel. Rastreie quem fez upload e quando. Se importou em duplicidade, apague aqui.</p>
       <div class="tbl-wrap">
         <table>
           <thead>
@@ -988,12 +1066,13 @@ footer strong { color:#fff; }
               <th>Data/Hora</th>
               <th>Operador</th>
               <th>Registros</th>
-              <th>Variáveis</th>
+              <th>Variáveis importadas</th>
               <th>Status</th>
+              <th>🗑</th>
             </tr>
           </thead>
           <tbody id="hist-tbody">
-            <tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--ink3);font-family:'JetBrains Mono',monospace;font-size:.7rem;">Nenhum upload registrado ainda…</td></tr>
+            <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--ink3);font-family:'JetBrains Mono',monospace;font-size:.7rem;">Nenhum upload registrado ainda…</td></tr>
           </tbody>
         </table>
       </div>
@@ -1414,40 +1493,96 @@ async function saveEdit() {
 
 function closeModal() { document.getElementById('edit-modal').classList.remove('open'); editingId=null; }
 
+function getFilteredDB() {
+  var fDate  = (document.getElementById('filt-date')  ||{}).value||'';
+  var fTreat = (document.getElementById('filt-treat') ||{}).value||'';
+  var fMeso  = (document.getElementById('filt-meso')  ||{}).value||'';
+  var fRep   = (document.getElementById('filt-rep')   ||{}).value||'';
+  return DB.filter(function(r) {
+    if (fDate  && r.date !== fDate) return false;
+    if (fTreat && TM[r.meso] !== fTreat) return false;
+    if (fMeso  && r.meso !== fMeso) return false;
+    if (fRep   && (r.rep||'R1') !== fRep) return false;
+    return true;
+  });
+}
+
+function clearFilters() {
+  ['filt-date','filt-treat','filt-meso','filt-rep'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.value='';
+  });
+  renderTable();
+}
+
+async function deleteAllRecords() {
+  if (!confirm('⚠️ Apagar TODOS os '+DB.length+' registros do Firebase?\n\nEsta ação não pode ser desfeita!')) return;
+  var {writeBatch,doc}=window.fbFns;
+  toast('🗑 Apagando todos…');
+  try {
+    for (var i=0;i<DB.length;i+=400) {
+      var b=writeBatch(window.db);
+      DB.slice(i,i+400).forEach(function(r){b.delete(doc(window.db,'records',r.id));});
+      await b.commit();
+    }
+    toast('✓ Todos os registros apagados','ok');
+  } catch(e){toast('⚠ '+e.message,'err');}
+}
+
+async function deleteFiltered() {
+  var filtered=getFilteredDB();
+  if (!filtered.length){toast('Nenhum registro filtrado','warn');return;}
+  if (!confirm('Apagar '+filtered.length+' registro(s) filtrado(s)?\n\nEsta ação não pode ser desfeita!')) return;
+  var {writeBatch,doc}=window.fbFns;
+  toast('🗑 Apagando '+filtered.length+' registros…');
+  try {
+    for (var i=0;i<filtered.length;i+=400) {
+      var b=writeBatch(window.db);
+      filtered.slice(i,i+400).forEach(function(r){b.delete(doc(window.db,'records',r.id));});
+      await b.commit();
+    }
+    toast('✓ '+filtered.length+' registros apagados','ok');
+    clearFilters();
+  } catch(e){toast('⚠ '+e.message,'err');}
+}
+
 function renderTable() {
-  var tbody=document.getElementById('rec-tbody'); if(!tbody) return;
-  if(!DB.length){
-    tbody.innerHTML='<tr><td colspan="17" style="text-align:center;padding:2rem;color:var(--ink3);font-family:\'JetBrains Mono\',monospace;font-size:.7rem;">Nenhum dado ainda…</td></tr>';
+  var tbody=document.getElementById('rec-tbody');
+  var countEl=document.getElementById('rec-count');
+  var filtCount=document.getElementById('filt-count');
+  if(!tbody) return;
+  if(countEl) countEl.textContent=DB.length;
+  var ctab=document.getElementById('rec-count-tab'); if(ctab) ctab.textContent=DB.length;
+  var ssr=document.getElementById('ss-r'); if(ssr) ssr.textContent=DB.length;
+
+  var filtered=getFilteredDB();
+  var isF=filtered.length<DB.length;
+  if(filtCount) filtCount.textContent=isF?'Mostrando '+filtered.length+' de '+DB.length:'';
+
+  if(!filtered.length){
+    tbody.innerHTML='<tr><td colspan="17" style="text-align:center;padding:2rem;color:var(--ink3);font-family:\'JetBrains Mono\',monospace;font-size:.7rem;">'+(DB.length?'Nenhum registro com esses filtros':'Nenhum dado ainda…')+'</td></tr>';
     return;
   }
-  var d=v=>(v!==null&&v!==undefined&&v!=='')?'<span class="mono">'+v+'</span>':'<span style="color:var(--ink3)">—</span>';
+  var d=function(v){return(v!==null&&v!==undefined&&v!=='')?'<span class="mono">'+v+'</span>':'<span style="color:var(--ink3)">—</span>';};
   var tcss={T0:'t0c',T1:'t1c',T2:'t2c',T3:'t3c'};
-  tbody.innerHTML=DB.slice(0,120).map(r=>{
+  tbody.innerHTML=filtered.slice(0,200).map(function(r){
     var t=TM[r.meso]||'?';
-    return `<tr>
-      <td style="font-size:.72rem;white-space:nowrap;">${r.date||''}</td>
-      <td style="font-size:.68rem;color:var(--ink3);">${r.time||'—'}</td>
-      <td><strong class="${tcss[t]||''}">${r.meso}</strong></td>
-      <td><span class="badge badge-${t.toLowerCase()}">${t}</span></td>
-      <td><span class="badge badge-r">${r.rep||'—'}</span></td>
-      <td>${d(r.ph)}</td>
-      <td>${d(r.orp)}</td>
-      <td>${d(r.odp)}</td>
-      <td style="color:var(--teal)">${d(r.odm)}</td>
-      <td>${d(r.cond)}</td>
-      <td>${d(r.tds)}</td>
-      <td>${d(r.temp)}</td>
-      <td>${d(r.fnu)}</td>
-      <td style="color:var(--fire)">${d(r.co2)}</td>
-      <td style="color:var(--amber)">${d(r.ch4)}</td>
-      <td style="font-size:.7rem;color:var(--ink3);max-width:80px;overflow:hidden;text-overflow:ellipsis;">${r.op||'—'}</td>
-      <td>
-        <div style="display:flex;gap:.3rem;">
-          <button class="btn btn-outline btn-sm" style="padding:.2rem .4rem;font-size:.65rem;" onclick="openEdit('${r.id}')">✏️</button>
-          <button class="btn btn-danger btn-sm" style="padding:.2rem .4rem;font-size:.65rem;" onclick="deleteRecord('${r.id}')">🗑</button>
-        </div>
-      </td>
-    </tr>`;
+    return '<tr>'+
+      '<td style="font-size:.72rem;white-space:nowrap;">'+(r.date||'')+'</td>'+
+      '<td style="font-size:.68rem;color:var(--ink3);">'+(r.time||'—')+'</td>'+
+      '<td><strong class="'+(tcss[t]||'')+'">'+r.meso+'</strong></td>'+
+      '<td><span class="badge badge-'+t.toLowerCase()+'">'+t+'</span></td>'+
+      '<td><span class="badge badge-r">'+(r.rep||'—')+'</span></td>'+
+      '<td>'+d(r.ph)+'</td><td>'+d(r.orp)+'</td><td>'+d(r.odp)+'</td>'+
+      '<td style="color:var(--teal)">'+d(r.odm)+'</td>'+
+      '<td>'+d(r.cond)+'</td><td>'+d(r.tds)+'</td><td>'+d(r.temp)+'</td><td>'+d(r.fnu)+'</td>'+
+      '<td style="color:var(--fire)">'+d(r.co2)+'</td>'+
+      '<td style="color:var(--amber)">'+d(r.ch4)+'</td>'+
+      '<td style="font-size:.7rem;color:var(--ink3);">'+(r.op||'—')+'</td>'+
+      '<td><div style="display:flex;gap:.3rem;">'+
+        '<button class="btn btn-outline btn-sm" style="padding:.2rem .4rem;font-size:.65rem;" onclick="openEdit(\''+r.id+'\')">✏️</button>'+
+        '<button class="btn btn-danger btn-sm" style="padding:.2rem .4rem;font-size:.65rem;" onclick="deleteRecord(\''+r.id+'\')">🗑</button>'+
+      '</div></td>'+
+    '</tr>';
   }).join('');
 }
 
@@ -1781,23 +1916,28 @@ function renderUploadHistory(hist) {
   var tbody = document.getElementById('hist-tbody');
   if (!tbody) return;
   if (!hist.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--ink3);font-family:\'JetBrains Mono\',monospace;font-size:.7rem;">Nenhum upload registrado ainda…</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--ink3);font-family:\'JetBrains Mono\',monospace;font-size:.7rem;">Nenhum upload registrado ainda…</td></tr>';
     return;
   }
   tbody.innerHTML = hist.map(function(h) {
     var ts = h.timestamp && h.timestamp.toDate ? h.timestamp.toDate().toLocaleString('pt-BR') : '—';
-    var ok = h.n_errors === 0;
+    var isOk = !h.n_errors || h.n_errors === 0;
     return '<tr>' +
-      '<td class="mono" style="font-size:.72rem;">' + ts + '</td>' +
+      '<td class="mono" style="font-size:.72rem;white-space:nowrap;">' + ts + '</td>' +
       '<td style="font-weight:700;">' + (h.op || '—') + '</td>' +
       '<td class="mono t0c" style="font-weight:700;">' + (h.n_records || 0) + '</td>' +
-      '<td style="font-family:\'JetBrains Mono\',monospace;font-size:.65rem;color:var(--ink2);">' + (h.variables || '—') + '</td>' +
-      '<td>' + (ok
-        ? '<span class="an-ok" style="font-weight:700;">✓ ok</span>'
-        : '<span class="an-warn" style="font-weight:700;">⚠ ' + (h.n_errors||0) + ' erros</span>') +
-      '</td>' +
-      '</tr>';
+      '<td style="font-family:\'JetBrains Mono\',monospace;font-size:.63rem;color:var(--ink2);max-width:200px;overflow:hidden;text-overflow:ellipsis;">' + (h.variables || '—') + '</td>' +
+      '<td>' + (isOk ? '<span class="an-ok" style="font-weight:700;">✓ ok</span>' : '<span class="an-warn" style="font-weight:700;">⚠ ' + (h.n_errors||0) + ' erros</span>') + '</td>' +
+      '<td><button class="btn btn-danger btn-sm" style="padding:.2rem .45rem;font-size:.65rem;" onclick="deleteHistEntry(\'' + h.id + '\')">🗑</button></td>' +
+    '</tr>';
   }).join('');
+}
+
+async function deleteHistEntry(id) {
+  if (!confirm('Apagar este registro do histórico?')) return;
+  var {doc, deleteDoc} = window.fbFns;
+  try { await deleteDoc(doc(window.db,'upload_history',id)); toast('✓ Removido do histórico','ok'); }
+  catch(e) { toast('⚠ '+e.message,'err'); }
 }
 
 // ════════════════════════════════════════════
@@ -1878,52 +2018,128 @@ function buildDashAlerts() {
   }).join('');
 }
 
+var editCronoIdx = null;
+
+function addCronoEvent() {
+  editCronoIdx = null;
+  var now = new Date().toISOString().slice(0,10);
+  document.getElementById('ce-date').value = now;
+  document.getElementById('ce-label').value = '';
+  document.getElementById('ce-type').value = 'coleta';
+  document.getElementById('ce-done').value = 'false';
+  document.getElementById('crono-modal-title').textContent = '+ Novo Evento';
+  document.getElementById('crono-delete-btn').style.display = 'none';
+  document.getElementById('crono-modal').classList.add('open');
+}
+
+function editCronoEvent(idx) {
+  editCronoIdx = idx;
+  var s = SCHEDULE[idx];
+  document.getElementById('ce-date').value = s.date;
+  document.getElementById('ce-label').value = s.label;
+  document.getElementById('ce-type').value = s.type || 'coleta';
+  document.getElementById('ce-done').value = s.done ? 'true' : 'false';
+  document.getElementById('crono-modal-title').textContent = '✏️ Editar Evento';
+  document.getElementById('crono-delete-btn').style.display = '';
+  document.getElementById('crono-modal').classList.add('open');
+}
+
+function closeCronoModal() { document.getElementById('crono-modal').classList.remove('open'); }
+
+function saveCronoEvent() {
+  var date  = document.getElementById('ce-date').value;
+  var label = document.getElementById('ce-label').value.trim();
+  var type  = document.getElementById('ce-type').value;
+  var done  = document.getElementById('ce-done').value === 'true';
+  if (!date || !label) { toast('⚠ Preencha data e descrição','err'); return; }
+  if (editCronoIdx === null) {
+    SCHEDULE.push({ date, label, type, done });
+  } else {
+    SCHEDULE[editCronoIdx] = { date, label, type, done };
+  }
+  SCHEDULE.sort(function(a,b) { return a.date < b.date ? -1 : 1; });
+  closeCronoModal();
+  buildCronograma();
+  buildDashAlerts();
+  toast('✓ Evento salvo','ok');
+}
+
+function deleteCronoEvent() {
+  if (editCronoIdx === null) return;
+  if (!confirm('Apagar este evento do cronograma?')) return;
+  SCHEDULE.splice(editCronoIdx, 1);
+  closeCronoModal();
+  buildCronograma();
+  buildDashAlerts();
+  toast('✓ Evento removido','ok');
+}
+
 function buildCronograma() {
   var today = new Date(); today.setHours(0,0,0,0);
   var todayS = dateStr(today);
   var START = new Date('2026-02-24'), END = new Date('2026-06-19');
+  // Recalc END from schedule if changed
+  if (SCHEDULE.length) {
+    var lastDate = SCHEDULE[SCHEDULE.length-1].date;
+    if (lastDate > dateStr(END)) END = new Date(lastDate);
+  }
   var pct = Math.round(Math.max(0,Math.min(1,(today-START)/(END-START)))*100);
   var cf=document.getElementById('crono-fill'); if(cf) setTimeout(function(){cf.style.width=pct+'%';},200);
   var cp=document.getElementById('crono-pct'); if(cp) cp.textContent=pct+'%';
 
+  // Timeline
   var tl=document.getElementById('crono-timeline');
-  if(tl) tl.innerHTML=SCHEDULE.map(function(s){
+  if(tl) tl.innerHTML = SCHEDULE.map(function(s,i) {
     var isPast=s.date<todayS, isToday=s.date===todayS;
-    var col=s.type==='marco'?(isPast?'#16a34a':isToday?'#e8340a':'#9ca3af'):(isPast?'#0891b2':isToday?'#e8340a':'#c4c9d6');
+    var typeColor = s.type==='marco' ? (isPast?'#16a34a':isToday?'#e8340a':'#6b7280')
+                                     : s.type==='coleta' ? (isPast?'#0891b2':isToday?'#e8340a':'#9ca3af')
+                                     : (isPast?'#d97706':'#c4c9d6');
     var dp=s.date.split('-'); var dl=dp[2]+'/'+dp[1]+'/'+dp[0];
-    return '<div style="display:flex;align-items:center;gap:.6rem;padding:.3rem .45rem;border-radius:6px;'+(isToday?'background:rgba(232,52,10,.07);border:1px solid rgba(232,52,10,.2);':'')+'">'+
-      '<div style="width:10px;height:10px;border-radius:50%;background:'+col+';flex-shrink:0;'+(isToday?'box-shadow:0 0 0 4px rgba(232,52,10,.25);':'')+'"></div>'+
-      '<span style="font-family:\'JetBrains Mono\',monospace;font-size:.6rem;color:'+(isToday?'var(--fire)':'var(--ink3)')+';flex-shrink:0;min-width:78px;">'+dl+'</span>'+
-      '<span style="font-size:.82rem;color:'+(isPast?'var(--ink3)':isToday?'var(--fire)':'var(--ink2)')+';'+(isPast?'text-decoration:line-through;':'')+(isToday?'font-weight:700;':'')+'">'+
-        (isPast?'✓ ':isToday?'👉 ':'')+s.label+
-        (DB.some(function(r){return r.date===s.date;})?'<span style="margin-left:.4rem;color:var(--green);font-size:.7rem;">dados ✅</span>':'')
-      +'</span></div>';
-  }).join('');
-
-  var colls=SCHEDULE.filter(function(s){return s.type==='coleta';});
-  var cc=document.getElementById('crono-collections');
-  if(cc) cc.innerHTML=colls.map(function(s,i){
-    var isPast=s.date<todayS, isToday=s.date===todayS;
-    var dp=s.date.split('-'); var dl=dp[2]+'/'+dp[1];
-    var hasData=DB.some(function(r){return r.date===s.date;});
-    return '<div style="display:flex;align-items:center;gap:.45rem;'+(isToday?'color:var(--fire);font-weight:700;':'')+'">'+
-      '<span>'+(hasData?'✅':isPast?'⬜':'📅')+'</span>'+
-      '<span>'+dl+' — Semana '+(i+1)+'</span>'+
-      (isToday?'<span style="background:var(--fire);color:#fff;font-size:.6rem;padding:.05rem .3rem;border-radius:4px;">HOJE</span>':'')+
+    var hasData = DB.some(function(r){return r.date===s.date;});
+    return '<div style="display:flex;align-items:center;gap:.5rem;padding:.3rem .4rem;border-radius:6px;cursor:pointer;'+(isToday?'background:rgba(232,52,10,.07);border:1px solid rgba(232,52,10,.18);':'')+'" onclick="editCronoEvent('+i+')" title="Clique para editar">'+
+      '<div style="width:10px;height:10px;border-radius:50%;background:'+typeColor+';flex-shrink:0;'+(isToday?'box-shadow:0 0 0 4px rgba(232,52,10,.22);':'')+'"></div>'+
+      '<span style="font-family:\'JetBrains Mono\',monospace;font-size:.6rem;color:'+(isToday?'var(--fire)':'var(--ink3)')+';flex-shrink:0;min-width:72px;">'+dl+'</span>'+
+      '<span style="font-size:.82rem;flex:1;color:'+(isPast?'var(--ink3)':isToday?'var(--fire)':'var(--ink2)')+';'+(isPast&&s.done?'text-decoration:line-through;':'')+(isToday?'font-weight:700;':'')+'">'+
+        (s.done&&isPast?'✓ ':isToday?'👉 ':'')+s.label+
+        (hasData?'<span style="margin-left:.4rem;color:var(--green);font-size:.65rem;">dados✅</span>':'')+
+      '</span>'+
+      '<span style="font-size:.6rem;color:var(--ink3);flex-shrink:0;">✏️</span>'+
     '</div>';
   }).join('');
 
+  // Next milestones
   var cm=document.getElementById('crono-milestones');
-  if(cm){
+  if(cm) {
     var upcoming=SCHEDULE.filter(function(s){return s.date>=todayS;}).slice(0,5);
-    cm.innerHTML=upcoming.map(function(s){
-      var dDiff=Math.round((new Date(s.date)-today)/86400000);
-      var sty=dDiff===0?'background:rgba(232,52,10,.07);border-left:3px solid var(--fire);':dDiff<=3?'background:rgba(245,158,11,.06);border-left:3px solid var(--amber);':'background:var(--bg);border-left:3px solid var(--border);';
-      return '<div style="padding:.45rem .65rem;border-radius:0 8px 8px 0;'+sty+'">'+
-        '<div style="font-family:\'JetBrains Mono\',monospace;font-size:.6rem;font-weight:700;color:var(--ink);">'+
-          (dDiff===0?'🚨 HOJE':dDiff===1?'⚠️ AMANHÃ':'📅 Em '+dDiff+' dias')+
-        '</div>'+
-        '<div style="font-size:.8rem;color:var(--ink2);margin-top:.15rem;">'+s.label+'</div>'+
+    if (!upcoming.length) {
+      cm.innerHTML='<div style="color:var(--ink3);font-size:.8rem;">Nenhum evento futuro</div>';
+    } else {
+      cm.innerHTML=upcoming.map(function(s){
+        var dDiff=Math.round((new Date(s.date)-today)/86400000);
+        var sty=dDiff===0?'background:rgba(232,52,10,.07);border-left:3px solid var(--fire);':dDiff<=3?'background:rgba(245,158,11,.06);border-left:3px solid var(--amber);':'background:var(--bg);border-left:3px solid var(--border);';
+        return '<div style="padding:.4rem .65rem;border-radius:0 8px 8px 0;'+sty+'">'+
+          '<div style="font-family:\'JetBrains Mono\',monospace;font-size:.6rem;font-weight:700;color:var(--ink);">'+(dDiff===0?'🚨 HOJE':dDiff===1?'⚠️ AMANHÃ':'📅 Em '+dDiff+' dias')+'</div>'+
+          '<div style="font-size:.8rem;color:var(--ink2);margin-top:.1rem;">'+s.label+'</div>'+
+        '</div>';
+      }).join('');
+    }
+  }
+
+  // Collections with data check
+  var colls=SCHEDULE.filter(function(s){return s.type==='coleta';});
+  var cc=document.getElementById('crono-collections');
+  if(cc) {
+    if (!colls.length) { cc.innerHTML='<div style="color:var(--ink3);">Nenhuma coleta no cronograma</div>'; return; }
+    cc.innerHTML=colls.map(function(s,i){
+      var isPast=s.date<todayS, isToday=s.date===todayS;
+      var dp=s.date.split('-'); var dl=dp[2]+'/'+dp[1];
+      var hasData=DB.some(function(r){return r.date===s.date;});
+      var nRecs=DB.filter(function(r){return r.date===s.date;}).length;
+      return '<div style="display:flex;align-items:center;gap:.45rem;'+(isToday?'color:var(--fire);font-weight:700;':'')+'">'+
+        '<span>'+(hasData?'✅':isPast?'⬜':'📅')+'</span>'+
+        '<span>'+dl+' — Sem. '+(i+1)+'</span>'+
+        (hasData?'<span style="color:var(--green);font-size:.65rem;">('+nRecs+' reg.)</span>':'')+
+        (isToday?'<span style="background:var(--fire);color:#fff;font-size:.58rem;padding:.02rem .28rem;border-radius:4px;">HOJE</span>':'')+
       '</div>';
     }).join('');
   }
@@ -2026,16 +2242,23 @@ function buildAnalises(){
 // ── CHART HELPERS ────────────────────────────
 function getCanvasSize(id) {
   var el = document.getElementById(id);
-  var container = el.parentElement; // the position:relative div
-  var W = container.clientWidth || 400;
-  var H_CSS = container.clientHeight || 200;
-  // If container has no size yet, walk up
-  if (W < 10) {
-    var p = container.parentElement;
-    while (p && W < 10) { W = p.clientWidth - 40; p = p.parentElement; }
-  }
-  if (W < 10) W = window.innerWidth - 80 || 400;
   var dpr = window.devicePixelRatio || 1;
+  // The canvas sits inside a position:relative wrapper.
+  // That wrapper has no intrinsic width when canvas is absolute.
+  // Walk up to the first element with a real offsetWidth > 10.
+  var W = 0, H_CSS = 200;
+  var node = el.parentElement;
+  while (node && W < 10) {
+    W = node.offsetWidth;
+    if (node.style && node.style.height) {
+      var hv = parseInt(node.style.height);
+      if (hv > 10) H_CSS = hv;
+    }
+    node = node.parentElement;
+  }
+  // Subtract card padding (approx 32px each side)
+  if (W > 40) W = W - 36;
+  if (W < 10) W = Math.max(300, (window.innerWidth || 600) / 2 - 60);
   el.width  = Math.round(W * dpr);
   el.height = Math.round(H_CSS * dpr);
   el.style.width  = '100%';
