@@ -857,14 +857,14 @@ footer strong { color:#fff; }
     <div class="card" style="padding:1rem;">
       <div class="card-label">📊 Média ± DP por Tratamento</div>
       <div style="font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--ink3);margin-bottom:.5rem;">Cada barra = média de todas as réplicas · barras de erro = DP</div>
-      <div style="height:200px;position:relative;"><canvas id="chart-bar" style="position:absolute;inset:0;width:100%;height:100%;"></canvas></div>
+      <canvas id="chart-bar" data-h="200" style="display:block;width:100%;"></canvas>
     </div>
 
     <!-- Chart 2: Jitter -->
     <div class="card" style="padding:1rem;">
       <div class="card-label">🔵 Jitterplot — Réplicas individuais</div>
       <div style="font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--ink3);margin-bottom:.5rem;">Pontos = cada coleta · 🔴 vermelho = suspeito (Z &gt; 1.5 ou CV &gt; 30%)</div>
-      <div style="height:200px;position:relative;"><canvas id="chart-jitter" style="position:absolute;inset:0;width:100%;height:100%;"></canvas></div>
+      <canvas id="chart-jitter" data-h="200" style="display:block;width:100%;"></canvas>
     </div>
   </div>
 
@@ -874,11 +874,11 @@ footer strong { color:#fff; }
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.5rem;">
         <div class="card-label" style="margin:0;">📈 Série Temporal — Controle vs Tratamentos</div>
         <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
-          <div class="field" style="margin:0;display:flex;align-items:center;gap:.35rem;">
+          <div style="display:flex;align-items:center;gap:.35rem;">
             <label style="font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;">De:</label>
             <input type="date" id="ts-from" style="background:var(--bg);border:1px solid var(--border);color:var(--ink);border-radius:6px;padding:.3rem .5rem;font-family:'JetBrains Mono',monospace;font-size:.72rem;outline:none;" onchange="buildAnalises()">
           </div>
-          <div class="field" style="margin:0;display:flex;align-items:center;gap:.35rem;">
+          <div style="display:flex;align-items:center;gap:.35rem;">
             <label style="font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;">Até:</label>
             <input type="date" id="ts-to" style="background:var(--bg);border:1px solid var(--border);color:var(--ink);border-radius:6px;padding:.3rem .5rem;font-family:'JetBrains Mono',monospace;font-size:.72rem;outline:none;" onchange="buildAnalises()">
           </div>
@@ -886,7 +886,7 @@ footer strong { color:#fff; }
         </div>
       </div>
       <div style="font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--ink3);margin-bottom:.5rem;">Média de cada tratamento por data de coleta</div>
-      <div style="height:180px;position:relative;"><canvas id="chart-time" style="position:absolute;inset:0;width:100%;height:100%;"></canvas></div>
+      <canvas id="chart-time" data-h="180" style="display:block;width:100%;"></canvas>
       <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:.65rem;">
         <div style="display:flex;align-items:center;gap:.35rem;font-family:'JetBrains Mono',monospace;font-size:.6rem;"><span style="width:24px;height:3px;background:var(--t0);border-radius:2px;display:inline-block;"></span> T0 Controle</div>
         <div style="display:flex;align-items:center;gap:.35rem;font-family:'JetBrains Mono',monospace;font-size:.6rem;"><span style="width:24px;height:3px;background:var(--t1);border-radius:2px;display:inline-block;"></span> T1 2 g/L</div>
@@ -1247,9 +1247,10 @@ function go(id, btn) {
   document.querySelectorAll('.tnb,.bnb').forEach(b=>b.classList.remove('on'));
   document.getElementById(id).classList.add('on');
   if(btn) btn.classList.add('on');
-  if(id==='analises') buildAnalises();
   if(id==='crono') buildCronograma();
   if(id==='dash') buildDashAlerts();
+  // Charts need rAF so the section is visible + has layout before measuring
+  if(id==='analises') requestAnimationFrame(function(){ requestAnimationFrame(buildAnalises); });
   window.scrollTo(0,0);
 }
 
@@ -1392,7 +1393,8 @@ document.addEventListener('firebase-ready', function() {
     document.getElementById('rec-count').textContent=DB.length;
     document.getElementById('rec-count-tab').textContent=DB.length;
     document.getElementById('ss-r').textContent=DB.length;
-    if(document.getElementById('analises').classList.contains('on')) buildAnalises();
+    if(document.getElementById('analises').classList.contains('on'))
+      requestAnimationFrame(function(){ requestAnimationFrame(buildAnalises); });
   });
 
   // Chat
@@ -2241,28 +2243,28 @@ function buildAnalises(){
 
 // ── CHART HELPERS ────────────────────────────
 function getCanvasSize(id) {
-  var el = document.getElementById(id);
+  var el  = document.getElementById(id);
   var dpr = window.devicePixelRatio || 1;
-  // The canvas sits inside a position:relative wrapper.
-  // That wrapper has no intrinsic width when canvas is absolute.
-  // Walk up to the first element with a real offsetWidth > 10.
-  var W = 0, H_CSS = 200;
+  var H_CSS = parseInt(el.getAttribute('data-h') || '200');
+
+  // Use getBoundingClientRect on the card parent - always reliable
+  var W_CSS = 0;
   var node = el.parentElement;
-  while (node && W < 10) {
-    W = node.offsetWidth;
-    if (node.style && node.style.height) {
-      var hv = parseInt(node.style.height);
-      if (hv > 10) H_CSS = hv;
-    }
+  while (node && W_CSS < 20) {
+    var rect = node.getBoundingClientRect();
+    W_CSS = rect.width;
     node = node.parentElement;
   }
-  // Subtract card padding (approx 32px each side)
-  if (W > 40) W = W - 36;
-  if (W < 10) W = Math.max(300, (window.innerWidth || 600) / 2 - 60);
-  el.width  = Math.round(W * dpr);
+  if (W_CSS < 20) W_CSS = window.innerWidth / 2 - 60;
+  W_CSS = Math.floor(W_CSS - 36); // subtract padding
+
+  // Set pixel dimensions (must set before getContext)
+  el.width  = Math.round(W_CSS * dpr);
   el.height = Math.round(H_CSS * dpr);
-  el.style.width  = '100%';
-  el.style.height = '100%';
+  // Set CSS display size
+  el.style.width  = W_CSS + 'px';
+  el.style.height = H_CSS + 'px';
+
   return { ctx: el.getContext('2d'), W: el.width, H: el.height, dpr: dpr };
 }
 
@@ -2716,7 +2718,9 @@ var _resizeT;
 window.addEventListener('resize', function() {
   clearTimeout(_resizeT);
   _resizeT = setTimeout(function() {
-    if(document.getElementById('analises').classList.contains('on')) buildAnalises();
+    if(document.getElementById('analises').classList.contains('on')) {
+      requestAnimationFrame(function(){ requestAnimationFrame(buildAnalises); });
+    }
   }, 200);
 });
 </script>
