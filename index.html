@@ -2541,24 +2541,21 @@ function drawBarChart(divId, tStats, vLabel) {
 function drawJitter(divId, v, tStats, vLabel, DBsrc) {
   var DBuse = DBsrc || DB;
   var el=document.getElementById(divId); if(!el) return;
-  var W=560,H=240;
-  var PL=58,PR=16,PT=28,PB=56;
+  var W=560,H=260;
+  var PL=58,PR=16,PT=28,PB=60;
   var cW=W-PL-PR, cH=H-PT-PB;
 
-  // Collect one mean value per mesocosm (or per date if single day)
-  // Each treatment has 3 mesocosms = 3 replica points
-  var treats=['T0','T1','T2','T3'];
-  var treatLabels={T0:'T0\n0 g/L',T1:'T1\n2 g/L',T2:'T2\n5 g/L',T3:'T3\n10 g/L'};
-  var repNames={CR1:'R1',CR2:'R2',CR3:'R3','2GR1':'R1','2GR2':'R2','2GR3':'R3','5GR1':'R1','5GR2':'R2','5GR3':'R3','10GR1':'R1','10GR2':'R2','10GR3':'R3'};
+  // R1/R2/R3 from meso name
+  var repNames={CR1:'R1',CR2:'R2',CR3:'R3','2GR1':'R1','2GR2':'R2','2GR3':'R3',
+    '5GR1':'R1','5GR2':'R2','5GR3':'R3','10GR1':'R1','10GR2':'R2','10GR3':'R3'};
 
-  // Build points: one per mesocosm (mean across all its measurements)
+  // Collect ALL individual data points
   var allPoints=[];
   MESOS.forEach(function(m){
-    var vals=DBuse.filter(function(r){return r.meso===m;}).map(function(r){return nn(r[v]);}).filter(function(x){return x!==null;});
-    if(vals.length){
-      var mean=vals.reduce(function(a,b){return a+b;},0)/vals.length;
-      allPoints.push({meso:m,treat:TM[m],val:mean,rep:repNames[m]||'',n:vals.length});
-    }
+    DBuse.filter(function(r){return r.meso===m;}).forEach(function(r){
+      var val=nn(r[v]);
+      if(val!==null) allPoints.push({meso:m,treat:TM[m],val:val,rep:repNames[m]||'',date:r.date||''});
+    });
   });
 
   if(!allPoints.length){
@@ -2569,6 +2566,7 @@ function drawJitter(divId, v, tStats, vLabel, DBsrc) {
   var allV=allPoints.map(function(p){return p.val;});
   var range=niceRange(allV);
   var ymin=range.min, ymax=range.max;
+  var treats=['T0','T1','T2','T3'];
   var tGap=cW/treats.length;
   var svg='';
 
@@ -2583,54 +2581,68 @@ function drawJitter(divId, v, tStats, vLabel, DBsrc) {
 
   treats.forEach(function(t,ti){
     var col=T_COLORS[t];
-    var cx=PL+tGap*ti+tGap/2;
-    var tPts=allPoints.filter(function(p){return p.treat===t;});
     var tSt=tStats[t];
+    var tPts=allPoints.filter(function(p){return p.treat===t;});
 
     // Background band
     svg+=svgEl('rect',{x:PL+tGap*ti+2,y:PT,width:tGap-4,height:cH,fill:T_COLORS_A[t],rx:4},'');
 
-    // Treatment mean line (dashed) — spans full group width
+    // Treatment mean line (dashed)
     if(tSt&&tSt.mean!==null){
       var ym=scaleY(tSt.mean,ymin,ymax,PT,PT+cH);
       svg+=svgEl('line',{x1:PL+tGap*ti+8,y1:ym,x2:PL+tGap*(ti+1)-8,y2:ym,
         stroke:col,'stroke-width':1.5,'stroke-dasharray':'6,4',opacity:.8},'');
-      // Mean value label on the right
-      svg+=svgEl('text',{x:PL+tGap*(ti+1)-4,y:ym-3,'text-anchor':'end',fill:col,'font-size':8,'font-weight':'bold'},fmtV(tSt.mean));
+      svg+=svgEl('text',{x:PL+tGap*(ti+1)-6,y:ym-3,'text-anchor':'end',fill:col,'font-size':8,'font-weight':'bold'},fmtV(tSt.mean));
     }
 
-    // 3 replica points — spread evenly
-    var nPts=tPts.length;
-    tPts.forEach(function(p,pi){
-      var xOffset=(nPts>1?(pi/(nPts-1)-0.5)*tGap*0.55:0);
-      var jx=cx+xOffset;
-      var py=scaleY(p.val,ymin,ymax,PT,PT+cH);
-      var zScore=tSt&&tSt.sd>0?Math.abs((p.val-(tSt.mean||0))/tSt.sd):0;
-      var cvBad=p.n>1&&(Math.abs(p.val-(tSt.mean||0))/(tSt.mean||1)*100)>30;
-      var isOut=zScore>1.5;
-      var dotCol=isOut?'#dc2626':MESO_COLORS[p.meso]||col;
-      svg+=svgEl('circle',{cx:jx,cy:py,r:7,fill:dotCol,stroke:isOut?'#7f1d1d':'rgba(255,255,255,.85)','stroke-width':isOut?2:1.5},'');
-      // Replica label (R1, R2, R3) from meso name
-      svg+=svgEl('text',{x:jx,y:py-10,'text-anchor':'middle',fill:isOut?'#dc2626':col,'font-size':9,'font-weight':'bold'},p.rep);
-      // Meso name below dot
-      svg+=svgEl('text',{x:jx,y:py+18,'text-anchor':'middle',fill:'#6b7280','font-size':7},p.meso);
+    // 3 replica sub-columns (R1, R2, R3)
+    var reps=['R1','R2','R3'];
+    var repGap=tGap/3;
+    reps.forEach(function(rep,ri){
+      var rcx=PL+tGap*ti+repGap*ri+repGap/2;
+      var rPts=tPts.filter(function(p){return p.rep===rep;});
+      var rVals=rPts.map(function(p){return p.val;});
+      var rMean=rVals.length?rVals.reduce(function(a,b){return a+b;},0)/rVals.length:null;
+
+      // Replica mean tick
+      if(rMean!==null){
+        var ry=scaleY(rMean,ymin,ymax,PT,PT+cH);
+        svg+=svgEl('line',{x1:rcx-repGap*.35,y1:ry,x2:rcx+repGap*.35,y2:ry,
+          stroke:col,'stroke-width':2,opacity:.5},'');
+      }
+
+      // All individual points for this replica — spread horizontally
+      var nPts=rPts.length;
+      rPts.forEach(function(p,pi){
+        var xOff=nPts>1?(pi/(nPts-1)-0.5)*repGap*0.65:0;
+        var jx=rcx+xOff;
+        var py=scaleY(p.val,ymin,ymax,PT,PT+cH);
+        var zScore=tSt&&tSt.sd>0?Math.abs((p.val-(tSt.mean||0))/tSt.sd):0;
+        var isOut=zScore>1.5;
+        var dotCol=isOut?'#dc2626':MESO_COLORS[p.meso]||col;
+        svg+=svgEl('circle',{cx:jx,cy:py,r:4,fill:dotCol,
+          stroke:isOut?'#7f1d1d':'rgba(255,255,255,.8)','stroke-width':isOut?1.5:1},'');
+      });
+
+      // Replica label at bottom
+      svg+=svgEl('text',{x:rcx,y:H-PB+12,'text-anchor':'middle',fill:col,'font-size':8,'font-weight':'bold'},rep);
     });
 
-    // X labels
-    svg+=svgEl('text',{x:cx,y:H-PB+14,'text-anchor':'middle',fill:'#1f2937','font-size':10,'font-weight':'bold'},t);
-    svg+=svgEl('text',{x:cx,y:H-PB+25,'text-anchor':'middle',fill:'#6b7280','font-size':8},['0 g/L','2 g/L','5 g/L','10 g/L'][ti]);
-    svg+=svgEl('text',{x:cx,y:H-PB+36,'text-anchor':'middle',fill:'#9ca3af','font-size':7.5},'n='+(tSt?tSt.n:0));
+    // Treatment label
+    svg+=svgEl('text',{x:PL+tGap*ti+tGap/2,y:H-PB+24,'text-anchor':'middle',fill:'#1f2937','font-size':9,'font-weight':'bold'},t);
+    svg+=svgEl('text',{x:PL+tGap*ti+tGap/2,y:H-PB+35,'text-anchor':'middle',fill:'#6b7280','font-size':8},['0 g/L','2 g/L','5 g/L','10 g/L'][ti]);
+    svg+=svgEl('text',{x:PL+tGap*ti+tGap/2,y:H-PB+46,'text-anchor':'middle',fill:'#9ca3af','font-size':7},'n='+(tSt?tSt.n:0));
   });
 
   // Legend
-  svg+=svgEl('circle',{cx:PL+4,cy:H-PB+50,r:5,fill:'#dc2626'},'');
-  svg+=svgEl('text',{x:PL+13,y:H-PB+54,fill:'#374151','font-size':8},'Outlier (Z &gt; 1.5)');
-  // Dashed line legend
-  svg+='<line x1="'+(PL+120)+'" y1="'+(H-PB+50)+'" x2="'+(PL+140)+'" y2="'+(H-PB+50)+'" stroke="#666" stroke-width="1.5" stroke-dasharray="5,3"/>';
-  svg+=svgEl('text',{x:PL+144,y:H-PB+54,fill:'#374151','font-size':8},'Média do tratamento');
+  svg+=svgEl('circle',{cx:PL+4,cy:H-PB+58,r:4,fill:'#dc2626'},'');
+  svg+=svgEl('text',{x:PL+12,y:H-PB+62,fill:'#374151','font-size':8},'Outlier (Z &gt; 1.5)');
+  svg+='<line x1="'+(PL+110)+'" y1="'+(H-PB+58)+'" x2="'+(PL+128)+'" y2="'+(H-PB+58)+'" stroke="#666" stroke-width="1.5" stroke-dasharray="5,3"/>';
+  svg+=svgEl('text',{x:PL+132,y:H-PB+62,fill:'#374151','font-size':8},'Média do tratamento');
 
   el.innerHTML=makeSVG(W,H,svg);
 }
+
 
 // ── Chart 3: Time series ──────────────────────────────
 function clearTsDates() {
