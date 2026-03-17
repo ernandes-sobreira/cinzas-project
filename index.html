@@ -10,7 +10,7 @@
 <!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, query, orderBy, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, query, orderBy, serverTimestamp, writeBatch, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 const firebaseConfig = {
   apiKey: "AIzaSyBWcGAa3CWurSiDs5udEtESGwCGGnYTX5Y",
@@ -24,7 +24,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
 window.db = db; window.storage = storage;
-window.fbFns = { collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, query, orderBy, serverTimestamp, writeBatch, ref, uploadBytes, getDownloadURL, deleteObject };
+window.fbFns = { collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, query, orderBy, serverTimestamp, writeBatch, getDocs, ref, uploadBytes, getDownloadURL, deleteObject };
 window.firebaseReady = true;
 document.dispatchEvent(new Event('firebase-ready'));
 </script>
@@ -1385,6 +1385,9 @@ document.addEventListener('firebase-ready', function() {
   toast('🔥 Firebase conectado!','ok');
   var {collection,onSnapshot,query,orderBy}=window.fbFns, db=window.db;
 
+  // Load schedule from Firebase (persists across HTML updates)
+  loadScheduleFromFirebase();
+
   // Records
   onSnapshot(query(collection(db,'records'),orderBy('timestamp','desc')), snap=>{
     DB=snap.docs.map(d=>({id:d.id,...d.data()}));
@@ -1783,8 +1786,13 @@ async function importExcel() {
   xlsRows=[];
   document.getElementById('xls-preview-wrap').style.display='none';
   document.getElementById('xls-field-map').style.display='none';
-  // auto-switch to records
-  setTimeout(()=>dtab('list',document.getElementById('dtab-list')),800);
+  // Switch to history tab to confirm what was imported
+  if(ok>0) {
+    setTimeout(function(){
+      dtab('hist', document.getElementById('dtab-hist'));
+      toast('📜 Veja o histórico de uploads abaixo','ok');
+    }, 600);
+  }
 }
 
 // ════════════════════════════════════════════
@@ -1943,7 +1951,7 @@ async function deleteHistEntry(id) {
 // ════════════════════════════════════════════
 // CRONOGRAMA & SMART ALERTS
 // ════════════════════════════════════════════
-var SCHEDULE = [
+var SCHEDULE_DEFAULT = [
   { date:'2026-02-24', label:'🏗️ Setup dos mesocosmos', type:'marco', done:true },
   { date:'2026-03-06', label:'🐟 Adição de 120 H. littorale · T0 eutanásia · Sensores', type:'marco', done:true },
   { date:'2026-03-13', label:'🔥 DIA ZERO — Adição das cinzas', type:'marco', done:true },
@@ -1962,6 +1970,45 @@ var SCHEDULE = [
   { date:'2026-06-12', label:'🎯 COLETA FINAL — peixes + amostras completas', type:'marco', done:false },
   { date:'2026-06-19', label:'🧹 Desmontagem dos mesocosmos', type:'marco', done:false },
 ];
+var SCHEDULE = JSON.parse(JSON.stringify(SCHEDULE_DEFAULT)); // starts with default
+
+// Load SCHEDULE from Firebase (overwrites default if saved version exists)
+function loadScheduleFromFirebase() {
+  if (!window.fbFns || !window.db) return;
+  var {collection, onSnapshot, query, orderBy} = window.fbFns;
+  onSnapshot(query(collection(window.db,'schedule'), orderBy('date','asc')), function(snap) {
+    if (snap.empty) {
+      // No saved schedule yet — save the default
+      saveScheduleToFirebase();
+      return;
+    }
+    SCHEDULE = snap.docs.map(function(d){ return Object.assign({_fbid: d.id}, d.data()); });
+    if (document.getElementById('crono') && document.getElementById('crono').classList.contains('on'))
+      buildCronograma();
+    buildDashAlerts();
+  });
+}
+
+async function saveScheduleToFirebase() {
+  if (!window.fbFns || !window.db) return;
+  var {collection, writeBatch, doc, addDoc, serverTimestamp, getDocs, query} = window.fbFns;
+  try {
+    // Delete all existing and rewrite
+    var snap = await window.fbFns.getDocs(window.fbFns.collection(window.db,'schedule'));
+    if (snap && snap.docs && snap.docs.length) {
+      var delBatch = window.fbFns.writeBatch(window.db);
+      snap.docs.forEach(function(d){ delBatch.delete(d.ref); });
+      await delBatch.commit();
+    }
+    // Write current schedule
+    var wb2 = window.fbFns.writeBatch(window.db);
+    SCHEDULE.forEach(function(s){
+      var ref = window.fbFns.doc(window.fbFns.collection(window.db,'schedule'));
+      wb2.set(ref, {date:s.date, label:s.label, type:s.type||'coleta', done:!!s.done});
+    });
+    await wb2.commit();
+  } catch(e){ console.warn('schedule save error',e); }
+}
 
 function dateStr(d) { return d.toISOString().slice(0,10); }
 
@@ -2061,7 +2108,8 @@ function saveCronoEvent() {
   closeCronoModal();
   buildCronograma();
   buildDashAlerts();
-  toast('✓ Evento salvo','ok');
+  saveScheduleToFirebase();
+  toast('✓ Evento salvo no Firebase','ok');
 }
 
 function deleteCronoEvent() {
@@ -2071,6 +2119,7 @@ function deleteCronoEvent() {
   closeCronoModal();
   buildCronograma();
   buildDashAlerts();
+  saveScheduleToFirebase();
   toast('✓ Evento removido','ok');
 }
 
@@ -2215,22 +2264,23 @@ function buildAnalises(){
       ['R1','R2'].forEach(rep=>{
         var key=m+'_'+rep;
         var st=repStats[key];
-        var z=st&&tSt&&tSt.sd>0?Math.abs((st.mean-tSt.mean)/tSt.sd):null;
-        var outlier=(st&&st.cv>30)||(z&&z>1.5);
+        // Skip rows with zero data — keeps table clean
+        if(!st||st.n===0) return;
+        var z=tSt&&tSt.sd>0?Math.abs((st.mean-tSt.mean)/tSt.sd):null;
+        var outlier=(st.cv>30)||(z&&z>1.5);
         var zTxt=z!==null?z.toFixed(2):'—';
         rows.push(`<tr style="${outlier?'background:rgba(220,38,38,.04);':''}">
           <td><span class="badge badge-${t.toLowerCase()}">${t}</span></td>
           <td style="font-weight:700;" class="${TCH[t]}">${m}</td>
           <td><span class="badge badge-r">${rep}</span></td>
-          <td>${st?st.n:0}</td>
-          <td class="mono">${st?st.mean:'—'}</td>
-          <td class="mono">${st?st.sd:'—'}</td>
-          <td class="${st?(st.cv>30?'an-err':st.cv>20?'an-warn':'an-ok'):''}">
-            ${st?st.cv+'%':'—'}</td>
+          <td>${st.n}</td>
+          <td class="mono">${st.mean}</td>
+          <td class="mono">${st.sd}</td>
+          <td class="${st.cv>30?'an-err':st.cv>20?'an-warn':'an-ok'}">${st.cv}%</td>
           <td class="mono ${z?(z>1.5?'an-err':z>1?'an-warn':'an-ok'):''}">${zTxt}</td>
           <td>${outlier
             ?'<span class="an-err" style="font-weight:700;">⚠ VERIFICAR</span>'
-            :(st&&st.n>0?'<span class="an-ok">✓ ok</span>':'<span style="color:var(--ink3)">sem dados</span>')
+            :'<span class="an-ok">✓ ok</span>'
           }</td>
         </tr>`);
       });
@@ -2561,7 +2611,13 @@ function exportExcel(){
   document.getElementById('diary-date').value=now.toISOString().slice(0,10);
   renderTeam();
   setLang('pt');
-  dtab('form',document.getElementById('dtab-form'));
+  // Ensure all dp- panels have correct display
+  ['dp-form','dp-xls','dp-list','dp-hist'].forEach(function(x){
+    var el=document.getElementById(x); if(el) el.style.display='none';
+  });
+  var fpanel=document.getElementById('dp-form'); if(fpanel) fpanel.style.display='block';
+  var fbtn=document.getElementById('dtab-form');
+  if(fbtn) fbtn.className='btn btn-fire btn-sm';
   buildDashAlerts();
 })();
 
