@@ -1606,15 +1606,15 @@ function updateDashboard() {
   var dr=document.getElementById('dash-recent');
   if(dr) {
     if(!DB.length){dr.innerHTML='<span style="color:var(--ink3)">Sem dados ainda…</span>';return;}
-    dr.innerHTML=DB.slice(0,5).map(r=>{
+    dr.innerHTML=DB.slice(0,5).map(function(r){
       var t=TM[r.meso]||'?';
-      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:.3rem 0;border-bottom:1px solid var(--border);gap:.5rem;">
-        <span style="font-weight:700;" class="${TCH[t]||''}">${r.meso}</span>
-        <span class="badge badge-${t.toLowerCase()}">${t}</span>
-        <span style="font-family:'JetBrains Mono',monospace;font-size:.72rem;">pH ${(r.ph!=null?r.ph:'—')}</span>
-        <span style="font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--teal)">OD ${(r.odm!=null?r.odm:'—'}</span>
-        <span style="font-size:.65rem;color:var(--ink3);">${r.date||''}</span>
-      </div>`;
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:.3rem 0;border-bottom:1px solid var(--border);gap:.5rem;">'+
+        '<span style="font-weight:700;" class="'+(TCH[t]||'')+'">'+r.meso+'</span>'+
+        '<span class="badge badge-'+t.toLowerCase()+'">'+t+'</span>'+
+        '<span style="font-family:'JetBrains Mono',monospace;font-size:.72rem;">pH '+(r.ph!=null?r.ph:'—')+'</span>'+
+        '<span style="font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--teal)">OD '+(r.odm!=null?r.odm:'—')+'</span>'+
+        '<span style="font-size:.65rem;color:var(--ink3);">'+(r.date||'')+'</span>'+
+      '</div>';
     }).join('');
   }
 }
@@ -1751,7 +1751,7 @@ function readExcel(file) {
       headers.forEach(h=>{
         var key=normalizeKey(h);
         var field=COL_MAP[key];
-        if(field){map[h]=field;mapDisplay.push({h,field});}
+        if(field){map[h]=field;mapDisplay.push({h:h,field:field});}
       });
 
       // Show mapping
@@ -1760,18 +1760,18 @@ function readExcel(file) {
       var mc=document.getElementById('xls-map-count');
       mf.style.display='block';
       mc.textContent=mapDisplay.length+' colunas mapeadas de '+headers.length;
-      mg.innerHTML=mapDisplay.map(x=>
-        `<div style="display:flex;align-items:center;gap:.3rem;font-family:'JetBrains Mono',monospace;font-size:.62rem;background:var(--bg);padding:.3rem .6rem;border-radius:6px;border:1px solid var(--border);">
-          <span style="color:var(--ink3);">${x.h}</span>
-          <span style="color:var(--ink3)">→</span>
-          <span style="color:var(--green);font-weight:700;">${x.field}</span>
-        </div>`
-      ).join('');
+      mg.innerHTML=mapDisplay.map(function(x){
+        return '<div style="display:flex;align-items:center;gap:.3rem;font-family:'JetBrains Mono',monospace;font-size:.62rem;background:var(--bg);padding:.3rem .6rem;border-radius:6px;border:1px solid var(--border);">'+
+          '<span style="color:var(--ink3);">'+x.h+'</span>'+
+          '<span style="color:var(--ink3)">&#8594;</span>'+
+          '<span style="color:var(--green);font-weight:700;">'+x.field+'</span>'+
+        '</div>';
+      }).join('');
 
       // Parse rows
-      xlsRows=raw.map((row,idx)=>{
+      xlsRows=raw.map(function(row,idx){
         var rec={rep:'R1',op:''};
-        Object.keys(row).forEach(h=>{
+        Object.keys(row).forEach(function(h){
           var field=map[h];
           if(!field) return;
           var val=row[h];
@@ -1784,7 +1784,8 @@ function readExcel(file) {
         });
         rec._idx=idx;
         return rec;
-      }).filter(r=>r.meso&&MESOS.includes(r.meso));
+      });});
+      xlsRows=xlsRows.filter(function(r){return r.meso&&MESOS.indexOf(r.meso)>=0;});
 
       if(!xlsRows.length){toast('⚠ Nenhuma linha válida encontrada (verifique coluna Mesocosmo)','err');return;}
 
@@ -1792,18 +1793,18 @@ function readExcel(file) {
       var thead=document.getElementById('xls-thead');
       var tbody=document.getElementById('xls-tbody');
       var previewCols=['meso','date','ph','orp','odp','odm','cond','conda','resist','tds','psu','fnu','temp','psi'];
-      var usedCols=previewCols.filter(c=>xlsRows.some(r=>r[c]!==null&&r[c]!==undefined&&r[c]!==''));
-      thead.innerHTML=`<th>Trat.</th><th>Meso</th><th>Data</th>`+usedCols.filter(c=>c!=='meso'&&c!=='date').map(c=>`<th>${c}</th>`).join('');
-      tbody.innerHTML=xlsRows.map(r=>{
+      var usedCols=previewCols.filter(function(cc){return xlsRows.some(function(r){return r[cc]!==null&&r[cc]!==undefined&&r[cc]!=='';});});
+      thead.innerHTML='<th>Trat.</th><th>Meso</th><th>Data</th>'+usedCols.filter(function(cc){return cc!=='meso'&&cc!=='date';}).map(function(cc){return '<th>'+cc+'</th>';}).join('');
+      tbody.innerHTML=xlsRows.map(function(r){
         var t=TM[r.meso]||'?';
-        return `<tr>
-          <td><span class="badge badge-${t.toLowerCase()}">${t}</span></td>
-          <td><strong class="${TCH[t]}">${r.meso}</strong></td>
-          <td style="font-size:.72rem;">${r.date||'—'}</td>`+
-          usedCols.filter(c=>c!=='meso'&&c!=='date').map(c=>
-            `<td class="mono" style="font-size:.75rem;">${r[c]!==null&&r[c]!==undefined&&r[c]!==''?r[c]:'<span style="color:var(--ink3)">—</span>'}</td>`
-          ).join('')+
-          `</tr>`;
+        return '<tr>'+
+          '<td><span class="badge badge-'+t.toLowerCase()+'">'+t+'</span></td>'+
+          '<td><strong class="'+(TCH[t]||'')+'">'+r.meso+'</strong></td>'+
+          '<td style="font-size:.72rem;">'+(r.date||'—')+'</td>'+
+          usedCols.filter(function(cc){return cc!=='meso'&&cc!=='date';}).map(function(cc){
+            return '<td class="mono" style="font-size:.75rem;">'+(r[cc]!==null&&r[cc]!==undefined&&r[cc]!==''?r[cc]:'<span style="color:var(--ink3)">—</span>')+'</td>';
+          }).join('')+
+        '</tr>';
       }).join('');
 
       document.getElementById('xls-preview-title').textContent='Prévia — '+xlsRows.length+' linhas válidas de '+raw.length+' no Excel';
@@ -1921,16 +1922,17 @@ function renderChat(msgs) {
   }
   var colors={}; TEAM.forEach(m=>colors[m.name]=m.color);
   var prev=feed.scrollHeight-feed.scrollTop===feed.clientHeight;
-  feed.innerHTML=msgs.map(m=>{
+  feed.innerHTML=msgs.map(function(m){
     var col=colors[m.sender]||'#e8340a';
     var ts=m.timestamp&&m.timestamp.toDate?m.timestamp.toDate().toLocaleString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
-    return `<div class="chat-msg">
-      <div class="chat-av" style="background:${col}">${(m.sender||'?')[0]}</div>
-      <div class="chat-bubble">
-        <div class="chat-meta"><strong>${m.sender}</strong> ${ts}</div>
-        <div class="chat-text">${m.text.replace(/\n/g,'<br>')}</div>
-      </div>
-    </div>`;
+    return '<div class="chat-msg">'+
+      '<div class="chat-av" style="background:'+col+'">'+(m.sender||'?')[0]+'</div>'+
+      '<div class="chat-bubble">'+
+        '<div class="chat-meta"><strong>'+m.sender+'</strong> '+ts+'</div>'+
+        '<div class="chat-text">'+m.text.replace(/
+/g,'<br>')+'</div>'+
+      '</div>'+
+    '</div>';
   }).join('');
   if(prev||feed.children.length<=5) feed.scrollTop=feed.scrollHeight;
 }
@@ -1941,7 +1943,7 @@ function renderChat(msgs) {
 async function uploadPhotos(files) {
   var {ref,uploadBytes,getDownloadURL,collection,addDoc,serverTimestamp}=window.fbFns;
   toast('📸 Enviando '+files.length+' foto(s)…');
-  for(var file of files) {
+  for(var _fi=0;_fi<files.length;_fi++){var file=files[_fi];
     try {
       var sRef=ref(window.storage,'photos/'+Date.now()+'_'+file.name);
       await uploadBytes(sRef,file);
@@ -1965,16 +1967,16 @@ function renderPhotos(photos) {
     feed.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:4rem;color:var(--ink3);"><div style="font-size:3rem;margin-bottom:.75rem;">📸</div><div style="font-family:\'JetBrains Mono\',monospace;font-size:.75rem;">Nenhuma foto ainda.<br>Clique em "Enviar foto" para começar!</div></div>';
     return;
   }
-  feed.innerHTML=photos.map(p=>
-    `<div class="photo-card">
-      <img src="${p.url}" alt="${p.name}" loading="lazy" onclick="window.open('${p.url}','_blank')" style="cursor:zoom-in;">
-      <div class="photo-info">
-        <div style="font-size:.85rem;font-weight:700;color:var(--ink);">${p.name}</div>
-        <div class="photo-meta">${p.author||'—'} · ${p.timestamp&&p.timestamp.toDate?p.timestamp.toDate().toLocaleDateString('pt-BR'):''}</div>
-        <button class="btn btn-danger btn-sm" style="margin-top:.5rem;width:100%;" onclick="deletePhoto('${p.id}','${p.path}')">🗑 Apagar</button>
-      </div>
-    </div>`
-  ).join('');
+  feed.innerHTML=photos.map(function(p){
+    return '<div class="photo-card">'+
+      '<img src="'+p.url+'" alt="'+p.name+'" loading="lazy" onclick="window.open(''+p.url+'','_blank')" style="cursor:zoom-in;">'+
+      '<div class="photo-info">'+
+        '<div style="font-size:.85rem;font-weight:700;color:var(--ink);">'+p.name+'</div>'+
+        '<div class="photo-meta">'+(p.author||'—')+' · '+(p.timestamp&&p.timestamp.toDate?p.timestamp.toDate().toLocaleDateString('pt-BR'):'')+'</div>'+
+        '<button class="btn btn-danger btn-sm" style="margin-top:.5rem;width:100%;" onclick="deletePhoto(''+p.id+'',''+p.path+'')">🗑 Apagar</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
 }
 
 // ════════════════════════════════════════════
@@ -2000,15 +2002,16 @@ async function deleteDiary(id) {
 function renderDiary(entries) {
   var feed=document.getElementById('diario-feed'); if(!feed) return;
   if(!entries.length){feed.innerHTML='<div style="color:var(--ink3);font-family:\'JetBrains Mono\',monospace;font-size:.72rem;text-align:center;padding:2rem;">Diário vazio — escreva a primeira nota!</div>';return;}
-  feed.innerHTML=entries.map(e=>
-    `<div class="diary-entry">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;">
-        <div><div class="de-date">${e.date||''}</div><div class="de-author">${e.author||'—'}</div></div>
-        <button class="btn btn-danger btn-sm" onclick="deleteDiary('${e.id}')" style="padding:.2rem .4rem;font-size:.62rem;">🗑</button>
-      </div>
-      <div class="de-text">${e.text.replace(/\n/g,'<br>')}</div>
-    </div>`
-  ).join('');
+  feed.innerHTML=entries.map(function(e){
+    return '<div class="diary-entry">'+
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;">'+
+        '<div><div class="de-date">'+(e.date||'')+'</div><div class="de-author">'+(e.author||'—')+'</div></div>'+
+        '<button class="btn btn-danger btn-sm" onclick="deleteDiary(''+e.id+'')" style="padding:.2rem .4rem;font-size:.62rem;">🗑</button>'+
+      '</div>'+
+      '<div class="de-text">'+e.text.replace(/
+/g,'<br>')+'</div>'+
+    '</div>';
+  }).join('');
 }
 
 // ════════════════════════════════════════════
@@ -2373,20 +2376,17 @@ function buildAnalises(){
         var z=tSt&&tSt.sd>0?Math.abs((st.mean-tSt.mean)/tSt.sd):null;
         var outlier=(st.cv>30)||(z&&z>1.5);
         var zTxt=z!==null?z.toFixed(2):'—';
-        rows.push(`<tr style="${outlier?'background:rgba(220,38,38,.04);':''}">
-          <td><span class="badge badge-${t.toLowerCase()}">${t}</span></td>
-          <td style="font-weight:700;" class="${TCH[t]}">${m}</td>
-          <td><span class="badge badge-r">${rep}</span></td>
-          <td>${st.n}</td>
-          <td class="mono">${st.mean}</td>
-          <td class="mono">${st.sd}</td>
-          <td class="${st.cv>30?'an-err':st.cv>20?'an-warn':'an-ok'}">${st.cv}%</td>
-          <td class="mono ${z?(z>1.5?'an-err':z>1?'an-warn':'an-ok'):''}">${zTxt}</td>
-          <td>${outlier
-            ?'<span class="an-err" style="font-weight:700;">⚠ VERIFICAR</span>'
-            :'<span class="an-ok">✓ ok</span>'
-          }</td>
-        </tr>`);
+        rows.push('<tr style="'+(outlier?'background:rgba(220,38,38,.04);':'')+'">' +
+          '<td><span class="badge badge-'+t.toLowerCase()+'">'+t+'</span></td>' +
+          '<td style="font-weight:700;" class="'+TCH[t]+'">'+m+'</td>' +
+          '<td><span class="badge badge-r">'+rep+'</span></td>' +
+          '<td>'+st.n+'</td>' +
+          '<td class="mono">'+st.mean+'</td>' +
+          '<td class="mono">'+st.sd+'</td>' +
+          '<td class="'+(st.cv>30?'an-err':st.cv>20?'an-warn':'an-ok')+'">'+st.cv+'%</td>' +
+          '<td class="mono '+(z?(z>1.5?'an-err':z>1?'an-warn':'an-ok'):'')+'">' +zTxt+'</td>' +
+          '<td>'+(outlier?'<span class="an-err" style="font-weight:700;">⚠ VERIFICAR</span>':'<span class="an-ok">✓ ok</span>')+'</td>' +
+        '</tr>');
       });
     });
   });
