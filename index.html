@@ -980,6 +980,40 @@ footer strong { color:#fff; }
     </div>
   </div>
 
+  <!-- SCATTER PLOT -->
+  <div style="padding:0 1.5rem .85rem;">
+    <div class="card" style="padding:1rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;margin-bottom:.75rem;">
+        <div class="card-label" style="margin:0;">🔵 Dispersão — Correlação entre Variáveis</div>
+        <div style="display:flex;gap:.4rem;">
+          <button class="btn btn-outline btn-sm" onclick="downloadSVG('chart-scatter','brasa_dispersao')" style="font-size:.68rem;">⬇ SVG</button>
+          <button class="btn btn-fire btn-sm" onclick="downloadPNG('chart-scatter','brasa_dispersao')" style="font-size:.68rem;">⬇ PNG</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:.65rem;">
+        <div style="display:flex;align-items:center;gap:.35rem;">
+          <label style="font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;">Eixo X:</label>
+          <select id="sc-var-x" onchange="buildScatter()" style="background:var(--white);border:2px solid var(--border2);color:var(--ink);border-radius:7px;padding:.3rem .55rem;font-family:'JetBrains Mono',monospace;font-size:.75rem;outline:none;"></select>
+        </div>
+        <div style="display:flex;align-items:center;gap:.35rem;">
+          <label style="font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;">Eixo Y:</label>
+          <select id="sc-var-y" onchange="buildScatter()" style="background:var(--white);border:2px solid var(--border2);color:var(--ink);border-radius:7px;padding:.3rem .55rem;font-family:'JetBrains Mono',monospace;font-size:.75rem;outline:none;"></select>
+        </div>
+        <div style="display:flex;align-items:center;gap:.35rem;">
+          <label style="font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;">Colorir por:</label>
+          <select id="sc-color-by" onchange="buildScatter()" style="background:var(--white);border:2px solid var(--border2);color:var(--ink);border-radius:7px;padding:.3rem .55rem;font-family:'JetBrains Mono',monospace;font-size:.75rem;outline:none;">
+            <option value="treat">Tratamento</option>
+            <option value="meso">Mesocosmo</option>
+          </select>
+        </div>
+      </div>
+      <!-- Stats bar -->
+      <div id="sc-stats" style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:.5rem;padding:.5rem .75rem;background:var(--bg);border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:.72rem;"></div>
+      <!-- Chart -->
+      <div id="chart-scatter" style="width:100%;"></div>
+    </div>
+  </div>
+
   <!-- REPLICA TABLE -->
   <div style="padding:0 1.5rem 1.5rem;">
     <div class="card">
@@ -2736,6 +2770,9 @@ function buildAnalises(){
   // ── CHART 3: Time series
   drawTimeSeries('chart-time', v, vLabel);
 
+  // ── CHART 4: Scatter
+  buildScatter(DBf);
+
   // ── TABLE
   var tbody=document.getElementById('an-tbody'); if(!tbody) return;
   var rows=[];
@@ -3242,6 +3279,206 @@ async function deleteAllAtm() {
     }
     toast('✓ Todos apagados','ok');
   } catch(e) { toast('⚠ '+e.message,'err'); }
+}
+
+// ════════════════════════════════════════════
+// SCATTER PLOT — Correlation with R² and p-value
+// ════════════════════════════════════════════
+var VAR_OPTIONS = [
+  {v:'ph',    l:'pH'},
+  {v:'odm',   l:'OD (mg/L)'},
+  {v:'odp',   l:'OD (%)'},
+  {v:'temp',  l:'Temperatura (°C)'},
+  {v:'cond',  l:'Cond (μS/cm)'},
+  {v:'conda', l:'CondA (μS/cm)'},
+  {v:'tds',   l:'TDS (ppm)'},
+  {v:'fnu',   l:'FNU (Turbidez)'},
+  {v:'orp',   l:'ORP (mV)'},
+  {v:'resist',l:'Resist (MΩ·cm)'},
+  {v:'psu',   l:'PSU'},
+  {v:'psi',   l:'Pressão (psi)'},
+  {v:'co2',   l:'CO₂'},
+  {v:'ch4',   l:'CH₄'}
+];
+
+function initScatterSelects() {
+  ['sc-var-x','sc-var-y'].forEach(function(id, idx) {
+    var sel = document.getElementById(id);
+    if (!sel || sel.options.length > 1) return;
+    sel.innerHTML = VAR_OPTIONS.map(function(o,i) {
+      return '<option value="'+o.v+'"'+(i===idx?' selected':'')+'>'+o.l+'</option>';
+    }).join('');
+  });
+}
+
+function linReg(xs, ys) {
+  // Returns {a, b, r2, pval, n} for y = a + b*x
+  var n = xs.length;
+  if (n < 3) return null;
+  var sx=0,sy=0,sxy=0,sxx=0,syy=0;
+  for(var i=0;i<n;i++){sx+=xs[i];sy+=ys[i];sxy+=xs[i]*ys[i];sxx+=xs[i]*xs[i];syy+=ys[i]*ys[i];}
+  var mx=sx/n, my=sy/n;
+  var ssxy=sxy-n*mx*my, ssxx=sxx-n*mx*mx, ssyy=syy-n*my*my;
+  if(ssxx===0) return null;
+  var b=ssxy/ssxx, a=my-b*mx;
+  var r2=ssxx===0||ssyy===0?0:(ssxy*ssxy)/(ssxx*ssyy);
+  // t-statistic for slope, df = n-2
+  var r=Math.sqrt(Math.max(0,r2))*(ssxy<0?-1:1);
+  var se = Math.sqrt(Math.max(0,(1-r2)*ssyy/(ssxx*(n-2))));
+  var tStat = se>0 ? b/se : 0;
+  // Two-tailed p-value approximation using t-distribution
+  var df = n-2;
+  var pval = tDist2tail(Math.abs(tStat), df);
+  return {a:a, b:b, r2:r2, r:r, pval:pval, n:n, mx:mx, my:my};
+}
+
+function tDist2tail(t, df) {
+  // Approximation of two-tailed p-value from t and df
+  // Using the regularized incomplete beta function approximation
+  var x = df/(df+t*t);
+  var p = incompBeta(df/2, 0.5, x);
+  return Math.min(1, Math.max(0, p));
+}
+
+function incompBeta(a, b, x) {
+  // Simple approximation via continued fraction (Lentz method, enough for p-value display)
+  if (x <= 0) return 0; if (x >= 1) return 1;
+  var lbeta = logGamma(a+b)-logGamma(a)-logGamma(b);
+  var front = Math.exp(Math.log(x)*a + Math.log(1-x)*b - lbeta)/a;
+  // Betacf
+  var MAXIT=100, EPS=3e-7;
+  var qab=a+b,qap=a+1,qam=a-1;
+  var c=1,d=1-(qab*x/qap); if(Math.abs(d)<1e-30) d=1e-30; d=1/d;
+  var h=d;
+  for(var m=1;m<=MAXIT;m++){
+    var m2=2*m;
+    var aa=m*(b-m)*x/((qam+m2)*(a+m2));
+    d=1+aa*d; if(Math.abs(d)<1e-30) d=1e-30; d=1/d;
+    c=1+aa/c; if(Math.abs(c)<1e-30) c=1e-30;
+    h*=d*c;
+    aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2));
+    d=1+aa*d; if(Math.abs(d)<1e-30) d=1e-30; d=1/d;
+    c=1+aa/c; if(Math.abs(c)<1e-30) c=1e-30;
+    var del=d*c; h*=del;
+    if(Math.abs(del-1)<EPS) break;
+  }
+  return front*h;
+}
+
+function logGamma(z) {
+  var c=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,0.1208650973866179e-2,-0.5395239384953e-5];
+  var y=z,x=z,tmp=x+5.5; tmp-=(x+0.5)*Math.log(tmp);
+  var ser=1.000000000190015;
+  for(var j=0;j<6;j++) ser+=c[j]/++y;
+  return -tmp+Math.log(2.5066282746310005*ser/x);
+}
+
+function fmtPval(p) {
+  if (p===null||p===undefined) return '—';
+  if (p < 0.001) return 'p < 0.001';
+  if (p < 0.01)  return 'p = '+p.toFixed(3);
+  return 'p = '+p.toFixed(3);
+}
+
+function buildScatter(DBsrc) {
+  initScatterSelects();
+  var DBuse = DBsrc || DB;
+  var xSel = document.getElementById('sc-var-x');
+  var ySel = document.getElementById('sc-var-y');
+  var cSel = document.getElementById('sc-color-by');
+  if (!xSel||!ySel) return;
+  var xv = xSel.value, yv = ySel.value;
+  var colorBy = cSel ? cSel.value : 'treat';
+  var xLabel = VAR_OPTIONS.filter(function(o){return o.v===xv;})[0]||{l:xv};
+  var yLabel = VAR_OPTIONS.filter(function(o){return o.v===yv;})[0]||{l:yv};
+
+  var el = document.getElementById('chart-scatter');
+  if (!el) return;
+
+  // Collect paired points
+  var pts = [];
+  DBuse.forEach(function(r) {
+    var x=nn(r[xv]), y=nn(r[yv]);
+    if (x!==null && y!==null) pts.push({x:x, y:y, meso:r.meso, treat:TM[r.meso]||'?', date:r.date||''});
+  });
+
+  if (pts.length < 2) {
+    el.innerHTML='<div style="text-align:center;padding:3rem;color:#9ca3af;font-size:.8rem;">Sem dados suficientes para correlação (mínimo 2 pares)</div>';
+    document.getElementById('sc-stats').innerHTML='';
+    return;
+  }
+
+  var xs=pts.map(function(p){return p.x;}), ys=pts.map(function(p){return p.y;});
+  var reg = linReg(xs, ys);
+
+  // Stats bar
+  var statsEl = document.getElementById('sc-stats');
+  if (statsEl && reg) {
+    var sig = reg.pval < 0.05 ? 'color:var(--green);font-weight:700;' : 'color:var(--ink2);';
+    var sigLabel = reg.pval < 0.001 ? '★★★ Altamente significativo' : reg.pval < 0.01 ? '★★ Muito significativo' : reg.pval < 0.05 ? '★ Significativo (p<0.05)' : 'Não significativo';
+    statsEl.innerHTML =
+      '<span>n = <strong>'+reg.n+'</strong></span>' +
+      '<span>r = <strong>'+(reg.r>=0?'+':'')+reg.r.toFixed(3)+'</strong></span>' +
+      '<span>R² = <strong>'+reg.r2.toFixed(4)+'</strong></span>' +
+      '<span style="'+sig+'"><strong>'+fmtPval(reg.pval)+'</strong></span>' +
+      '<span style="'+sig+'"><strong>'+sigLabel+'</strong></span>' +
+      '<span style="color:var(--ink3);">y = '+(reg.b>=0?'':'')+reg.b.toFixed(4)+'x + '+reg.a.toFixed(4)+'</span>';
+  }
+
+  // SVG chart
+  var W=1100,H=300,PL=68,PR=20,PT=24,PB=48;
+  var cW=W-PL-PR, cH=H-PT-PB;
+  var xmin=Math.min.apply(null,xs), xmax=Math.max.apply(null,xs);
+  var ymin=Math.min.apply(null,ys), ymax=Math.max.apply(null,ys);
+  var xspan=xmax-xmin||1, yspan=ymax-ymin||1;
+  xmin-=xspan*.08; xmax+=xspan*.1; ymin-=yspan*.1; ymax+=yspan*.12;
+  var scX=function(v){return PL+(v-xmin)/(xmax-xmin)*cW;};
+  var scY=function(v){return PT+cH*(1-(v-ymin)/(ymax-ymin));};
+
+  var svg='';
+  // Grid
+  for(var gi=0;gi<=4;gi++){
+    var gx=xmin+(xmax-xmin)*gi/4, gy=ymin+(ymax-ymin)*gi/4;
+    svg+='<line x1="'+scX(gx)+'" y1="'+PT+'" x2="'+scX(gx)+'" y2="'+(PT+cH)+'" stroke="rgba(0,0,0,.05)" stroke-width="1"/>';
+    svg+='<text x="'+scX(gx)+'" y="'+(PT+cH+14)+'" text-anchor="middle" fill="#6b7280" font-size="9">'+fmtV(gx)+'</text>';
+    svg+='<line x1="'+PL+'" y1="'+scY(gy)+'" x2="'+(PL+cW)+'" y2="'+scY(gy)+'" stroke="rgba(0,0,0,.05)" stroke-width="1"/>';
+    svg+='<text x="'+(PL-5)+'" y="'+(scY(gy)+4)+'" text-anchor="end" fill="#6b7280" font-size="9">'+fmtV(gy)+'</text>';
+  }
+  // Axis labels
+  svg+='<text x="'+(PL+cW/2)+'" y="'+(PT+cH+32)+'" text-anchor="middle" fill="#374151" font-size="10" font-weight="bold">'+xLabel.l+'</text>';
+  svg+='<text transform="rotate(-90)" x="-'+(PT+cH/2)+'" y="14" text-anchor="middle" fill="#374151" font-size="10" font-weight="bold">'+yLabel.l+'</text>';
+
+  // Regression line
+  if (reg) {
+    var x1r=xmin, x2r=xmax;
+    var y1r=reg.a+reg.b*x1r, y2r=reg.a+reg.b*x2r;
+    var lineCol = reg.pval < 0.05 ? '#16a34a' : '#9ca3af';
+    svg+='<line x1="'+scX(x1r)+'" y1="'+scY(y1r)+'" x2="'+scX(x2r)+'" y2="'+scY(y2r)+'" stroke="'+lineCol+'" stroke-width="2" stroke-dasharray="'+(reg.pval<0.05?'none':'6,4')+'"/>';
+    // R² annotation on chart
+    var r2col = reg.pval < 0.05 ? '#16a34a' : '#6b7280';
+    svg+='<text x="'+(PL+cW-4)+'" y="'+(PT+16)+'" text-anchor="end" fill="'+r2col+'" font-size="11" font-weight="bold">R² = '+reg.r2.toFixed(3)+' · '+fmtPval(reg.pval)+'</text>';
+  }
+
+  // Points — colored by treatment or meso
+  var colorMap = colorBy==='treat' ? T_COLORS : MESO_COLORS;
+  pts.forEach(function(p) {
+    var col = colorBy==='treat' ? (T_COLORS[p.treat]||'#6b7280') : (MESO_COLORS[p.meso]||'#6b7280');
+    var px=scX(p.x), py=scY(p.y);
+    svg+='<circle cx="'+px+'" cy="'+py+'" r="5.5" fill="'+col+'" fill-opacity="0.82" stroke="white" stroke-width="1.5"/>';
+  });
+
+  // Legend
+  var legendItems = colorBy==='treat' ?
+    [{l:'T0 — Controle',c:T_COLORS.T0},{l:'T1 — 2 g/L',c:T_COLORS.T1},{l:'T2 — 5 g/L',c:T_COLORS.T2},{l:'T3 — 10 g/L',c:T_COLORS.T3}] :
+    MESOS.map(function(m){return {l:m,c:MESO_COLORS[m]||'#6b7280'};});
+  var lx=PL+8;
+  legendItems.forEach(function(item){
+    svg+='<circle cx="'+lx+'" cy="'+(PT+cH+40)+'" r="4" fill="'+item.c+'"/>';
+    svg+='<text x="'+(lx+8)+'" y="'+(PT+cH+44)+'" fill="#374151" font-size="8">'+item.l+'</text>';
+    lx += item.l.length*5+20;
+  });
+
+  el.innerHTML='<svg viewBox="0 0 '+W+' '+(H+16)+'" width="100%" style="display:block;overflow:visible;" xmlns="http://www.w3.org/2000/svg"><style>text{font-family:\'JetBrains Mono\',monospace;}</style>'+svg+'</svg>';
 }
 
 function buildAtmChart() {
