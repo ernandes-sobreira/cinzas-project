@@ -1007,6 +1007,24 @@ footer strong { color:#fff; }
           </select>
         </div>
       </div>
+      <!-- Treatment filter checkboxes -->
+      <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.65rem;padding:.45rem .7rem;background:var(--bg);border-radius:8px;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;">Tratamentos:</span>
+        <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:700;color:var(--t0);">
+          <input type="checkbox" id="sc-t0" checked onchange="buildScatter()" style="accent-color:var(--t0);width:14px;height:14px;"> T0 — Controle
+        </label>
+        <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:700;color:var(--t1);">
+          <input type="checkbox" id="sc-t1" checked onchange="buildScatter()" style="accent-color:var(--t1);width:14px;height:14px;"> T1 — 2 g/L
+        </label>
+        <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:700;color:var(--t2);">
+          <input type="checkbox" id="sc-t2" checked onchange="buildScatter()" style="accent-color:var(--t2);width:14px;height:14px;"> T2 — 5 g/L
+        </label>
+        <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:700;color:var(--t3);">
+          <input type="checkbox" id="sc-t3" checked onchange="buildScatter()" style="accent-color:var(--t3);width:14px;height:14px;"> T3 — 10 g/L
+        </label>
+        <button class="btn btn-outline btn-sm" onclick="scSelectAll(true)" style="font-size:.65rem;padding:.15rem .4rem;margin-left:.3rem;">✓ Todos</button>
+        <button class="btn btn-outline btn-sm" onclick="scSelectAll(false)" style="font-size:.65rem;padding:.15rem .4rem;">✕ Nenhum</button>
+      </div>
       <!-- Stats bar -->
       <div id="sc-stats" style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:.5rem;padding:.5rem .75rem;background:var(--bg);border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:.72rem;"></div>
       <!-- Chart -->
@@ -3380,6 +3398,13 @@ function fmtPval(p) {
   return 'p = '+p.toFixed(3);
 }
 
+function scSelectAll(val) {
+  ['sc-t0','sc-t1','sc-t2','sc-t3'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.checked=val;
+  });
+  buildScatter();
+}
+
 function buildScatter(DBsrc) {
   initScatterSelects();
   var DBuse = DBsrc || DB;
@@ -3392,14 +3417,23 @@ function buildScatter(DBsrc) {
   var xLabel = VAR_OPTIONS.filter(function(o){return o.v===xv;})[0]||{l:xv};
   var yLabel = VAR_OPTIONS.filter(function(o){return o.v===yv;})[0]||{l:yv};
 
+  // Get active treatments from checkboxes
+  var activeTreats = [];
+  ['T0','T1','T2','T3'].forEach(function(t,i){
+    var cb = document.getElementById('sc-t'+i);
+    if (!cb || cb.checked) activeTreats.push(t);
+  });
+
   var el = document.getElementById('chart-scatter');
   if (!el) return;
 
-  // Collect paired points
+  // Collect paired points — filtered by active treatments
   var pts = [];
   DBuse.forEach(function(r) {
+    var t = TM[r.meso]||'?';
+    if (activeTreats.indexOf(t) < 0) return;
     var x=nn(r[xv]), y=nn(r[yv]);
-    if (x!==null && y!==null) pts.push({x:x, y:y, meso:r.meso, treat:TM[r.meso]||'?', date:r.date||''});
+    if (x!==null && y!==null) pts.push({x:x, y:y, meso:r.meso, treat:t, date:r.date||''});
   });
 
   if (pts.length < 2) {
@@ -3467,10 +3501,10 @@ function buildScatter(DBsrc) {
     svg+='<circle cx="'+px+'" cy="'+py+'" r="5.5" fill="'+col+'" fill-opacity="0.82" stroke="white" stroke-width="1.5"/>';
   });
 
-  // Legend
+  // Legend — only active treatments/mesos
   var legendItems = colorBy==='treat' ?
-    [{l:'T0 — Controle',c:T_COLORS.T0},{l:'T1 — 2 g/L',c:T_COLORS.T1},{l:'T2 — 5 g/L',c:T_COLORS.T2},{l:'T3 — 10 g/L',c:T_COLORS.T3}] :
-    MESOS.map(function(m){return {l:m,c:MESO_COLORS[m]||'#6b7280'};});
+    [{l:'T0 — Controle',c:T_COLORS.T0,t:'T0'},{l:'T1 — 2 g/L',c:T_COLORS.T1,t:'T1'},{l:'T2 — 5 g/L',c:T_COLORS.T2,t:'T2'},{l:'T3 — 10 g/L',c:T_COLORS.T3,t:'T3'}].filter(function(item){return activeTreats.indexOf(item.t)>=0;}) :
+    MESOS.filter(function(m){return activeTreats.indexOf(TM[m])>=0;}).map(function(m){return {l:m,c:MESO_COLORS[m]||'#6b7280'};});
   var lx=PL+8;
   legendItems.forEach(function(item){
     svg+='<circle cx="'+lx+'" cy="'+(PT+cH+40)+'" r="4" fill="'+item.c+'"/>';
