@@ -860,14 +860,40 @@ footer strong { color:#fff; }
     </div>
   </div>
 
-  <!-- DATE FILTER for all charts -->
-  <div style="background:var(--bg);border-bottom:1px solid var(--border);padding:.5rem 1.5rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
-    <span style="font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--ink3);font-weight:700;text-transform:uppercase;letter-spacing:.1em;">Filtrar análises por data:</span>
-    <select id="an-date-filter" onchange="buildAnalises()" style="background:var(--white);border:2px solid var(--border2);color:var(--ink);border-radius:7px;padding:.35rem .6rem;font-family:'JetBrains Mono',monospace;font-size:.78rem;outline:none;min-width:160px;">
-      <option value="" data-i="an_all_dates">📅 Todas as datas</option>
-    </select>
-    <span id="an-date-count" style="font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--ink3);"></span>
+
+  <!-- DATE FILTER for all charts — 3 modes -->
+  <div style="background:var(--bg);border-bottom:1px solid var(--border);padding:.6rem 1.5rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
+    <span style="font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--ink3);font-weight:700;text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;">📅 Período:</span>
+
+    <!-- Mode buttons -->
+    <div style="display:flex;border:2px solid var(--border2);border-radius:8px;overflow:hidden;flex-shrink:0;">
+      <button id="an-mode-all" onclick="setAnMode('all')" style="padding:.3rem .75rem;border:none;background:var(--fire);color:#fff;font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:700;cursor:pointer;">Todas</button>
+      <button id="an-mode-one" onclick="setAnMode('one')" style="padding:.3rem .75rem;border:none;background:var(--white);color:var(--ink2);font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:700;cursor:pointer;">1 data</button>
+      <button id="an-mode-range" onclick="setAnMode('range')" style="padding:.3rem .75rem;border:none;background:var(--white);color:var(--ink2);font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:700;cursor:pointer;">Intervalo</button>
+    </div>
+
+    <!-- Single date -->
+    <div id="an-picker-one" style="display:none;align-items:center;gap:.4rem;">
+      <select id="an-date-single" onchange="buildAnalises()" style="background:var(--white);border:2px solid var(--border2);color:var(--ink);border-radius:7px;padding:.3rem .55rem;font-family:'JetBrains Mono',monospace;font-size:.78rem;outline:none;min-width:150px;">
+        <option value="">— escolha a data —</option>
+      </select>
+    </div>
+
+    <!-- Range picker -->
+    <div id="an-picker-range" style="display:none;align-items:center;gap:.4rem;flex-wrap:wrap;">
+      <label style="font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--ink3);">De:</label>
+      <select id="an-date-from" onchange="buildAnalises()" style="background:var(--white);border:2px solid var(--border2);color:var(--ink);border-radius:7px;padding:.3rem .55rem;font-family:'JetBrains Mono',monospace;font-size:.78rem;outline:none;min-width:140px;">
+        <option value="">início</option>
+      </select>
+      <label style="font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--ink3);">Até:</label>
+      <select id="an-date-to" onchange="buildAnalises()" style="background:var(--white);border:2px solid var(--border2);color:var(--ink);border-radius:7px;padding:.3rem .55rem;font-family:'JetBrains Mono',monospace;font-size:.78rem;outline:none;min-width:140px;">
+        <option value="">fim</option>
+      </select>
+    </div>
+
+    <span id="an-date-count" style="font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--fire);font-weight:700;"></span>
   </div>
+
 
   <!-- STAT CARDS -->
   <div class="g4" style="padding:.85rem 1.5rem .5rem;">
@@ -2576,6 +2602,25 @@ var MESO_COLORS={
   '10GR1':'#991b1b','10GR2':'#dc2626','10GR3':'#f87171'
 };
 
+var _anMode = 'all';
+function setAnMode(mode) {
+  _anMode = mode;
+  window._anMode = mode;
+  // Style buttons
+  ['all','one','range'].forEach(function(m) {
+    var btn = document.getElementById('an-mode-'+m);
+    if (!btn) return;
+    btn.style.background = m===mode ? 'var(--fire)' : 'var(--white)';
+    btn.style.color = m===mode ? '#fff' : 'var(--ink2)';
+  });
+  // Show/hide pickers
+  var p1 = document.getElementById('an-picker-one');
+  var p2 = document.getElementById('an-picker-range');
+  if (p1) p1.style.display = mode==='one' ? 'flex' : 'none';
+  if (p2) p2.style.display = mode==='range' ? 'flex' : 'none';
+  buildAnalises();
+}
+
 function buildAnalises(){
   var v=document.getElementById('an-var').value;
   var varLabels={ph:'pH',odm:'OD (mg/L)',odp:'OD (%)',temp:'Temperatura (°C)',
@@ -2583,30 +2628,54 @@ function buildAnalises(){
     orp:'ORP (mV)',resist:'Resist (MΩ·cm)',psu:'PSU',psi:'Pressão (psi)',co2:'CO₂',ch4:'CH₄'};
   var vLabel=varLabels[v]||v;
 
-  // ── Populate date filter dropdown
-  var dateSelect=document.getElementById('an-date-filter');
-  var selectedDate=dateSelect?dateSelect.value:'';
-  if(dateSelect){
-    var allDates=[];
-    DB.forEach(function(r){ if(r.date&&allDates.indexOf(r.date)<0) allDates.push(r.date); });
-    allDates.sort();
-    var currentVal=dateSelect.value;
-    dateSelect.innerHTML='<option value="">📅 Todas as datas ('+allDates.length+')</option>';
+  // ── Populate date pickers with available dates from DB
+  var allDates=[];
+  DB.forEach(function(r){ if(r.date&&allDates.indexOf(r.date)<0) allDates.push(r.date); });
+  allDates.sort();
+
+  function fillDateSelect(selId, blankLabel, currentVal) {
+    var sel=document.getElementById(selId); if(!sel) return;
+    var prev=currentVal!==undefined?currentVal:sel.value;
+    sel.innerHTML='<option value="">'+blankLabel+'</option>';
     allDates.forEach(function(d){
-      var parts=d.split('-');
-      var lbl=parts.length===3?parts[2]+'/'+parts[1]+'/'+parts[0]:d;
+      var p=d.split('-'); var lbl=p.length===3?p[2]+'/'+p[1]+'/'+p[0]:d;
       var opt=document.createElement('option');
-      opt.value=d; opt.textContent='📅 '+lbl;
-      if(d===currentVal) opt.selected=true;
-      dateSelect.appendChild(opt);
+      opt.value=d; opt.textContent=lbl;
+      if(d===prev) opt.selected=true;
+      sel.appendChild(opt);
     });
-    selectedDate=dateSelect.value;
-    var dc=document.getElementById('an-date-count');
-    if(dc) dc.textContent=selectedDate?'Mostrando 1 data':'';
+  }
+  fillDateSelect('an-date-single','— escolha a data —');
+  fillDateSelect('an-date-from','▶ início');
+  fillDateSelect('an-date-to','◀ fim');
+
+  // ── Get active mode and compute DBf
+  var anMode = window._anMode || 'all';
+  var DBf = DB;
+  var dc = document.getElementById('an-date-count');
+
+  if(anMode==='one'){
+    var sd=document.getElementById('an-date-single');
+    var sv=sd?sd.value:'';
+    DBf = sv ? DB.filter(function(r){return r.date===sv;}) : DB;
+    if(dc) dc.textContent = sv ? ('📅 '+sv.split('-').reverse().join('/')) : ('('+allDates.length+' datas disponíveis)');
+  } else if(anMode==='range'){
+    var sf=document.getElementById('an-date-from');
+    var st2=document.getElementById('an-date-to');
+    var fv=sf?sf.value:'', tv=st2?st2.value:'';
+    DBf = DB.filter(function(r){
+      if(fv && r.date < fv) return false;
+      if(tv && r.date > tv) return false;
+      return true;
+    });
+    var usedDates=[];
+    DBf.forEach(function(r){if(r.date&&usedDates.indexOf(r.date)<0) usedDates.push(r.date);});
+    if(dc) dc.textContent = (fv||tv) ? (usedDates.length+' datas selecionadas') : ('('+allDates.length+' datas disponíveis)');
+  } else {
+    if(dc) dc.textContent = allDates.length+' datas · '+DB.length+' registros';
   }
 
-  // ── Filter DB by selected date
-  var DBf = selectedDate ? DB.filter(function(r){return r.date===selectedDate;}) : DB;
+  // ── Filter DB by selected date(s)
 
   // ── Per-treatment stats (filtered)
   var tStats={};
