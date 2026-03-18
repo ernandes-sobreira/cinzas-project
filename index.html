@@ -542,7 +542,7 @@ footer strong { color:#fff; }
 <div class="sec" id="dados">
   <div class="ph">
     <div class="ph-title">📊 <span data-i="data_title">Dados do Campo</span></div>
-    <div class="ph-sub">Inserção manual · Upload de Excel · CO₂ · CH₄ · Réplicas</div>
+    <div class="ph-sub" data-i="data_sub">Inserção manual · Upload de Excel · CO₂ · CH₄ · Réplicas</div>
   </div>
 
   <!-- TAB BAR inside dados -->
@@ -610,10 +610,10 @@ footer strong { color:#fff; }
       <!-- SIMPLE BUTTON UPLOAD — always works -->
       <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem;">
         <label class="btn btn-fire" style="cursor:pointer;font-size:.9rem;">
-          📂 Escolher arquivo .xlsx
+          <span data-i="xls_btn">📂 Escolher arquivo .xlsx</span>
           <input type="file" id="xls-file-input" accept=".xlsx,.xls" style="display:none;" onchange="readExcel(this.files[0])">
         </label>
-        <span id="xls-filename" style="font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--ink3);">Nenhum arquivo escolhido</span>
+        <span id="xls-filename" style="font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--ink3);" data-i="xls_no_file">Nenhum arquivo escolhido</span>
       </div>
 
       <!-- OR drag zone as visual only -->
@@ -623,13 +623,13 @@ footer strong { color:#fff; }
         ondrop="this.style.borderColor='';this.style.background='';handleDrop(event);"
         onclick="document.getElementById('xls-file-input').click();">
         <div style="font-size:2rem;margin-bottom:.4rem;">📊</div>
-        <div style="font-size:.9rem;font-weight:700;color:var(--ink);">Ou arraste o Excel aqui</div>
+        <div style="font-size:.9rem;font-weight:700;color:var(--ink);" data-i="xls_drag">Ou arraste o Excel aqui</div>
         <div style="font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--ink3);margin-top:.2rem;">.xlsx · .xls · até 10 MB</div>
       </div>
 
       <div id="xls-field-map" style="display:none;margin-top:1rem;">
         <div class="sdiv" style="margin:0 -1.1rem;padding:.5rem 1.1rem;">
-          <span>Colunas detectadas</span>
+          <span data-i="xls_cols">Colunas detectadas</span>
           <span id="xls-map-count" style="font-size:.65rem;color:var(--green);font-weight:700;"></span>
         </div>
         <div id="xls-map-grid" style="display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.6rem;"></div>
@@ -668,25 +668,25 @@ footer strong { color:#fff; }
         <span id="rec-count" style="font-family:'JetBrains Mono',monospace;font-size:.65rem;font-weight:700;color:var(--fire);">0</span>
         <button class="btn btn-outline btn-sm" onclick="exportCSV()">⬇ CSV</button>
         <button class="btn btn-ink btn-sm" onclick="exportExcel()">⬇ Excel</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteAllRecords()" style="margin-left:.5rem;">🗑 Apagar TODOS</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteAllRecords()" style="margin-left:.5rem;" data-i="btn_del_all">🗑 Apagar TODOS</button>
       </div>
     </div>
 
     <!-- FILTER BAR -->
     <div style="padding:.6rem 1.5rem;background:var(--bg);border-bottom:1px solid var(--border);display:flex;gap:.6rem;flex-wrap:wrap;align-items:flex-end;">
       <div class="field" style="margin:0;flex:0 0 140px;">
-        <label style="font-family:'JetBrains Mono',monospace;font-size:.55rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:.25rem;">Filtrar data</label>
+        <label style="font-family:'JetBrains Mono',monospace;font-size:.55rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:.25rem;" data-i="filt_date">Filtrar data</label>
         <input type="date" id="filt-date" style="background:var(--white);border:1px solid var(--border);color:var(--ink);border-radius:6px;padding:.35rem .5rem;font-family:'JetBrains Mono',monospace;font-size:.75rem;outline:none;width:100%;" onchange="renderTable()">
       </div>
       <div class="field" style="margin:0;flex:0 0 110px;">
-        <label style="font-family:'JetBrains Mono',monospace;font-size:.55rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:.25rem;">Tratamento</label>
+        <label style="font-family:'JetBrains Mono',monospace;font-size:.55rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:.25rem;" data-i="filt_treat">Tratamento</label>
         <select id="filt-treat" onchange="renderTable()" style="background:var(--white);border:1px solid var(--border);color:var(--ink);border-radius:6px;padding:.35rem .5rem;font-family:'JetBrains Mono',monospace;font-size:.75rem;outline:none;width:100%;">
           <option value="">Todos</option>
           <option>T0</option><option>T1</option><option>T2</option><option>T3</option>
         </select>
       </div>
       <div class="field" style="margin:0;flex:0 0 110px;">
-        <label style="font-family:'JetBrains Mono',monospace;font-size:.55rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:.25rem;">Mesocosmo</label>
+        <label style="font-family:'JetBrains Mono',monospace;font-size:.55rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:.25rem;" data-i="filt_meso">Mesocosmo</label>
         <select id="filt-meso" onchange="renderTable()" style="background:var(--white);border:1px solid var(--border);color:var(--ink);border-radius:6px;padding:.35rem .5rem;font-family:'JetBrains Mono',monospace;font-size:.75rem;outline:none;width:100%;">
           <option value="">Todos</option>
           <option>CR1</option><option>CR2</option><option>CR3</option>
@@ -696,13 +696,13 @@ footer strong { color:#fff; }
         </select>
       </div>
       <div class="field" style="margin:0;flex:0 0 90px;">
-        <label style="font-family:'JetBrains Mono',monospace;font-size:.55rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:.25rem;">Réplica</label>
+        <label style="font-family:'JetBrains Mono',monospace;font-size:.55rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:.25rem;" data-i="filt_rep">Réplica</label>
         <select id="filt-rep" onchange="renderTable()" style="background:var(--white);border:1px solid var(--border);color:var(--ink);border-radius:6px;padding:.35rem .5rem;font-family:'JetBrains Mono',monospace;font-size:.75rem;outline:none;width:100%;">
           <option value="">Todas</option><option>R1</option><option>R2</option>
         </select>
       </div>
-      <button class="btn btn-outline btn-sm" onclick="clearFilters()" style="margin-bottom:1px;">✕ Limpar filtros</button>
-      <button class="btn btn-danger btn-sm" onclick="deleteFiltered()" style="margin-bottom:1px;" id="del-filtered-btn">🗑 Apagar filtrados</button>
+      <button class="btn btn-outline btn-sm" onclick="clearFilters()" style="margin-bottom:1px;" data-i="btn_clear_filt">✕ Limpar filtros</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteFiltered()" style="margin-bottom:1px;" id="del-filtered-btn" data-i="btn_del_filt">🗑 Apagar filtrados</button>
       <span id="filt-count" style="font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--ink3);align-self:center;"></span>
     </div>
 
@@ -714,7 +714,7 @@ footer strong { color:#fff; }
             <th>Hora</th>
             <th data-i="th_meso">Mesocosmo</th>
             <th>Trat.</th>
-            <th>Rep.</th>
+            <th data-i="th_rep">Rep.</th>
             <th>pH</th>
             <th>ORP</th>
             <th>OD%</th>
@@ -739,8 +739,8 @@ footer strong { color:#fff; }
   <!-- UPLOAD HISTORY (inside dados section) -->
   <div id="dp-hist" style="display:none;padding:1rem 1.5rem;">
     <div class="card">
-      <div class="card-label" style="margin-bottom:.6rem;">📜 Histórico de Importações Excel</div>
-      <p style="font-size:.82rem;color:var(--ink2);margin:.4rem 0 1rem;line-height:1.6;">Cada linha = um lote importado via Excel. Rastreie quem fez upload e quando. Se importou em duplicidade, apague aqui e depois use os filtros em "Registros" para apagar os dados.</p>
+      <div class="card-label" style="margin-bottom:.6rem;" data-i="hist_title">📜 Histórico de Importações Excel</div>
+      <p style="font-size:.82rem;color:var(--ink2);margin:.4rem 0 1rem;line-height:1.6;"><span data-i="hist_desc">Cada linha = um lote importado via Excel. Rastreie quem fez upload e quando. Se importou em duplicidade, apague aqui e depois use os filtros em "Registros" para apagar os dados.</span></p>
       <div class="tbl-wrap">
         <table>
           <thead>
@@ -862,7 +862,7 @@ footer strong { color:#fff; }
   <div style="background:var(--bg);border-bottom:1px solid var(--border);padding:.5rem 1.5rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
     <span style="font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--ink3);font-weight:700;text-transform:uppercase;letter-spacing:.1em;">Filtrar análises por data:</span>
     <select id="an-date-filter" onchange="buildAnalises()" style="background:var(--white);border:2px solid var(--border2);color:var(--ink);border-radius:7px;padding:.35rem .6rem;font-family:'JetBrains Mono',monospace;font-size:.78rem;outline:none;min-width:160px;">
-      <option value="">📅 Todas as datas</option>
+      <option value="" data-i="an_all_dates">📅 Todas as datas</option>
     </select>
     <span id="an-date-count" style="font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--ink3);"></span>
   </div>
@@ -896,15 +896,15 @@ footer strong { color:#fff; }
 
     <!-- Chart 1: Bar + DP -->
     <div class="card" style="padding:1rem;">
-      <div class="card-label">📊 Média ± DP por Tratamento</div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--ink3);margin-bottom:.5rem;">Cada barra = média de todas as réplicas · barras de erro = DP</div>
+      <div class="card-label" data-i="chart_bar">📊 Média ± DP por Tratamento</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--ink3);margin-bottom:.5rem;"><span data-i="chart_bar_sub">Cada barra = média de todas as réplicas · barras de erro = DP</span></div>
       <div id="chart-bar" style="width:100%;"></div>
     </div>
 
     <!-- Chart 2: Jitter -->
     <div class="card" style="padding:1rem;">
-      <div class="card-label">🔵 Jitterplot — Réplicas individuais</div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--ink3);margin-bottom:.5rem;">Pontos = cada coleta · 🔴 vermelho = suspeito (Z &gt; 1.5 ou CV &gt; 30%)</div>
+      <div class="card-label" data-i="chart_jitter">🔵 Jitterplot — Réplicas individuais</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--ink3);margin-bottom:.5rem;"><span data-i="chart_jitter_sub">Pontos = cada coleta · 🔴 vermelho = suspeito (Z &gt; 1.5 ou CV &gt; 30%)</span></div>
       <div id="chart-jitter" style="width:100%;"></div>
     </div>
   </div>
@@ -913,7 +913,7 @@ footer strong { color:#fff; }
   <div style="padding:0 1.5rem .85rem;">
     <div class="card" style="padding:1rem;">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.5rem;">
-        <div class="card-label" style="margin:0;">📈 Série Temporal — Controle vs Tratamentos</div>
+        <div class="card-label" style="margin:0;" data-i="chart_time">📈 Série Temporal — Controle vs Tratamentos</div>
         <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
           <div style="display:flex;align-items:center;gap:.35rem;">
             <label style="font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;">De:</label>
@@ -923,10 +923,10 @@ footer strong { color:#fff; }
             <label style="font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;">Até:</label>
             <input type="date" id="ts-to" style="background:var(--bg);border:1px solid var(--border);color:var(--ink);border-radius:6px;padding:.3rem .5rem;font-family:'JetBrains Mono',monospace;font-size:.72rem;outline:none;" onchange="buildAnalises()">
           </div>
-          <button class="btn btn-outline btn-sm" onclick="clearTsDates()" style="font-size:.7rem;">Todas as datas</button>
+          <button class="btn btn-outline btn-sm" onclick="clearTsDates()" style="font-size:.7rem;" data-i="btn_all_dates">Todas as datas</button>
         </div>
       </div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--ink3);margin-bottom:.5rem;">Média de cada tratamento por data de coleta</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--ink3);margin-bottom:.5rem;"><span data-i="chart_time_sub">Média de cada tratamento por data de coleta</span></div>
       <div id="chart-time" style="width:100%;"></div>
       <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:.65rem;">
         <div style="display:flex;align-items:center;gap:.35rem;font-family:'JetBrains Mono',monospace;font-size:.6rem;"><span style="width:24px;height:3px;background:var(--t0);border-radius:2px;display:inline-block;"></span> T0 Controle</div>
@@ -947,13 +947,13 @@ footer strong { color:#fff; }
             <tr>
               <th data-i="th_treat">Trat.</th>
               <th data-i="th_meso">Mesocosmo</th>
-              <th>Rep.</th>
-              <th>N coletas</th>
+              <th data-i="th_rep">Rep.</th>
+              <th data-i="th_n">N coletas</th>
               <th data-i="th_mean">Média</th>
-              <th>DP</th>
-              <th>CV%</th>
-              <th>Z vs T</th>
-              <th>⚠ Status</th>
+              <th data-i="th_sd">DP</th>
+              <th data-i="th_cv">CV%</th>
+              <th data-i="th_z">Z vs T</th>
+              <th data-i="th_status">⚠ Status</th>
             </tr>
           </thead>
           <tbody id="an-tbody"></tbody>
@@ -970,10 +970,10 @@ footer strong { color:#fff; }
   <div class="ph">
     <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:.75rem;">
       <div>
-        <div class="ph-title">📅 Cronograma BRASA</div>
-        <div class="ph-sub">Clique em qualquer evento para editar · arraste para reordenar</div>
+        <div class="ph-title" data-i="crono_title">📅 Cronograma BRASA</div>
+        <div class="ph-sub"><span data-i="crono_desc">Clique em qualquer evento para editar · arraste para reordenar</span></div>
       </div>
-      <button class="btn btn-fire btn-sm" onclick="addCronoEvent()">+ Adicionar evento</button>
+      <button class="btn btn-fire btn-sm" onclick="addCronoEvent()" data-i="crono_btn_add">+ Adicionar evento</button>
     </div>
   </div>
 
@@ -996,11 +996,11 @@ footer strong { color:#fff; }
       <!-- Próximos marcos e coletas -->
       <div style="display:flex;flex-direction:column;gap:1rem;">
         <div class="card">
-          <div class="card-label">⚠️ Próximos eventos</div>
+          <div class="card-label" data-i="upcoming">⚠️ Próximos eventos</div>
           <div id="crono-milestones" style="display:flex;flex-direction:column;gap:.5rem;margin-top:.3rem;"></div>
         </div>
         <div class="card">
-          <div class="card-label">✅ Coletas com dados</div>
+          <div class="card-label" data-i="collections">✅ Coletas com dados</div>
           <div id="crono-collections" style="font-family:'JetBrains Mono',monospace;font-size:.72rem;line-height:2.2;color:var(--ink2);margin-top:.3rem;"></div>
         </div>
       </div>
@@ -1016,8 +1016,8 @@ footer strong { color:#fff; }
       <button class="mc" onclick="closeCronoModal()">✕</button>
     </div>
     <div class="fg" style="gap:.65rem;">
-      <div class="field fc"><label>Data</label><input type="date" id="ce-date"></div>
-      <div class="field fc"><label>Descrição</label><input type="text" id="ce-label" placeholder="Ex: 📊 Coleta limnológica — Semana 3"></div>
+      <div class="field fc"><label data-i="ce_date">Data</label><input type="date" id="ce-date"></div>
+      <div class="field fc"><label data-i="ce_label">Descrição</label><input type="text" id="ce-label" placeholder="Ex: 📊 Coleta limnológica — Semana 3"></div>
       <div class="field">
         <label>Tipo</label>
         <select id="ce-type">
@@ -1195,6 +1195,34 @@ var I = {
     about_title:'Sobre o BRASA',about_question:'Questão Científica',
     about_team:'Equipe BRASA',about_add:'Adicionar membro',
     edit_title:'Editar Registro',btn_save_edit:'Salvar alterações',btn_cancel:'Cancelar',
+    data_sub:'Inserção manual · Upload de Excel · CO₂ · CH₄ · Réplicas',
+    xls_btn:'Escolher arquivo .xlsx',xls_no_file:'Nenhum arquivo escolhido',
+    xls_drag:'Ou arraste o Excel aqui',xls_cols:'Colunas detectadas',
+    filt_date:'Filtrar data',filt_treat:'Tratamento',filt_meso:'Mesocosmo',filt_rep:'Réplica',
+    btn_clear_filt:'✕ Limpar filtros',btn_del_filt:'🗑 Apagar filtrados',btn_del_all:'🗑 Apagar TODOS',
+    an_date_label:'Filtrar análises por data:',an_all_dates:'📅 Todas as datas',
+    chart_bar:'📊 Média ± DP por Tratamento',chart_bar_sub:'Cada barra = média de todas as réplicas · barras de erro = DP',
+    chart_jitter:'🔵 Jitterplot — Réplicas individuais',chart_jitter_sub:'Pontos = cada coleta · 🔴 vermelho = suspeito (Z > 1.5 ou CV > 30%)',
+    chart_time:'📈 Série Temporal — Controle vs Tratamentos',chart_time_sub:'Média de cada tratamento por data de coleta',
+    btn_all_dates:'Todas as datas',
+    replica_table:'🔍 Detalhe por Réplica — Alertas',
+    hist_title:'📜 Histórico de Importações Excel',
+    hist_desc:'Cada linha = um lote importado via Excel. Rastreie quem fez upload e quando.',
+    crono_desc:'Clique em qualquer evento para editar',
+    th_rep:'Rep.',th_n:'N coletas',th_sd:'DP',th_cv:'CV%',th_z:'Z vs T',th_status:'Status',
+    about_q_text:'A intensificação da <strong style="color:var(--fire)">decoada</strong> — queda de oxigênio dissolvido causada por cinzas de incêndio — altera a estrutura do plâncton e a transferência de mercúrio para peixes (<em>Hoplosternum littorale</em>) em mesocosmos controlados?',
+    about_design:'<strong>12 mesocosmos · 300 L · 4 tratamentos × 3 réplicas</strong><br>10 <em>H. littorale</em>/mesocosmo · Fev–Jun 2026 · LIPAN-CELBE/UNEMAT · Cáceres-MT',
+    crono_title:'Cronograma BRASA',crono_btn_add:'+ Adicionar evento',
+    modal_new_ev:'+ Novo Evento',modal_edit_ev:'✏️ Editar Evento',
+    ce_date:'Data',ce_label:'Descrição',ce_type:'Tipo',ce_done:'Status',
+    btn_save_ev:'💾 Salvar',btn_del_ev:'🗑 Apagar evento',
+    ev_coleta:'📊 Coleta',ev_marco:'🎯 Marco',ev_outro:'📌 Outro',
+    ev_pending:'⏳ Pendente',ev_done:'✅ Concluído',
+    upcoming:'⚠️ Próximos eventos',collections:'✅ Coletas com dados',
+    chat_placeholder:'Mensagem…',chat_sender_label:'Seu nome',
+    diary_placeholder:'Escreva sua nota de campo…',
+    team_add_name:'Nome',team_add_role:'Função',
+    cv_warn:'CV > 30% + réplica suspeita',z_warn:'Z-score > 1.5 → verificar campo',
   },
   en:{
     nav_data:'Data',nav_gallery:'Gallery',nav_diary:'Diary',nav_analysis:'Analysis',nav_about:'About',
@@ -1218,6 +1246,34 @@ var I = {
     about_title:'About BRASA',about_question:'Scientific Question',
     about_team:'BRASA Team',about_add:'Add member',
     edit_title:'Edit Record',btn_save_edit:'Save changes',btn_cancel:'Cancel',
+    data_sub:'Manual entry · Excel Upload · CO₂ · CH₄ · Replicas',
+    xls_btn:'Choose .xlsx file',xls_no_file:'No file chosen',
+    xls_drag:'Or drag the Excel here',xls_cols:'Detected columns',
+    filt_date:'Filter date',filt_treat:'Treatment',filt_meso:'Mesocosm',filt_rep:'Replica',
+    btn_clear_filt:'✕ Clear filters',btn_del_filt:'🗑 Delete filtered',btn_del_all:'🗑 Delete ALL',
+    an_date_label:'Filter analyses by date:',an_all_dates:'📅 All dates',
+    chart_bar:'📊 Mean ± SD by Treatment',chart_bar_sub:'Each bar = mean of all replicas · error bars = SD',
+    chart_jitter:'🔵 Jitterplot — Individual Replicas',chart_jitter_sub:'Dots = each sampling · 🔴 red = suspect (Z > 1.5 or CV > 30%)',
+    chart_time:'📈 Time Series — Control vs Treatments',chart_time_sub:'Mean per treatment by sampling date',
+    btn_all_dates:'All dates',
+    replica_table:'🔍 Replica Detail — Alerts',
+    hist_title:'📜 Excel Import History',
+    hist_desc:'Each row = one imported batch. Track who uploaded and when.',
+    crono_desc:'Click any event to edit',
+    th_rep:'Rep.',th_n:'N samplings',th_sd:'SD',th_cv:'CV%',th_z:'Z vs T',th_status:'Status',
+    about_q_text:'Does the intensification of the <strong style="color:var(--fire)">deoxygenation event</strong> — dissolved oxygen drop caused by wildfire ash — alter plankton structure and mercury transfer to fish (<em>Hoplosternum littorale</em>) in controlled mesocosms?',
+    about_design:'<strong>12 mesocosms · 300 L · 4 treatments × 3 replicates</strong><br>10 <em>H. littorale</em>/mesocosm · Feb–Jun 2026 · LIPAN-CELBE/UNEMAT · Cáceres-MT',
+    crono_title:'BRASA Schedule',crono_btn_add:'+ Add event',
+    modal_new_ev:'+ New Event',modal_edit_ev:'✏️ Edit Event',
+    ce_date:'Date',ce_label:'Description',ce_type:'Type',ce_done:'Status',
+    btn_save_ev:'💾 Save',btn_del_ev:'🗑 Delete event',
+    ev_coleta:'📊 Sampling',ev_marco:'🎯 Milestone',ev_outro:'📌 Other',
+    ev_pending:'⏳ Pending',ev_done:'✅ Done',
+    upcoming:'⚠️ Upcoming events',collections:'✅ Samplings with data',
+    chat_placeholder:'Message…',chat_sender_label:'Your name',
+    diary_placeholder:'Write your field note…',
+    team_add_name:'Name',team_add_role:'Role',
+    cv_warn:'CV > 30% + suspect replica',z_warn:'Z-score > 1.5 → check field',
   },
   es:{
     nav_data:'Datos',nav_gallery:'Galería',nav_diary:'Diario',nav_analysis:'Análisis',nav_about:'Sobre',
@@ -1241,17 +1297,81 @@ var I = {
     about_title:'Sobre BRASA',about_question:'Pregunta Científica',
     about_team:'Equipo BRASA',about_add:'Agregar miembro',
     edit_title:'Editar Registro',btn_save_edit:'Guardar cambios',btn_cancel:'Cancelar',
+    data_sub:'Entrada manual · Subir Excel · CO₂ · CH₄ · Réplicas',
+    xls_btn:'Elegir archivo .xlsx',xls_no_file:'Ningún archivo elegido',
+    xls_drag:'O arrastre el Excel aquí',xls_cols:'Columnas detectadas',
+    filt_date:'Filtrar fecha',filt_treat:'Tratamiento',filt_meso:'Mesocosmos',filt_rep:'Réplica',
+    btn_clear_filt:'✕ Limpiar filtros',btn_del_filt:'🗑 Eliminar filtrados',btn_del_all:'🗑 Eliminar TODOS',
+    an_date_label:'Filtrar análisis por fecha:',an_all_dates:'📅 Todas las fechas',
+    chart_bar:'📊 Media ± DE por Tratamiento',chart_bar_sub:'Cada barra = media de todas las réplicas · barras de error = DE',
+    chart_jitter:'🔵 Jitterplot — Réplicas individuales',chart_jitter_sub:'Puntos = cada muestreo · 🔴 rojo = sospechoso (Z > 1.5 o CV > 30%)',
+    chart_time:'📈 Serie Temporal — Control vs Tratamientos',chart_time_sub:'Media por tratamiento por fecha de muestreo',
+    btn_all_dates:'Todas las fechas',
+    replica_table:'🔍 Detalle por Réplica — Alertas',
+    hist_title:'📜 Historial de Importaciones Excel',
+    hist_desc:'Cada fila = un lote importado. Rastree quién subió datos y cuándo.',
+    crono_desc:'Haga clic en cualquier evento para editar',
+    th_rep:'Rep.',th_n:'N muestreos',th_sd:'DE',th_cv:'CV%',th_z:'Z vs T',th_status:'Estado',
+    about_q_text:'¿La intensificación de la <strong style="color:var(--fire)">desoxigenación</strong> — caída del oxígeno disuelto causada por cenizas de incendio — altera la estructura del plancton y la transferencia de mercurio a peces (<em>Hoplosternum littorale</em>) en mesocosmos controlados?',
+    about_design:'<strong>12 mesocosmos · 300 L · 4 tratamientos × 3 réplicas</strong><br>10 <em>H. littorale</em>/mesocosmo · Feb–Jun 2026 · LIPAN-CELBE/UNEMAT · Cáceres-MT',
+    crono_title:'Cronograma BRASA',crono_btn_add:'+ Agregar evento',
+    modal_new_ev:'+ Nuevo Evento',modal_edit_ev:'✏️ Editar Evento',
+    ce_date:'Fecha',ce_label:'Descripción',ce_type:'Tipo',ce_done:'Estado',
+    btn_save_ev:'💾 Guardar',btn_del_ev:'🗑 Eliminar evento',
+    ev_coleta:'📊 Muestreo',ev_marco:'🎯 Hito',ev_outro:'📌 Otro',
+    ev_pending:'⏳ Pendiente',ev_done:'✅ Completado',
+    upcoming:'⚠️ Próximos eventos',collections:'✅ Muestreos con datos',
+    chat_placeholder:'Mensaje…',chat_sender_label:'Su nombre',
+    diary_placeholder:'Escriba su nota de campo…',
+    team_add_name:'Nombre',team_add_role:'Función',
+    cv_warn:'CV > 30% + réplica sospechosa',z_warn:'Z-score > 1.5 → verificar campo',
   }
 };
 
 function setLang(l,btn) {
   lang=l;
-  document.querySelectorAll('.lbtn').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.lbtn').forEach(function(b){b.classList.remove('on');});
   if(btn) btn.classList.add('on');
-  document.querySelectorAll('[data-i]').forEach(el=>{
+  var dict=I[l]||I.pt;
+  // Text content
+  document.querySelectorAll('[data-i]').forEach(function(el){
     var k=el.getAttribute('data-i');
-    if(I[l]&&I[l][k]!==undefined) el.innerHTML=I[l][k];
+    if(dict[k]!==undefined) el.innerHTML=dict[k];
   });
+  // Placeholders
+  document.querySelectorAll('[data-i-placeholder]').forEach(function(el){
+    var k=el.getAttribute('data-i-placeholder');
+    if(dict[k]!==undefined) el.placeholder=dict[k];
+  });
+  // Chat placeholder
+  var ci=document.getElementById('chat-input');
+  if(ci&&dict.chat_placeholder) ci.placeholder=dict.chat_placeholder;
+  var di=document.getElementById('diary-text');
+  if(di&&dict.diary_placeholder) di.placeholder=dict.diary_placeholder;
+  // Team add fields
+  var tn=document.getElementById('tm-name');
+  if(tn&&dict.team_add_name) tn.placeholder=dict.team_add_name;
+  var tr=document.getElementById('tm-role');
+  if(tr&&dict.team_add_role) tr.placeholder=dict.team_add_role;
+  // xls filename default
+  var xf=document.getElementById('xls-filename');
+  if(xf&&xf.textContent.trim()===I.pt.xls_no_file||xf&&xf.textContent.trim()===I.en.xls_no_file||xf&&xf.textContent.trim()===I.es.xls_no_file) {
+    if(dict.xls_no_file) xf.textContent=dict.xls_no_file;
+  }
+  // Cronograma modal selects
+  var ceType=document.getElementById('ce-type');
+  if(ceType&&dict.ev_coleta){
+    ceType.options[0].text=dict.ev_coleta;
+    ceType.options[1].text=dict.ev_marco;
+    ceType.options[2].text=dict.ev_outro;
+  }
+  var ceDone=document.getElementById('ce-done');
+  if(ceDone&&dict.ev_pending){
+    ceDone.options[0].text=dict.ev_pending;
+    ceDone.options[1].text=dict.ev_done;
+  }
+  // Rebuild cronograma if visible
+  if(document.getElementById('crono')&&document.getElementById('crono').classList.contains('on')) buildCronograma();
 }
 
 // ════════════════════════════════════════════
