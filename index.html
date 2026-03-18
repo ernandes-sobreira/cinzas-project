@@ -434,6 +434,7 @@ footer strong { color:#fff; }
     <button class="tnb" onclick="go('diario',this,'di')">📓 <span data-i="nav_diary">Diário</span></button>
     <button class="tnb" onclick="go('ashzap',this,'az')">💬 AshZap</button>
     <button class="tnb" onclick="go('analises',this,'an')">🔬 <span data-i="nav_analysis">Análises</span></button>
+    <button class="tnb" onclick="go('clima',this,'cl')">🌤️ <span data-i="nav_clima">Clima</span></button>
     <button class="tnb" onclick="go('crono',this,'cr')">📅 Cronograma</button>
     <button class="tnb" onclick="go('sobre',this,'s')">👥 <span data-i="nav_about">Sobre</span></button>
   </nav>
@@ -458,6 +459,7 @@ footer strong { color:#fff; }
   <button class="bnb" onclick="go('ashzap',this,'az')"><span class="bi">💬</span>AshZap</button>
   <button class="bnb" onclick="go('analises',this,'an')"><span class="bi">🔬</span><span data-i="nav_analysis">Análise</span></button>
   <button class="bnb" onclick="go('crono',this,'cr')"><span class="bi">📅</span>Crono</button>
+  <button class="bnb" onclick="go('clima',this,'cl')"><span class="bi">🌤️</span><span data-i="nav_clima">Clima</span></button>
   <button class="bnb" onclick="go('sobre',this,'s')"><span class="bi">👥</span><span data-i="nav_about">Sobre</span></button>
 </nav>
 
@@ -966,6 +968,120 @@ footer strong { color:#fff; }
 <!-- ════════════════════════════════════════════
      CRONOGRAMA
 ════════════════════════════════════════════ -->
+
+<!-- ════════════════════════════════════════════
+     CLIMA
+════════════════════════════════════════════ -->
+<div class="sec" id="clima">
+  <div class="ph">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:.75rem;">
+      <div>
+        <div class="ph-title">🌤️ <span data-i="clima_title">Dados Atmosféricos</span></div>
+        <div class="ph-sub" data-i="clima_sub">Temperatura · Umidade · Vento · Pressão · Iluminação</div>
+      </div>
+      <label class="btn btn-fire" style="cursor:pointer;">
+        📂 <span data-i="clima_btn_upload">Subir planilha</span>
+        <input type="file" id="atm-file-input" accept=".xlsx,.xls" style="display:none;" onchange="readAtmExcel(this.files[0])">
+      </label>
+    </div>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="g4" style="padding:.5rem 1.5rem;">
+    <div class="card" id="atm-card-temp">
+      <div class="card-label">🌡️ <span data-i="atm_temp">Temperatura</span></div>
+      <div id="atm-val-temp" style="font-size:2rem;font-weight:900;color:var(--fire);">—</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--ink3);" data-i="atm_last">última medição</div>
+    </div>
+    <div class="card" id="atm-card-humid">
+      <div class="card-label">💧 <span data-i="atm_humid">Umidade</span></div>
+      <div id="atm-val-humid" style="font-size:2rem;font-weight:900;color:var(--teal);">—</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--ink3);" data-i="atm_last">última medição</div>
+    </div>
+    <div class="card" id="atm-card-wind">
+      <div class="card-label">🌬️ <span data-i="atm_wind">Vento</span></div>
+      <div id="atm-val-wind" style="font-size:2rem;font-weight:900;color:var(--amber);">—</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--ink3);" data-i="atm_last">última medição</div>
+    </div>
+    <div class="card" id="atm-card-press">
+      <div class="card-label">⏱️ <span data-i="atm_press">Pressão</span></div>
+      <div id="atm-val-press" style="font-size:2rem;font-weight:900;color:var(--t1);">—</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--ink3);" data-i="atm_last">última medição</div>
+    </div>
+  </div>
+
+  <!-- Upload preview -->
+  <div id="atm-preview-wrap" style="display:none;padding:0 1.5rem 1rem;">
+    <div class="import-preview">
+      <div class="ip-head">
+        <span id="atm-preview-title">Prévia</span>
+        <button class="btn btn-green btn-sm" id="atm-import-btn" onclick="importAtmExcel()">✅ <span data-i="btn_import">Importar todos</span></button>
+      </div>
+      <div class="tbl-wrap" style="max-height:240px;overflow-y:auto;">
+        <table>
+          <thead><tr id="atm-thead"></tr></thead>
+          <tbody id="atm-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart -->
+  <div style="padding:0 1.5rem .85rem;">
+    <div class="card" style="padding:1rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.6rem;">
+        <div class="card-label" style="margin:0;" data-i="atm_chart_title">📈 Série Temporal — Condições Atmosféricas</div>
+        <select id="atm-var-sel" onchange="buildAtmChart()" style="background:var(--white);border:2px solid var(--border2);color:var(--ink);border-radius:7px;padding:.3rem .55rem;font-family:'JetBrains Mono',monospace;font-size:.75rem;outline:none;">
+          <option value="temperatura">🌡️ Temperatura (°C)</option>
+          <option value="umidade">💧 Umidade (%)</option>
+          <option value="velocidade">🌬️ Velocidade do vento (m/s)</option>
+          <option value="pressao">⏱️ Pressão (hPa)</option>
+          <option value="ponto_de_orva">🌫️ Ponto de orvalho (°C)</option>
+          <option value="vento_frio">🌡️ Vento frio (°C)</option>
+          <option value="illuminacao">☀️ Iluminação (lux)</option>
+          <option value="altitude">⛰️ Altitude (m)</option>
+        </select>
+      </div>
+      <div id="atm-chart" style="width:100%;"></div>
+    </div>
+  </div>
+
+  <!-- Records table -->
+  <div style="padding:0 1.5rem 1.5rem;">
+    <div class="card">
+      <div class="sdiv">
+        <span data-i="atm_records">Registros Atmosféricos</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span id="atm-count" style="font-family:'JetBrains Mono',monospace;font-size:.65rem;font-weight:700;color:var(--fire);">0</span>
+          <button class="btn btn-danger btn-sm" onclick="deleteAllAtm()">🗑 <span data-i="btn_del_all">Apagar TODOS</span></button>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th data-i="th_date">Data</th>
+              <th>🌡️ Temp (°C)</th>
+              <th>💧 Umid (%)</th>
+              <th>🌬️ V.Frio (°C)</th>
+              <th>🌫️ Orvalho (°C)</th>
+              <th>💨 Vel. (m/s)</th>
+              <th>⏱️ Pressão</th>
+              <th>⛰️ Alt. (m)</th>
+              <th>☀️ Ilum. (lux)</th>
+              <th>📝 Obs</th>
+              <th>🗑</th>
+            </tr>
+          </thead>
+          <tbody id="atm-tbody-table">
+            <tr><td colspan="11" style="text-align:center;padding:2rem;color:var(--ink3);font-family:'JetBrains Mono',monospace;font-size:.7rem;">Sem dados atmosféricos ainda…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="sec" id="crono">
   <div class="ph">
     <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:.75rem;">
@@ -1174,6 +1290,10 @@ var xlsRows = []; // pending excel rows
 var lang = 'pt';
 var I = {
   pt:{
+    nav_clima:'Clima',
+    clima_title:'Dados Atmosféricos',clima_sub:'Temperatura · Umidade · Vento · Pressão · Iluminação',
+    clima_btn_upload:'Subir planilha',atm_temp:'Temperatura',atm_humid:'Umidade',atm_wind:'Vento',atm_press:'Pressão',
+    atm_last:'última medição',atm_chart_title:'📈 Série Temporal — Condições Atmosféricas',atm_records:'Registros Atmosféricos',
     nav_data:'Dados',nav_gallery:'Galeria',nav_diary:'Diário',nav_analysis:'Análises',nav_about:'Sobre',
     prog_label:'Progresso do experimento',ss_records:'registros',ss_photos:'fotos',ss_diary:'notas',
     card_today:'Tarefas de Hoje',card_lastdata:'Últimas medições',
@@ -1225,6 +1345,10 @@ var I = {
     cv_warn:'CV > 30% + réplica suspeita',z_warn:'Z-score > 1.5 → verificar campo',
   },
   en:{
+    nav_clima:'Weather',
+    clima_title:'Atmospheric Data',clima_sub:'Temperature · Humidity · Wind · Pressure · Illumination',
+    clima_btn_upload:'Upload spreadsheet',atm_temp:'Temperature',atm_humid:'Humidity',atm_wind:'Wind',atm_press:'Pressure',
+    atm_last:'latest reading',atm_chart_title:'📈 Time Series — Atmospheric Conditions',atm_records:'Atmospheric Records',
     nav_data:'Data',nav_gallery:'Gallery',nav_diary:'Diary',nav_analysis:'Analysis',nav_about:'About',
     prog_label:'Experiment progress',ss_records:'records',ss_photos:'photos',ss_diary:'notes',
     card_today:"Today's Tasks",card_lastdata:'Latest readings',
@@ -1276,6 +1400,10 @@ var I = {
     cv_warn:'CV > 30% + suspect replica',z_warn:'Z-score > 1.5 → check field',
   },
   es:{
+    nav_clima:'Clima',
+    clima_title:'Datos Atmosféricos',clima_sub:'Temperatura · Humedad · Viento · Presión · Iluminación',
+    clima_btn_upload:'Subir planilla',atm_temp:'Temperatura',atm_humid:'Humedad',atm_wind:'Viento',atm_press:'Presión',
+    atm_last:'última medición',atm_chart_title:'📈 Serie Temporal — Condiciones Atmosféricas',atm_records:'Registros Atmosféricos',
     nav_data:'Datos',nav_gallery:'Galería',nav_diary:'Diario',nav_analysis:'Análisis',nav_about:'Sobre',
     prog_label:'Progreso del experimento',ss_records:'registros',ss_photos:'fotos',ss_diary:'notas',
     card_today:'Tareas de Hoy',card_lastdata:'Últimas mediciones',
@@ -1378,13 +1506,14 @@ function setLang(l,btn) {
 // NAVIGATION
 // ════════════════════════════════════════════
 function go(id, btn) {
-  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
-  document.querySelectorAll('.tnb,.bnb').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.sec').forEach(function(s){s.classList.remove('on');});
+  document.querySelectorAll('.tnb,.bnb').forEach(function(b){b.classList.remove('on');});
   document.getElementById(id).classList.add('on');
   if(btn) btn.classList.add('on');
   if(id==='analises') buildAnalises();
   if(id==='crono') buildCronograma();
   if(id==='dash') buildDashAlerts();
+  if(id==='clima') { renderAtmTable(); buildAtmChart(); }
   window.scrollTo(0,0);
 }
 
@@ -1551,6 +1680,12 @@ document.addEventListener('firebase-ready', function() {
   onSnapshot(query(collection(db,'upload_history'),orderBy('timestamp','desc')), function(snap) {
     var hist = snap.docs.map(function(d) { return Object.assign({id: d.id}, d.data()); });
     renderUploadHistory(hist);
+  });
+
+  // Atmospheric data
+  onSnapshot(query(collection(db,'atmospheric'),orderBy('date','desc')), function(snap) {
+    ATM_DB = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+    renderAtmTable();
   });
 
   // Diary
@@ -2850,6 +2985,246 @@ function drawTimeSeries(divId, v, vLabel) {
   });
 
   el.innerHTML=makeSVG(W,H,svg);
+}
+
+// ════════════════════════════════════════════
+// CLIMA — ATMOSPHERIC DATA
+// ════════════════════════════════════════════
+var ATM_DB = []; // atmospheric records from Firebase
+var atmRows = []; // pending excel rows
+
+var ATM_COL_MAP = {
+  'data':'date','temperatura':'temperatura','umidade':'umidade',
+  'vento_frio':'vento_frio','ponto_de_orva':'ponto_de_orva','ponto_de_orvalho':'ponto_de_orva',
+  'velocidade':'velocidade','pressao':'pressao','altitude':'altitude',
+  'illuminacao':'illuminacao','iluminacao':'illuminacao','comments':'comments','obs':'comments'
+};
+
+function readAtmExcel(file) {
+  if (!file) return;
+  if (typeof XLSX === 'undefined') { toast('⚠ Biblioteca XLSX não carregada','err'); return; }
+  var fn = document.getElementById('atm-file-input');
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var wb = XLSX.read(e.target.result, {type:'array'});
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var raw = XLSX.utils.sheet_to_json(ws, {defval:''});
+      if (!raw.length) { toast('⚠ Planilha vazia','err'); return; }
+
+      var headers = Object.keys(raw[0]);
+      var map = {};
+      headers.forEach(function(h) {
+        var key = h.toLowerCase().trim().replace(/\s+/g,'_');
+        var field = ATM_COL_MAP[key];
+        if (field) map[h] = field;
+      });
+
+      atmRows = raw.map(function(row) {
+        var rec = {comments:''};
+        Object.keys(row).forEach(function(h) {
+          var field = map[h];
+          if (!field) return;
+          var val = row[h];
+          if (field === 'date') rec.date = parseDateBR(val);
+          else if (field === 'comments') rec.comments = (val||'').toString().trim();
+          else rec[field] = (val===''||val===null||val===undefined) ? null : parseFloat(val);
+        });
+        return rec;
+      }).filter(function(r) { return r.date && r.date.length > 0; });
+
+      if (!atmRows.length) { toast('⚠ Nenhuma linha com data válida','err'); return; }
+
+      // Preview
+      var thead = document.getElementById('atm-thead');
+      var tbody = document.getElementById('atm-tbody');
+      var cols = ['date','temperatura','umidade','vento_frio','ponto_de_orva','velocidade','pressao','altitude','illuminacao','comments'];
+      var usedCols = cols.filter(function(c) { return atmRows.some(function(r){return r[c]!=null&&r[c]!=='';}) ; });
+      if (thead) thead.innerHTML = usedCols.map(function(c){return '<th>'+c+'</th>';}).join('');
+      if (tbody) tbody.innerHTML = atmRows.map(function(r){
+        return '<tr>'+usedCols.map(function(c){
+          return '<td class="mono" style="font-size:.72rem;">'+(r[c]!=null&&r[c]!==''?r[c]:'<span style="color:var(--ink3)">—</span>')+'</td>';
+        }).join('')+'</tr>';
+      }).join('');
+
+      var pw = document.getElementById('atm-preview-wrap');
+      var pt = document.getElementById('atm-preview-title');
+      var ib = document.getElementById('atm-import-btn');
+      if (pw) pw.style.display = 'block';
+      if (pt) pt.textContent = 'Prévia — '+atmRows.length+' linhas válidas';
+      if (ib) ib.textContent = '✅ Importar '+atmRows.length+' registros';
+      toast('✓ Excel lido: '+atmRows.length+' registros atmosféricos','ok');
+    } catch(err) {
+      toast('⚠ Erro ao ler: '+err.message,'err');
+      console.error(err);
+    }
+  };
+  reader.onerror = function() { toast('⚠ Erro ao ler arquivo','err'); };
+  reader.readAsArrayBuffer(file);
+}
+
+async function importAtmExcel() {
+  if (!atmRows.length) { toast('⚠ Nenhum dado para importar','err'); return; }
+  if (!window.fbFns) { toast('⚠ Firebase não conectado','err'); return; }
+  var {collection, writeBatch, doc, addDoc, serverTimestamp} = window.fbFns;
+  var btn = document.getElementById('atm-import-btn');
+  if (btn) btn.disabled = true;
+  var ok = 0, fail = 0;
+  for (var i = 0; i < atmRows.length; i += 20) {
+    var chunk = atmRows.slice(i, i+20);
+    var batch = writeBatch(window.db);
+    chunk.forEach(function(r) {
+      var ref = doc(collection(window.db,'atmospheric'));
+      batch.set(ref, {
+        date: r.date||'',
+        temperatura: r.temperatura!=null?r.temperatura:null,
+        umidade: r.umidade!=null?r.umidade:null,
+        vento_frio: r.vento_frio!=null?r.vento_frio:null,
+        ponto_de_orva: r.ponto_de_orva!=null?r.ponto_de_orva:null,
+        velocidade: r.velocidade!=null?r.velocidade:null,
+        pressao: r.pressao!=null?r.pressao:null,
+        altitude: r.altitude!=null?r.altitude:null,
+        illuminacao: r.illuminacao!=null?r.illuminacao:null,
+        comments: r.comments||'',
+        timestamp: serverTimestamp()
+      });
+    });
+    try { await batch.commit(); ok += chunk.length; }
+    catch(e) { fail += chunk.length; console.error(e); }
+  }
+  if (btn) btn.disabled = false;
+  if (ok > 0) toast('🌤️ '+ok+' registros atmosféricos importados!','ok');
+  if (fail > 0) toast('⚠ '+fail+' erros','err');
+  atmRows = [];
+  var pw = document.getElementById('atm-preview-wrap');
+  if (pw) pw.style.display = 'none';
+}
+
+function renderAtmTable() {
+  var tbody = document.getElementById('atm-tbody-table');
+  var countEl = document.getElementById('atm-count');
+  if (!tbody) return;
+  if (countEl) countEl.textContent = ATM_DB.length;
+  if (!ATM_DB.length) {
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:2rem;color:var(--ink3);font-family:\'JetBrains Mono\',monospace;font-size:.7rem;">Sem dados atmosféricos ainda…</td></tr>';
+    return;
+  }
+  var d = function(v,unit) {
+    if (v===null||v===undefined||v==='') return '<span style="color:var(--ink3)">—</span>';
+    return '<span class="mono">'+v+(unit?' '+unit:'')+'</span>';
+  };
+  tbody.innerHTML = ATM_DB.slice(0,200).map(function(r) {
+    return '<tr>'+
+      '<td style="white-space:nowrap;font-size:.72rem;">'+r.date+'</td>'+
+      '<td style="color:var(--fire)">'+d(r.temperatura)+'</td>'+
+      '<td style="color:var(--teal)">'+d(r.umidade)+'</td>'+
+      '<td>'+d(r.vento_frio)+'</td>'+
+      '<td>'+d(r.ponto_de_orva)+'</td>'+
+      '<td>'+d(r.velocidade)+'</td>'+
+      '<td>'+d(r.pressao)+'</td>'+
+      '<td>'+d(r.altitude)+'</td>'+
+      '<td style="color:var(--amber)">'+d(r.illuminacao)+'</td>'+
+      '<td style="font-size:.7rem;color:var(--ink3);">'+(r.comments||'—')+'</td>'+
+      '<td><button class="btn btn-danger btn-sm" style="padding:.2rem .4rem;font-size:.65rem;" onclick="deleteAtmRecord(\''+r.id+'\')">🗑</button></td>'+
+    '</tr>';
+  }).join('');
+  // Update summary cards
+  var last = ATM_DB[0];
+  if (last) {
+    var tv=document.getElementById('atm-val-temp'); if(tv) tv.textContent=last.temperatura!=null?last.temperatura+'°C':'—';
+    var hv=document.getElementById('atm-val-humid'); if(hv) hv.textContent=last.umidade!=null?last.umidade+'%':'—';
+    var wv=document.getElementById('atm-val-wind'); if(wv) wv.textContent=last.velocidade!=null?last.velocidade+' m/s':'—';
+    var pv=document.getElementById('atm-val-press'); if(pv) pv.textContent=last.pressao!=null?last.pressao+' hPa':'—';
+  }
+  buildAtmChart();
+}
+
+async function deleteAtmRecord(id) {
+  if (!confirm('Apagar este registro?')) return;
+  var {doc, deleteDoc} = window.fbFns;
+  try { await deleteDoc(doc(window.db,'atmospheric',id)); toast('✓ Apagado','ok'); }
+  catch(e) { toast('⚠ '+e.message,'err'); }
+}
+
+async function deleteAllAtm() {
+  if (!confirm('Apagar TODOS os '+ATM_DB.length+' registros atmosféricos?')) return;
+  var {writeBatch, doc} = window.fbFns;
+  toast('🗑 Apagando…');
+  try {
+    for (var i=0; i<ATM_DB.length; i+=400) {
+      var b = writeBatch(window.db);
+      ATM_DB.slice(i,i+400).forEach(function(r){ b.delete(doc(window.db,'atmospheric',r.id)); });
+      await b.commit();
+    }
+    toast('✓ Todos apagados','ok');
+  } catch(e) { toast('⚠ '+e.message,'err'); }
+}
+
+function buildAtmChart() {
+  var el = document.getElementById('atm-chart');
+  if (!el || !ATM_DB.length) return;
+  var sel = document.getElementById('atm-var-sel');
+  var v = sel ? sel.value : 'temperatura';
+  var varCols = {
+    temperatura:{label:'Temperatura (°C)',color:'#e8340a'},
+    umidade:{label:'Umidade (%)',color:'#0891b2'},
+    velocidade:{label:'Velocidade do vento (m/s)',color:'#7c3aed'},
+    pressao:{label:'Pressão (hPa)',color:'#d97706'},
+    ponto_de_orva:{label:'Ponto de orvalho (°C)',color:'#059669'},
+    vento_frio:{label:'Vento frio (°C)',color:'#ea580c'},
+    illuminacao:{label:'Iluminação (lux)',color:'#f59e0b'},
+    altitude:{label:'Altitude (m)',color:'#6b7280'}
+  };
+  var meta = varCols[v] || {label:v, color:'#374151'};
+  var sorted = ATM_DB.slice().sort(function(a,b){return a.date<b.date?-1:1;});
+  var pts = sorted.filter(function(r){return r[v]!=null;});
+  if (!pts.length) { el.innerHTML='<div style="text-align:center;padding:2rem;color:#9ca3af;font-size:.8rem;">Sem dados para esta variável</div>'; return; }
+
+  var W=1100,H=180,PL=62,PR=16,PT=20,PB=32;
+  var cW=W-PL-PR, cH=H-PT-PB;
+  var vals = pts.map(function(p){return p[v];});
+  var mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals);
+  var span=mx-mn; if(span<0.001){span=1;}
+  var ymin=mn-span*0.12, ymax=mx+span*0.15;
+  var N=pts.length;
+  var scX=function(i){return N===1?PL+cW/2:PL+i/(N-1)*cW;};
+  var scY=function(v2){return PT+(PB-0)+(cH)*(1-(v2-ymin)/(ymax-ymin));};
+
+  var svg='';
+  // Grid
+  for(var gi=0;gi<=4;gi++){
+    var gv=ymin+(ymax-ymin)*gi/4;
+    var gy=scY(gv);
+    svg+='<line x1="'+PL+'" y1="'+gy+'" x2="'+(PL+cW)+'" y2="'+gy+'" stroke="rgba(0,0,0,.06)" stroke-width="1"/>';
+    svg+='<text x="'+(PL-5)+'" y="'+(gy+4)+'" text-anchor="end" fill="#6b7280" font-size="9">'+fmtV(gv)+'</text>';
+  }
+  svg+='<text transform="rotate(-90)" x="-'+(PT+cH/2)+'" y="14" text-anchor="middle" fill="#374151" font-size="9" font-weight="bold">'+meta.label+'</text>';
+
+  // X labels
+  var step=Math.max(1,Math.ceil(N/8));
+  pts.forEach(function(p,i){
+    if(i%step!==0&&i!==N-1) return;
+    var parts=p.date.split('-');
+    var lbl=parts.length===3?parts[2]+'/'+parts[1]:p.date;
+    svg+='<text x="'+scX(i)+'" y="'+(H-PB+PT+13)+'" text-anchor="middle" fill="#6b7280" font-size="8.5">'+lbl+'</text>';
+  });
+
+  // Line
+  var d2=''; var started=false;
+  pts.forEach(function(p,i){
+    var x=scX(i), y=scY(p[v]);
+    d2+=(started?'L':'M')+x+' '+y; started=true;
+  });
+  if(d2) svg+='<path d="'+d2+'" fill="none" stroke="'+meta.color+'" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+
+  // Dots + values
+  pts.forEach(function(p,i){
+    var x=scX(i), y=scY(p[v]);
+    svg+='<circle cx="'+x+'" cy="'+y+'" r="5" fill="'+meta.color+'" stroke="white" stroke-width="2"/>';
+    svg+='<text x="'+x+'" y="'+(y-9)+'" text-anchor="middle" fill="'+meta.color+'" font-size="9" font-weight="bold">'+fmtV(p[v])+'</text>';
+  });
+
+  el.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="display:block;overflow:visible;" xmlns="http://www.w3.org/2000/svg"><style>text{font-family:\'JetBrains Mono\',monospace;}</style>'+svg+'</svg>';
 }
 
 // ════════════════════════════════════════════
